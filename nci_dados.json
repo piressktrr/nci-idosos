@@ -1,0 +1,1665 @@
+{
+ "prox_id": 106,
+ "idosos": [
+  {
+   "id": 1,
+   "nome": "Ana Lima (fictícia)",
+   "data_nascimento": "1950-03-12",
+   "sexo": "F",
+   "raca_cor": "Branca",
+   "identidade_genero": "Cisgênero",
+   "imigrante": false,
+   "contato": "",
+   "periodos": [
+    {
+     "entrada": "2018-02-10",
+     "origem": "CRAS",
+     "saida": null,
+     "motivo_saida": null
+    }
+   ],
+   "situacoes": [
+    {
+     "inicio": "2018-02-10",
+     "mora_sozinho": true,
+     "apoio": true,
+     "deficiencia": false,
+     "bpc": false,
+     "regiao": "Subprefeitura do serviço"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "nome": "Beatriz Souza (fictícia)",
+   "data_nascimento": "1946-07-01",
+   "sexo": "F",
+   "raca_cor": "Parda",
+   "identidade_genero": "Cisgênero",
+   "imigrante": false,
+   "contato": "",
+   "periodos": [
+    {
+     "entrada": "2017-05-20",
+     "origem": "Demanda espontânea / outra",
+     "saida": null,
+     "motivo_saida": null
+    }
+   ],
+   "situacoes": [
+    {
+     "inicio": "2017-05-20",
+     "mora_sozinho": true,
+     "apoio": false,
+     "deficiencia": false,
+     "bpc": true,
+     "regiao": "Subprefeitura do serviço"
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "nome": "Carlos Pereira (fictício)",
+   "data_nascimento": "1944-11-23",
+   "sexo": "M",
+   "raca_cor": "Preta",
+   "identidade_genero": "Cisgênero",
+   "imigrante": false,
+   "contato": "",
+   "periodos": [
+    {
+     "entrada": "2016-08-15",
+     "origem": "CRAS",
+     "saida": null,
+     "motivo_saida": null
+    }
+   ],
+   "situacoes": [
+    {
+     "inicio": "2016-08-15",
+     "mora_sozinho": false,
+     "apoio": null,
+     "deficiencia": true,
+     "bpc": false,
+     "regiao": "Subprefeitura do serviço"
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "nome": "Dora Nunes (fictícia)",
+   "data_nascimento": "1958-01-30",
+   "sexo": "F",
+   "raca_cor": "Branca",
+   "identidade_genero": "Cisgênero",
+   "imigrante": false,
+   "contato": "",
+   "periodos": [
+    {
+     "entrada": "2026-09-08",
+     "origem": "CRAS",
+     "saida": null,
+     "motivo_saida": null
+    }
+   ],
+   "situacoes": [
+    {
+     "inicio": "2026-09-08",
+     "mora_sozinho": true,
+     "apoio": true,
+     "deficiencia": false,
+     "bpc": false,
+     "regiao": "Subprefeitura do serviço"
+    }
+   ]
+  },
+  {
+   "id": 5,
+   "nome": "Eduardo Reis (fictício)",
+   "data_nascimento": "1959-05-05",
+   "sexo": "M",
+   "raca_cor": "Parda",
+   "identidade_genero": "Cisgênero",
+   "imigrante": false,
+   "contato": "",
+   "periodos": [
+    {
+     "entrada": "2026-09-14",
+     "origem": "Demanda espontânea / outra",
+     "saida": null,
+     "motivo_saida": null
+    }
+   ],
+   "situacoes": [
+    {
+     "inicio": "2026-09-14",
+     "mora_sozinho": false,
+     "apoio": null,
+     "deficiencia": false,
+     "bpc": false,
+     "regiao": "Outra subprefeitura"
+    }
+   ]
+  },
+  {
+   "id": 6,
+   "nome": "Fátima Oliveira (fictícia)",
+   "data_nascimento": "1941-09-09",
+   "sexo": "F",
+   "raca_cor": "Branca",
+   "identidade_genero": "Cisgênero",
+   "imigrante": false,
+   "contato": "",
+   "periodos": [
+    {
+     "entrada": "2015-03-03",
+     "origem": "CREAS",
+     "saida": "2026-09-15",
+     "motivo_saida": "Mudança de endereço"
+    }
+   ],
+   "situacoes": [
+    {
+     "inicio": "2015-03-03",
+     "mora_sozinho": true,
+     "apoio": true,
+     "deficiencia": false,
+     "bpc": false,
+     "regiao": "Subprefeitura do serviço"
+    }
+   ]
+  },
+  {
+   "id": 7,
+   "nome": "Gilda Matos (fictícia)",
+   "data_nascimento": "1953-12-02",
+   "sexo": "F",
+   "raca_cor": "Amarela",
+   "identidade_genero": "Cisgênero",
+   "imigrante": false,
+   "contato": "",
+   "periodos": [
+    {
+     "entrada": "2019-06-10",
+     "origem": "Outros serviços da rede socioassistencial",
+     "saida": null,
+     "motivo_saida": null
+    }
+   ],
+   "situacoes": [
+    {
+     "inicio": "2019-06-10",
+     "mora_sozinho": false,
+     "apoio": null,
+     "deficiencia": false,
+     "bpc": false,
+     "regiao": "Subprefeitura do serviço"
+    }
+   ]
+  },
+  {
+   "id": 8,
+   "nome": "Hélio Costa (fictício)",
+   "data_nascimento": "1949-04-18",
+   "sexo": "M",
+   "raca_cor": "Branca",
+   "identidade_genero": "Cisgênero",
+   "imigrante": false,
+   "contato": "",
+   "periodos": [
+    {
+     "entrada": "2020-02-02",
+     "origem": "CRAS",
+     "saida": null,
+     "motivo_saida": null
+    }
+   ],
+   "situacoes": [
+    {
+     "inicio": "2020-02-02",
+     "mora_sozinho": true,
+     "apoio": false,
+     "deficiencia": false,
+     "bpc": false,
+     "regiao": "Subprefeitura do serviço"
+    }
+   ]
+  },
+  {
+   "id": 9,
+   "nome": "Irene Duarte (fictícia)",
+   "data_nascimento": "1955-08-27",
+   "sexo": "F",
+   "raca_cor": "Parda",
+   "identidade_genero": "Cisgênero",
+   "imigrante": true,
+   "contato": "",
+   "periodos": [
+    {
+     "entrada": "2021-10-11",
+     "origem": "Demanda espontânea / outra",
+     "saida": null,
+     "motivo_saida": null
+    }
+   ],
+   "situacoes": [
+    {
+     "inicio": "2021-10-11",
+     "mora_sozinho": true,
+     "apoio": true,
+     "deficiencia": false,
+     "bpc": false,
+     "regiao": "Outro município"
+    }
+   ]
+  },
+  {
+   "id": 10,
+   "nome": "Júlia Ramos (fictícia)",
+   "data_nascimento": "1947-02-14",
+   "sexo": "F",
+   "raca_cor": "Branca",
+   "identidade_genero": "Cisgênero",
+   "imigrante": false,
+   "contato": "",
+   "periodos": [
+    {
+     "entrada": "2014-01-20",
+     "origem": "CRAS",
+     "saida": null,
+     "motivo_saida": null
+    }
+   ],
+   "situacoes": [
+    {
+     "inicio": "2014-01-20",
+     "mora_sozinho": true,
+     "apoio": true,
+     "deficiencia": false,
+     "bpc": false,
+     "regiao": "Subprefeitura do serviço"
+    }
+   ]
+  },
+  {
+   "id": 11,
+   "nome": "Lauro Pinto (fictício)",
+   "data_nascimento": "1962-10-10",
+   "sexo": "M",
+   "raca_cor": "Preta",
+   "identidade_genero": "Cisgênero",
+   "imigrante": false,
+   "contato": "",
+   "periodos": [
+    {
+     "entrada": "2022-03-07",
+     "origem": "CRAS",
+     "saida": null,
+     "motivo_saida": null
+    }
+   ],
+   "situacoes": [
+    {
+     "inicio": "2022-03-07",
+     "mora_sozinho": false,
+     "apoio": null,
+     "deficiencia": false,
+     "bpc": false,
+     "regiao": "Subprefeitura do serviço"
+    }
+   ]
+  },
+  {
+   "id": 12,
+   "nome": "Marta Vidal (fictícia)",
+   "data_nascimento": "1943-06-06",
+   "sexo": "F",
+   "raca_cor": "Branca",
+   "identidade_genero": "Cisgênero",
+   "imigrante": false,
+   "contato": "",
+   "periodos": [
+    {
+     "entrada": "2013-04-01",
+     "origem": "CRAS",
+     "saida": null,
+     "motivo_saida": null
+    }
+   ],
+   "situacoes": [
+    {
+     "inicio": "2013-04-01",
+     "mora_sozinho": true,
+     "apoio": true,
+     "deficiencia": true,
+     "bpc": true,
+     "regiao": "Subprefeitura do serviço"
+    }
+   ]
+  },
+  {
+   "id": 13,
+   "nome": "Nair Campos (fictícia)",
+   "data_nascimento": "1951-03-21",
+   "sexo": "F",
+   "raca_cor": "Indígena",
+   "identidade_genero": "Cisgênero",
+   "imigrante": false,
+   "contato": "",
+   "periodos": [
+    {
+     "entrada": "2018-09-09",
+     "origem": "CREAS",
+     "saida": null,
+     "motivo_saida": null
+    }
+   ],
+   "situacoes": [
+    {
+     "inicio": "2018-09-09",
+     "mora_sozinho": false,
+     "apoio": null,
+     "deficiencia": false,
+     "bpc": false,
+     "regiao": "Subprefeitura do serviço"
+    }
+   ]
+  },
+  {
+   "id": 14,
+   "nome": "Olavo Teixeira (fictício)",
+   "data_nascimento": "1945-12-12",
+   "sexo": "M",
+   "raca_cor": "Parda",
+   "identidade_genero": "Cisgênero",
+   "imigrante": false,
+   "contato": "",
+   "periodos": [
+    {
+     "entrada": "2012-05-05",
+     "origem": "CRAS",
+     "saida": null,
+     "motivo_saida": null
+    }
+   ],
+   "situacoes": [
+    {
+     "inicio": "2012-05-05",
+     "mora_sozinho": true,
+     "apoio": false,
+     "deficiencia": false,
+     "bpc": false,
+     "regiao": "Subprefeitura do serviço"
+    }
+   ]
+  },
+  {
+   "id": 15,
+   "nome": "Paula Faria (fictícia)",
+   "data_nascimento": "1952-05-17",
+   "sexo": "F",
+   "raca_cor": "Branca",
+   "identidade_genero": "Cisgênero",
+   "imigrante": false,
+   "contato": "",
+   "periodos": [
+    {
+     "entrada": "2016-02-01",
+     "origem": "CRAS",
+     "saida": "2025-04-30",
+     "motivo_saida": "Desistência"
+    },
+    {
+     "entrada": "2026-09-01",
+     "origem": "Retorno (reativação)",
+     "saida": null,
+     "motivo_saida": null
+    }
+   ],
+   "situacoes": [
+    {
+     "inicio": "2016-02-01",
+     "mora_sozinho": true,
+     "apoio": true,
+     "deficiencia": false,
+     "bpc": false,
+     "regiao": "Subprefeitura do serviço"
+    }
+   ]
+  },
+  {
+   "id": 16,
+   "nome": "Quirino Alves (fictício)",
+   "data_nascimento": "1948-01-01",
+   "sexo": "M",
+   "raca_cor": "Parda",
+   "identidade_genero": "Cisgênero",
+   "imigrante": false,
+   "contato": "",
+   "periodos": [
+    {
+     "entrada": "2015-01-01",
+     "origem": "CRAS",
+     "saida": "2024-06-30",
+     "motivo_saida": "Óbito"
+    }
+   ],
+   "situacoes": [
+    {
+     "inicio": "2015-01-01",
+     "mora_sozinho": false,
+     "apoio": null,
+     "deficiencia": false,
+     "bpc": false,
+     "regiao": "Subprefeitura do serviço"
+    }
+   ]
+  }
+ ],
+ "atividades": [
+  {
+   "id": 17,
+   "nome": "Pilates",
+   "local": "AAESP",
+   "monitor": "(fictício)",
+   "categoria": "Atividades esportivas",
+   "tipo": "Aula regular",
+   "ativa": true,
+   "horarios": [
+    {
+     "dia": 1,
+     "inicio": "09:00",
+     "fim": "10:00"
+    },
+    {
+     "dia": 4,
+     "inicio": "09:00",
+     "fim": "10:00"
+    }
+   ]
+  },
+  {
+   "id": 18,
+   "nome": "Yoga Ayurveda",
+   "local": "AAESP",
+   "monitor": "(fictício)",
+   "categoria": "Atividades esportivas",
+   "tipo": "Aula regular",
+   "ativa": true,
+   "horarios": [
+    {
+     "dia": 0,
+     "inicio": "10:30",
+     "fim": "11:30"
+    }
+   ]
+  },
+  {
+   "id": 19,
+   "nome": "Dança Sênior",
+   "local": "AAESP",
+   "monitor": "(fictício)",
+   "categoria": "Atividades de arte e cultura",
+   "tipo": "Aula regular",
+   "ativa": true,
+   "horarios": [
+    {
+     "dia": 0,
+     "inicio": "15:00",
+     "fim": "16:00"
+    }
+   ]
+  },
+  {
+   "id": 20,
+   "nome": "Tricô",
+   "local": "AAESP",
+   "monitor": "(fictício)",
+   "categoria": "Artesanato",
+   "tipo": "Aula regular",
+   "ativa": true,
+   "horarios": [
+    {
+     "dia": 3,
+     "inicio": "14:00",
+     "fim": "15:00"
+    }
+   ]
+  },
+  {
+   "id": 21,
+   "nome": "Clube de Leitura",
+   "local": "AAESP",
+   "monitor": "(fictício)",
+   "categoria": "Atividades de estimulação cognitiva",
+   "tipo": "Aula regular",
+   "ativa": true,
+   "horarios": [
+    {
+     "dia": 2,
+     "inicio": "14:00",
+     "fim": "16:00"
+    }
+   ]
+  },
+  {
+   "id": 22,
+   "nome": "Passeio ao museu",
+   "local": "AAESP",
+   "monitor": "(fictício)",
+   "categoria": "Atividades externas",
+   "tipo": "Evento / ação pontual",
+   "ativa": true,
+   "horarios": []
+  }
+ ],
+ "inscricoes": [
+  {
+   "id": 23,
+   "idoso_id": 2,
+   "atividade_id": 17,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 24,
+   "idoso_id": 3,
+   "atividade_id": 17,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 25,
+   "idoso_id": 4,
+   "atividade_id": 17,
+   "entrada": "2026-09-08",
+   "saida": null
+  },
+  {
+   "id": 26,
+   "idoso_id": 8,
+   "atividade_id": 17,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 27,
+   "idoso_id": 9,
+   "atividade_id": 17,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 28,
+   "idoso_id": 10,
+   "atividade_id": 17,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 29,
+   "idoso_id": 11,
+   "atividade_id": 17,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 30,
+   "idoso_id": 12,
+   "atividade_id": 17,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 31,
+   "idoso_id": 13,
+   "atividade_id": 17,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 32,
+   "idoso_id": 14,
+   "atividade_id": 17,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 33,
+   "idoso_id": 1,
+   "atividade_id": 18,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 34,
+   "idoso_id": 2,
+   "atividade_id": 18,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 35,
+   "idoso_id": 5,
+   "atividade_id": 18,
+   "entrada": "2026-09-14",
+   "saida": null
+  },
+  {
+   "id": 36,
+   "idoso_id": 8,
+   "atividade_id": 18,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 37,
+   "idoso_id": 9,
+   "atividade_id": 18,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 38,
+   "idoso_id": 11,
+   "atividade_id": 18,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 39,
+   "idoso_id": 12,
+   "atividade_id": 18,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 40,
+   "idoso_id": 13,
+   "atividade_id": 18,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 41,
+   "idoso_id": 3,
+   "atividade_id": 19,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 42,
+   "idoso_id": 5,
+   "atividade_id": 19,
+   "entrada": "2026-09-14",
+   "saida": null
+  },
+  {
+   "id": 43,
+   "idoso_id": 12,
+   "atividade_id": 19,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 44,
+   "idoso_id": 13,
+   "atividade_id": 19,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 45,
+   "idoso_id": 14,
+   "atividade_id": 19,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 46,
+   "idoso_id": 15,
+   "atividade_id": 19,
+   "entrada": "2026-09-01",
+   "saida": null
+  },
+  {
+   "id": 47,
+   "idoso_id": 1,
+   "atividade_id": 20,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 48,
+   "idoso_id": 2,
+   "atividade_id": 20,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 49,
+   "idoso_id": 3,
+   "atividade_id": 20,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 50,
+   "idoso_id": 5,
+   "atividade_id": 20,
+   "entrada": "2026-09-14",
+   "saida": null
+  },
+  {
+   "id": 51,
+   "idoso_id": 6,
+   "atividade_id": 20,
+   "entrada": "2025-01-01",
+   "saida": "2026-09-15"
+  },
+  {
+   "id": 52,
+   "idoso_id": 7,
+   "atividade_id": 20,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 53,
+   "idoso_id": 8,
+   "atividade_id": 20,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 54,
+   "idoso_id": 12,
+   "atividade_id": 20,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 55,
+   "idoso_id": 14,
+   "atividade_id": 20,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 56,
+   "idoso_id": 15,
+   "atividade_id": 20,
+   "entrada": "2026-09-01",
+   "saida": null
+  },
+  {
+   "id": 57,
+   "idoso_id": 7,
+   "atividade_id": 21,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 58,
+   "idoso_id": 8,
+   "atividade_id": 21,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 59,
+   "idoso_id": 9,
+   "atividade_id": 21,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 60,
+   "idoso_id": 10,
+   "atividade_id": 21,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 61,
+   "idoso_id": 11,
+   "atividade_id": 21,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 62,
+   "idoso_id": 14,
+   "atividade_id": 21,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 63,
+   "idoso_id": 1,
+   "atividade_id": 22,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 64,
+   "idoso_id": 2,
+   "atividade_id": 22,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 65,
+   "idoso_id": 3,
+   "atividade_id": 22,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 66,
+   "idoso_id": 4,
+   "atividade_id": 22,
+   "entrada": "2026-09-08",
+   "saida": null
+  },
+  {
+   "id": 67,
+   "idoso_id": 5,
+   "atividade_id": 22,
+   "entrada": "2026-09-14",
+   "saida": null
+  },
+  {
+   "id": 68,
+   "idoso_id": 6,
+   "atividade_id": 22,
+   "entrada": "2025-01-01",
+   "saida": "2026-09-15"
+  },
+  {
+   "id": 69,
+   "idoso_id": 7,
+   "atividade_id": 22,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 70,
+   "idoso_id": 8,
+   "atividade_id": 22,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 71,
+   "idoso_id": 9,
+   "atividade_id": 22,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 72,
+   "idoso_id": 10,
+   "atividade_id": 22,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 73,
+   "idoso_id": 11,
+   "atividade_id": 22,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 74,
+   "idoso_id": 12,
+   "atividade_id": 22,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 75,
+   "idoso_id": 13,
+   "atividade_id": 22,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 76,
+   "idoso_id": 14,
+   "atividade_id": 22,
+   "entrada": "2025-01-01",
+   "saida": null
+  },
+  {
+   "id": 77,
+   "idoso_id": 15,
+   "atividade_id": 22,
+   "entrada": "2026-09-01",
+   "saida": null
+  }
+ ],
+ "ocorrencias": [
+  {
+   "id": 78,
+   "atividade_id": 17,
+   "data": "2026-09-01",
+   "hora_inicio": "09:00",
+   "extra": false,
+   "motivo_extra": null,
+   "situacao": "realizada",
+   "motivo_cancelamento": null,
+   "presencas": {
+    "2": "P",
+    "3": "P",
+    "8": "J",
+    "9": "P",
+    "10": "P",
+    "11": "P",
+    "12": "P",
+    "13": "P",
+    "14": "P"
+   },
+   "justificativas": {
+    "8": {
+     "motivo": "Viagem",
+     "obs": ""
+    }
+   }
+  },
+  {
+   "id": 79,
+   "atividade_id": 21,
+   "data": "2026-09-02",
+   "hora_inicio": "14:00",
+   "extra": false,
+   "motivo_extra": null,
+   "situacao": "realizada",
+   "motivo_cancelamento": null,
+   "presencas": {
+    "7": "A",
+    "8": "P",
+    "9": "P",
+    "10": "J",
+    "11": "P",
+    "14": "P"
+   },
+   "justificativas": {
+    "10": {
+     "motivo": "Viagem",
+     "obs": ""
+    }
+   }
+  },
+  {
+   "id": 80,
+   "atividade_id": 20,
+   "data": "2026-09-03",
+   "hora_inicio": "14:00",
+   "extra": false,
+   "motivo_extra": null,
+   "situacao": "realizada",
+   "motivo_cancelamento": null,
+   "presencas": {
+    "1": "P",
+    "2": "P",
+    "3": "P",
+    "6": "P",
+    "7": "P",
+    "8": "A",
+    "12": "P",
+    "14": "P",
+    "15": "P"
+   },
+   "justificativas": {}
+  },
+  {
+   "id": 81,
+   "atividade_id": 17,
+   "data": "2026-09-04",
+   "hora_inicio": "09:00",
+   "extra": false,
+   "motivo_extra": null,
+   "situacao": "realizada",
+   "motivo_cancelamento": null,
+   "presencas": {
+    "2": "P",
+    "3": "J",
+    "8": "P",
+    "9": "P",
+    "10": "P",
+    "11": "P",
+    "12": "P",
+    "13": "P",
+    "14": "P"
+   },
+   "justificativas": {
+    "3": {
+     "motivo": "Problemas familiares",
+     "obs": ""
+    }
+   }
+  },
+  {
+   "id": 82,
+   "atividade_id": 18,
+   "data": "2026-09-07",
+   "hora_inicio": "10:30",
+   "extra": false,
+   "motivo_extra": null,
+   "situacao": "cancelada",
+   "motivo_cancelamento": "Feriado (Independência)",
+   "presencas": {},
+   "justificativas": {}
+  },
+  {
+   "id": 83,
+   "atividade_id": 19,
+   "data": "2026-09-07",
+   "hora_inicio": "15:00",
+   "extra": false,
+   "motivo_extra": null,
+   "situacao": "cancelada",
+   "motivo_cancelamento": "Feriado (Independência)",
+   "presencas": {},
+   "justificativas": {}
+  },
+  {
+   "id": 84,
+   "atividade_id": 17,
+   "data": "2026-09-08",
+   "hora_inicio": "09:00",
+   "extra": false,
+   "motivo_extra": null,
+   "situacao": "realizada",
+   "motivo_cancelamento": null,
+   "presencas": {
+    "2": "P",
+    "3": "P",
+    "4": "A",
+    "8": "J",
+    "9": "P",
+    "10": "P",
+    "11": "P",
+    "12": "P",
+    "13": "P",
+    "14": "J"
+   },
+   "justificativas": {
+    "8": {
+     "motivo": "Viagem",
+     "obs": ""
+    },
+    "14": {
+     "motivo": "Problemas familiares",
+     "obs": ""
+    }
+   }
+  },
+  {
+   "id": 85,
+   "atividade_id": 21,
+   "data": "2026-09-09",
+   "hora_inicio": "14:00",
+   "extra": false,
+   "motivo_extra": null,
+   "situacao": "realizada",
+   "motivo_cancelamento": null,
+   "presencas": {
+    "7": "P",
+    "8": "P",
+    "9": "P",
+    "10": "P",
+    "11": "P",
+    "14": "J"
+   },
+   "justificativas": {
+    "14": {
+     "motivo": "Viagem",
+     "obs": ""
+    }
+   }
+  },
+  {
+   "id": 86,
+   "atividade_id": 20,
+   "data": "2026-09-10",
+   "hora_inicio": "14:00",
+   "extra": false,
+   "motivo_extra": null,
+   "situacao": "realizada",
+   "motivo_cancelamento": null,
+   "presencas": {
+    "1": "A",
+    "2": "A",
+    "3": "P",
+    "6": "P",
+    "7": "P",
+    "8": "P",
+    "12": "P",
+    "14": "P",
+    "15": "J"
+   },
+   "justificativas": {
+    "15": {
+     "motivo": "Viagem",
+     "obs": ""
+    }
+   }
+  },
+  {
+   "id": 87,
+   "atividade_id": 17,
+   "data": "2026-09-11",
+   "hora_inicio": "09:00",
+   "extra": false,
+   "motivo_extra": null,
+   "situacao": "realizada",
+   "motivo_cancelamento": null,
+   "presencas": {
+    "2": "P",
+    "3": "P",
+    "4": "P",
+    "8": "P",
+    "9": "P",
+    "10": "P",
+    "11": "P",
+    "12": "P",
+    "13": "P",
+    "14": "A"
+   },
+   "justificativas": {}
+  },
+  {
+   "id": 88,
+   "atividade_id": 18,
+   "data": "2026-09-14",
+   "hora_inicio": "10:30",
+   "extra": false,
+   "motivo_extra": null,
+   "situacao": "realizada",
+   "motivo_cancelamento": null,
+   "presencas": {
+    "1": "J",
+    "2": "P",
+    "5": "P",
+    "8": "P",
+    "9": "P",
+    "11": "P",
+    "12": "J",
+    "13": "P"
+   },
+   "justificativas": {
+    "1": {
+     "motivo": "Consulta médica",
+     "obs": ""
+    },
+    "12": {
+     "motivo": "Problemas familiares",
+     "obs": ""
+    }
+   }
+  },
+  {
+   "id": 89,
+   "atividade_id": 19,
+   "data": "2026-09-14",
+   "hora_inicio": "15:00",
+   "extra": false,
+   "motivo_extra": null,
+   "situacao": "realizada",
+   "motivo_cancelamento": null,
+   "presencas": {
+    "3": "J",
+    "5": "P",
+    "12": "P",
+    "13": "P",
+    "14": "P",
+    "15": "P"
+   },
+   "justificativas": {
+    "3": {
+     "motivo": "Viagem",
+     "obs": ""
+    }
+   }
+  },
+  {
+   "id": 90,
+   "atividade_id": 17,
+   "data": "2026-09-15",
+   "hora_inicio": "09:00",
+   "extra": false,
+   "motivo_extra": null,
+   "situacao": "realizada",
+   "motivo_cancelamento": null,
+   "presencas": {
+    "2": "P",
+    "3": "P",
+    "4": "A",
+    "8": "P",
+    "9": "P",
+    "10": "P",
+    "11": "J",
+    "12": "P",
+    "13": "P",
+    "14": "P"
+   },
+   "justificativas": {
+    "11": {
+     "motivo": "Consulta médica",
+     "obs": ""
+    }
+   }
+  },
+  {
+   "id": 91,
+   "atividade_id": 21,
+   "data": "2026-09-16",
+   "hora_inicio": "14:00",
+   "extra": false,
+   "motivo_extra": null,
+   "situacao": "realizada",
+   "motivo_cancelamento": null,
+   "presencas": {
+    "7": "P",
+    "8": "P",
+    "9": "J",
+    "10": "P",
+    "11": "J",
+    "14": "P"
+   },
+   "justificativas": {
+    "9": {
+     "motivo": "Consulta médica",
+     "obs": ""
+    },
+    "11": {
+     "motivo": "Problemas familiares",
+     "obs": ""
+    }
+   }
+  },
+  {
+   "id": 92,
+   "atividade_id": 19,
+   "data": "2026-09-17",
+   "hora_inicio": "10:00",
+   "extra": true,
+   "motivo_extra": "Reposição de aula",
+   "situacao": "realizada",
+   "motivo_cancelamento": null,
+   "presencas": {
+    "3": "P",
+    "5": "P",
+    "12": "P",
+    "13": "P",
+    "14": "P",
+    "15": "P"
+   },
+   "justificativas": {}
+  },
+  {
+   "id": 93,
+   "atividade_id": 20,
+   "data": "2026-09-17",
+   "hora_inicio": "14:00",
+   "extra": false,
+   "motivo_extra": null,
+   "situacao": "realizada",
+   "motivo_cancelamento": null,
+   "presencas": {
+    "1": "P",
+    "2": "P",
+    "3": "J",
+    "5": "P",
+    "7": "P",
+    "8": "P",
+    "12": "A",
+    "14": "J",
+    "15": "P"
+   },
+   "justificativas": {
+    "3": {
+     "motivo": "Consulta médica",
+     "obs": ""
+    },
+    "14": {
+     "motivo": "Viagem",
+     "obs": ""
+    }
+   }
+  },
+  {
+   "id": 94,
+   "atividade_id": 17,
+   "data": "2026-09-18",
+   "hora_inicio": "09:00",
+   "extra": false,
+   "motivo_extra": null,
+   "situacao": "realizada",
+   "motivo_cancelamento": null,
+   "presencas": {
+    "2": "A",
+    "3": "A",
+    "4": "P",
+    "8": "P",
+    "9": "P",
+    "10": "P",
+    "11": "A",
+    "12": "P",
+    "13": "P",
+    "14": "P"
+   },
+   "justificativas": {}
+  },
+  {
+   "id": 95,
+   "atividade_id": 18,
+   "data": "2026-09-21",
+   "hora_inicio": "10:30",
+   "extra": false,
+   "motivo_extra": null,
+   "situacao": "realizada",
+   "motivo_cancelamento": null,
+   "presencas": {
+    "1": "P",
+    "2": "P",
+    "5": "P",
+    "8": "J",
+    "9": "P",
+    "11": "P",
+    "12": "J",
+    "13": "P"
+   },
+   "justificativas": {
+    "8": {
+     "motivo": "Consulta médica",
+     "obs": ""
+    },
+    "12": {
+     "motivo": "Consulta médica",
+     "obs": ""
+    }
+   }
+  },
+  {
+   "id": 96,
+   "atividade_id": 19,
+   "data": "2026-09-21",
+   "hora_inicio": "15:00",
+   "extra": false,
+   "motivo_extra": null,
+   "situacao": "realizada",
+   "motivo_cancelamento": null,
+   "presencas": {
+    "3": "P",
+    "5": "P",
+    "12": "P",
+    "13": "J",
+    "14": "P",
+    "15": "P"
+   },
+   "justificativas": {
+    "13": {
+     "motivo": "Consulta médica",
+     "obs": ""
+    }
+   }
+  },
+  {
+   "id": 97,
+   "atividade_id": 17,
+   "data": "2026-09-22",
+   "hora_inicio": "09:00",
+   "extra": false,
+   "motivo_extra": null,
+   "situacao": "realizada",
+   "motivo_cancelamento": null,
+   "presencas": {
+    "2": "P",
+    "3": "P",
+    "4": "P",
+    "8": "P",
+    "9": "P",
+    "10": "P",
+    "11": "P",
+    "12": "P",
+    "13": "P",
+    "14": "P"
+   },
+   "justificativas": {}
+  },
+  {
+   "id": 98,
+   "atividade_id": 21,
+   "data": "2026-09-23",
+   "hora_inicio": "14:00",
+   "extra": false,
+   "motivo_extra": null,
+   "situacao": "realizada",
+   "motivo_cancelamento": null,
+   "presencas": {
+    "7": "P",
+    "8": "A",
+    "9": "A",
+    "10": "P",
+    "11": "P",
+    "14": "P"
+   },
+   "justificativas": {}
+  },
+  {
+   "id": 99,
+   "atividade_id": 20,
+   "data": "2026-09-24",
+   "hora_inicio": "14:00",
+   "extra": false,
+   "motivo_extra": null,
+   "situacao": "realizada",
+   "motivo_cancelamento": null,
+   "presencas": {
+    "1": "P",
+    "2": "P",
+    "3": "P",
+    "5": "P",
+    "7": "P",
+    "8": "P",
+    "12": "P",
+    "14": "P",
+    "15": "P"
+   },
+   "justificativas": {}
+  },
+  {
+   "id": 100,
+   "atividade_id": 17,
+   "data": "2026-09-25",
+   "hora_inicio": "09:00",
+   "extra": false,
+   "motivo_extra": null,
+   "situacao": "realizada",
+   "motivo_cancelamento": null,
+   "presencas": {
+    "2": "P",
+    "3": "P",
+    "4": "A",
+    "8": "J",
+    "9": "P",
+    "10": "J",
+    "11": "A",
+    "12": "P",
+    "13": "J",
+    "14": "P"
+   },
+   "justificativas": {
+    "8": {
+     "motivo": "Problemas familiares",
+     "obs": ""
+    },
+    "10": {
+     "motivo": "Viagem",
+     "obs": ""
+    },
+    "13": {
+     "motivo": "Viagem",
+     "obs": ""
+    }
+   }
+  },
+  {
+   "id": 101,
+   "atividade_id": 22,
+   "data": "2026-09-26",
+   "hora_inicio": "",
+   "extra": false,
+   "motivo_extra": null,
+   "situacao": "realizada",
+   "motivo_cancelamento": null,
+   "presencas": {
+    "1": "P",
+    "2": "P",
+    "3": "P",
+    "4": "P",
+    "5": "P",
+    "7": "P",
+    "8": "P",
+    "9": "P",
+    "10": "P",
+    "11": "A",
+    "12": "J",
+    "13": "P",
+    "14": "J",
+    "15": "P"
+   },
+   "justificativas": {
+    "12": {
+     "motivo": "Consulta médica",
+     "obs": ""
+    },
+    "14": {
+     "motivo": "Consulta médica",
+     "obs": ""
+    }
+   }
+  },
+  {
+   "id": 102,
+   "atividade_id": 18,
+   "data": "2026-09-28",
+   "hora_inicio": "10:30",
+   "extra": false,
+   "motivo_extra": null,
+   "situacao": "realizada",
+   "motivo_cancelamento": null,
+   "presencas": {
+    "1": "P",
+    "2": "P",
+    "5": "P",
+    "8": "P",
+    "9": "P",
+    "11": "P",
+    "12": "P",
+    "13": "P"
+   },
+   "justificativas": {}
+  },
+  {
+   "id": 103,
+   "atividade_id": 19,
+   "data": "2026-09-28",
+   "hora_inicio": "15:00",
+   "extra": false,
+   "motivo_extra": null,
+   "situacao": "realizada",
+   "motivo_cancelamento": null,
+   "presencas": {
+    "3": "J",
+    "5": "P",
+    "12": "J",
+    "13": "P",
+    "14": "P",
+    "15": "P"
+   },
+   "justificativas": {
+    "3": {
+     "motivo": "Consulta médica",
+     "obs": ""
+    },
+    "12": {
+     "motivo": "Problemas familiares",
+     "obs": ""
+    }
+   }
+  },
+  {
+   "id": 104,
+   "atividade_id": 17,
+   "data": "2026-09-29",
+   "hora_inicio": "09:00",
+   "extra": false,
+   "motivo_extra": null,
+   "situacao": "realizada",
+   "motivo_cancelamento": null,
+   "presencas": {
+    "2": "P",
+    "3": "A",
+    "4": "A",
+    "8": "P",
+    "9": "P",
+    "10": "P",
+    "11": "P",
+    "12": "P",
+    "13": "P",
+    "14": "J"
+   },
+   "justificativas": {
+    "14": {
+     "motivo": "Problemas familiares",
+     "obs": ""
+    }
+   }
+  },
+  {
+   "id": 105,
+   "atividade_id": 21,
+   "data": "2026-09-30",
+   "hora_inicio": "14:00",
+   "extra": false,
+   "motivo_extra": null,
+   "situacao": "realizada",
+   "motivo_cancelamento": null,
+   "presencas": {
+    "7": "P",
+    "8": "A",
+    "9": "P",
+    "10": "P",
+    "11": "J",
+    "14": "J"
+   },
+   "justificativas": {
+    "11": {
+     "motivo": "Consulta médica",
+     "obs": ""
+    },
+    "14": {
+     "motivo": "Consulta médica",
+     "obs": ""
+    }
+   }
+  }
+ ],
+ "justificativas": [
+  "Consulta médica",
+  "Viagem",
+  "Problemas familiares"
+ ],
+ "log": [
+  {
+   "quando": "2026-10-25T17:20:28",
+   "acao": "demo_carregada",
+   "detalhe": "dados fictícios de setembro/2026"
+  }
+ ]
+}
