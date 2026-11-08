@@ -1,0 +1,28 @@
+{% extends "nci/base.html" %}
+{% block title %}Grade de {{ atividade.nome }} · NCI Idade Dourada{% endblock %}
+{% block content %}
+<p><a href="{% url 'atividades:lista' %}">Voltar às atividades</a></p>
+<h1>Grade de {{ atividade.nome }}</h1>
+<p>Horários semanais da atividade. Cada faixa corresponde a um dia da semana.</p>
+{% if horario or perms.atividades.add_horarioatividade %}
+<section aria-labelledby="formulario-grade">
+  <h2 id="formulario-grade">{% if horario %}Alterar horário{% else %}Adicionar horário{% endif %}</h2>
+  <form method="post">
+    {% csrf_token %}{{ form.non_field_errors }}
+    {% for field in form %}<div class="field">{{ field.label_tag }}{{ field }}{{ field.errors }}</div>{% endfor %}
+    <button type="submit">{% if horario %}Salvar alteração{% else %}Adicionar horário{% endif %}</button>
+    {% if horario %}<a href="{% url 'atividades:grade' atividade.pk %}">Cancelar</a>{% endif %}
+  </form>
+</section>
+{% endif %}
+<section aria-labelledby="grade-semanal">
+  <h2 id="grade-semanal">Grade semanal</h2>
+  {% if horarios %}<div class="table-scroll"><table>
+    <thead><tr><th scope="col">Dia</th><th scope="col">Início</th><th scope="col">Término</th>{% if perms.atividades.change_horarioatividade %}<th scope="col">Ação</th>{% endif %}</tr></thead>
+    <tbody>{% for item in horarios %}<tr>
+      <td>{{ item.get_dia_semana_display }}</td><td>{{ item.inicio|time:"H:i:s" }}</td><td>{{ item.fim|time:"H:i:s" }}</td>
+      {% if perms.atividades.change_horarioatividade %}<td><a href="{% url 'atividades:editar_horario' atividade.pk item.pk %}">Alterar</a></td>{% endif %}
+    </tr>{% endfor %}</tbody>
+  </table></div>{% else %}<p>Nenhum horário cadastrado para esta atividade.</p>{% endif %}
+</section>
+{% endblock %}

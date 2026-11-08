@@ -1,10 +1,10 @@
-"""Contrato provisório do cadastro RF-ATV-01; usar este serviço para criar atividades."""
+"""Serviços provisórios de cadastro e grade (RF-ATV-01/02), com autorização e auditoria."""
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 
-from .models import Atividade, RegistroCadastroAtividade
+from .models import Atividade, HorarioAtividade, RegistroCadastroAtividade, RegistroGradeAtividade
 
 
 @transaction.atomic
@@ -27,3 +27,47 @@ def cadastrar_atividade(*, usuario, nome, local, monitor):
     atividade.save()
     RegistroCadastroAtividade.objects.create(atividade=atividade, usuario=autor, dados=dados)
     return atividade
+
+
+def _autorizar_grade(usuario, permissao):
+    if not usuario or not usuario.is_authenticated or usuario.pk is None:
+        raise PermissionDenied("É necessário um usuário autorizado para gerenciar a grade.")
+    autor = get_user_model().objects.filter(pk=usuario.pk, is_active=True).first()
+    if autor is None or not autor.has_perm(permissao):
+        raise PermissionDenied("Você não tem permissão para esta ação na grade.")
+    return autor
+
+
+def _dados_horario(horario):
+    return {"dia_semana": horario.dia_semana, "inicio": horario.inicio.isoformat(), "fim": horario.fim.isoformat()}
+
+
+@transaction.atomic
+def cadastrar_horario(*, usuario, atividade_id, dia_semana, inicio, fim):
+    """Contrato provisório RF-ATV-02: adiciona um intervalo semanal à atividade."""
+    autor = _autorizar_grade(usuario, "atividades.add_horarioatividade")
+    atividade = Atividade.objects.get(pk=atividade_id)
+    horario = HorarioAtividade(atividade=atividade, dia_semana=dia_semana, inicio=inicio, fim=fim)
+    horario.full_clean()
+    horario.save()
+    RegistroGradeAtividade.objects.create(
+        horario=horario, usuario=autor, acao=RegistroGradeAtividade.Acao.CADASTRO,
+        dados_anteriores=None, dados_novos=_dados_horario(horario),
+    )
+    return horario
+
+
+@transaction.atomic
+def alterar_horario(*, usuario, atividade_id, horario_id, dia_semana, inicio, fim):
+    """Altera somente um horário da atividade indicada, com auditoria atômica."""
+    autor = _autorizar_grade(usuario, "atividades.change_horarioatividade")
+    horario = HorarioAtividade.objects.select_for_update().get(pk=horario_id, atividade_id=atividade_id)
+    anteriores = _dados_horario(horario)
+    horario.dia_semana, horario.inicio, horario.fim = dia_semana, inicio, fim
+    horario.full_clean()
+    horario.save(update_fields=["dia_semana", "inicio", "fim"])
+    RegistroGradeAtividade.objects.create(
+        horario=horario, usuario=autor, acao=RegistroGradeAtividade.Acao.ALTERACAO,
+        dados_anteriores=anteriores, dados_novos=_dados_horario(horario),
+    )
+    return horario

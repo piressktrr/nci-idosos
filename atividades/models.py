@@ -1,4 +1,7 @@
+from datetime import time
+
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 
 
@@ -32,3 +35,53 @@ class RegistroCadastroAtividade(models.Model):
         default_permissions = ()
         verbose_name = "registro de cadastro de atividade"
         verbose_name_plural = "registros de cadastro de atividades"
+
+
+class HorarioAtividade(models.Model):
+    class DiaSemana(models.IntegerChoices):
+        SEGUNDA = 0, "Segunda-feira"
+        TERCA = 1, "Terça-feira"
+        QUARTA = 2, "Quarta-feira"
+        QUINTA = 3, "Quinta-feira"
+        SEXTA = 4, "Sexta-feira"
+        SABADO = 5, "Sábado"
+        DOMINGO = 6, "Domingo"
+
+    atividade = models.ForeignKey(Atividade, on_delete=models.PROTECT, related_name="horarios")
+    dia_semana = models.PositiveSmallIntegerField("dia da semana", choices=DiaSemana.choices)
+    inicio = models.TimeField("início")
+    fim = models.TimeField("término")
+
+    class Meta:
+        ordering = ["dia_semana", "inicio", "pk"]
+        verbose_name = "horário de atividade"
+        verbose_name_plural = "horários de atividades"
+        constraints = [
+            models.CheckConstraint(condition=models.Q(dia_semana__gte=0, dia_semana__lte=6), name="horario_dia_valido"),
+            models.CheckConstraint(condition=models.Q(fim__gt=models.F("inicio")), name="horario_fim_apos_inicio"),
+        ]
+
+    def clean(self):
+        super().clean()
+        for campo in ("inicio", "fim"):
+            valor = getattr(self, campo)
+            if isinstance(valor, time) and valor.tzinfo is not None:
+                raise ValidationError({campo: "Informe um horário local, sem fuso horário."})
+        if isinstance(self.inicio, time) and isinstance(self.fim, time) and self.fim <= self.inicio:
+            raise ValidationError({"fim": "O término deve ser posterior ao início, no mesmo dia."})
+
+
+class RegistroGradeAtividade(models.Model):
+    class Acao(models.TextChoices):
+        CADASTRO = "cadastro", "Cadastro"
+        ALTERACAO = "alteracao", "Alteração"
+
+    horario = models.ForeignKey(HorarioAtividade, on_delete=models.PROTECT, related_name="registros")
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    registrado_em = models.DateTimeField(auto_now_add=True)
+    acao = models.CharField(max_length=10, choices=Acao.choices)
+    dados_anteriores = models.JSONField(null=True)
+    dados_novos = models.JSONField()
+
+    class Meta:
+        default_permissions = ()
