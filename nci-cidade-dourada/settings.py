@@ -46,6 +46,9 @@ INSTALLED_APPS = [
 
 # Decisão atual: usar o usuário padrão do Django, sem modelo customizado.
 AUTH_USER_MODEL = 'auth.User'
+LOGIN_URL = 'entrar'
+LOGIN_REDIRECT_URL = 'atividades:lista'
+LOGOUT_REDIRECT_URL = 'entrar'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

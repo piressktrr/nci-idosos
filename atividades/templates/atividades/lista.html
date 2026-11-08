@@ -1,0 +1,30 @@
+{% extends "nci/base.html" %}
+{% block title %}Atividades · NCI Idade Dourada{% endblock %}
+{% block content %}
+<h1>Atividades</h1>
+<p>Cadastre as atividades e consulte as informações registradas.</p>
+{% if perms.atividades.add_atividade %}
+<section aria-labelledby="novo-cadastro">
+  <h2 id="novo-cadastro">Cadastrar atividade</h2>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    {% for field in form %}<div class="field">{{ field.label_tag }}{{ field }}{{ field.errors }}</div>{% endfor %}
+    <button type="submit">Cadastrar atividade</button>
+  </form>
+</section>
+{% endif %}
+<section aria-labelledby="atividades-cadastradas">
+  <h2 id="atividades-cadastradas">Atividades cadastradas ({{ pagina.paginator.count }})</h2>
+  {% if pagina %}<div class="table-scroll"><table>
+    <thead><tr><th scope="col">Atividade</th><th scope="col">Local</th><th scope="col">Monitor/oficineiro</th></tr></thead>
+    <tbody>{% for atividade in pagina %}<tr><td>{{ atividade.nome }}</td><td>{{ atividade.local }}</td><td>{{ atividade.monitor }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% if pagina.has_other_pages %}<nav aria-label="Páginas de atividades">
+    {% if pagina.has_previous %}<a href="?page={{ pagina.previous_page_number }}">Anterior</a>{% endif %}
+    <span>Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+    {% if pagina.has_next %}<a href="?page={{ pagina.next_page_number }}">Próxima</a>{% endif %}
+  </nav>{% endif %}
+  {% else %}<p>Nenhuma atividade cadastrada. Os novos cadastros aparecerão aqui.</p>{% endif %}
+</section>
+{% endblock %}

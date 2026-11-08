@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}NCI Idade Dourada{% endblock %}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f5f6f8; color: #243041; font: 17px/1.5 system-ui, sans-serif; }
+    header { background: #fff; border-bottom: 1px solid #d9dfe5; }
+    header > div, main { max-width: 1000px; margin: auto; padding: 24px; }
+    header > div { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; }
+    a { color: #164c82; }
+    h1 { margin: 0 0 8px; font-size: 1.9rem; }
+    h2 { margin-top: 0; font-size: 1.3rem; }
+    section { background: white; border: 1px solid #d9dfe5; border-radius: 8px; padding: 24px; margin: 24px 0; }
+    label { display: block; font-weight: 600; margin-bottom: 6px; }
+    input { width: 100%; max-width: 560px; padding: 10px; border: 1px solid #8290a0; border-radius: 4px; font: inherit; }
+    button { background: #164c82; color: white; border: 0; border-radius: 4px; padding: 11px 18px; cursor: pointer; font: inherit; }
+    button.secondary { background: #e9eef3; color: #243041; }
+    .field { margin-bottom: 18px; }
+    .errorlist { color: #9d2020; padding-left: 22px; }
+    .message { background: #e5f3e9; padding: 14px; border-left: 4px solid #297144; }
+    .table-scroll { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th, td { border-bottom: 1px solid #d9dfe5; padding: 12px; vertical-align: top; overflow-wrap: anywhere; }
+    .account { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    :focus-visible { outline: 3px solid #b46a00; outline-offset: 3px; }
+  </style>
+</head>
+<body>
+<header><div>
+  <strong>NCI Idade Dourada</strong>
+  {% if user.is_authenticated %}<div class="account">
+    <span>{{ user.get_username }}</span>
+    <form method="post" action="{% url 'sair' %}">{% csrf_token %}<button class="secondary" type="submit">Sair</button></form>
+  </div>{% endif %}
+</div></header>
+<main>
+  {% for message in messages %}<p class="message" role="status">{{ message }}</p>{% endfor %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{% extends "nci/base.html" %}
+{% block title %}Entrar · NCI Idade Dourada{% endblock %}
+{% block content %}
+<h1>Entrar</h1>
+<p>Use sua conta do NCI para acessar as atividades.</p>
+<section aria-label="Acesso ao sistema">
+  <form method="post">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    {% for field in form %}<div class="field">{{ field.label_tag }}{{ field }}{{ field.errors }}</div>{% endfor %}
+    <input type="hidden" name="next" value="{{ next }}">
+    <button type="submit">Entrar</button>
+  </form>
+</section>
+{% endblock %}
