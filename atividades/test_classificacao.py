@@ -56,6 +56,52 @@ class ClassificacaoTests(TestCase):
         ids = list(Aula.objects.com_categoria_fmr().order_by("data").values_list("categoria_fmr_id", flat=True))
         self.assertEqual(ids, [None, self.cat.pk, self.cat.pk, self.outra.pk])
 
+    def test_destaque_atual_usa_hoje_e_ignora_troca_futura(self):
+        self.classificar()
+        self.classificar(categoria_id=self.outra.pk, inicio=date(2024, 2, 1))
+        self.client.force_login(self.equipe)
+        for hoje, esperado in ((date(2024, 1, 31), "Categoria fictícia"), (date(2024, 2, 1), "Outra fictícia")):
+            with self.subTest(hoje=hoje), patch("django.utils.timezone.localdate", return_value=hoje):
+                self.assertContains(self.client.get(reverse("atividades:lista")), "Categoria atual: " + esperado)
+                resposta = self.client.get(self.url)
+                self.assertContains(resposta, "Categoria atual: " + esperado)
+                self.assertContains(resposta, "Vigente hoje", count=1)
+
+    def test_indicador_sem_categoria_antes_da_primeira_vigencia(self):
+        self.classificar(inicio=date(2024, 2, 1))
+        self.client.force_login(self.equipe)
+        with patch("django.utils.timezone.localdate", return_value=date(2024, 1, 31)):
+            for url in (reverse("atividades:lista"), self.url):
+                self.assertContains(self.client.get(url), "Sem categoria")
+                self.assertNotContains(self.client.get(url), "Vigente hoje")
+
+    def test_filtro_categoria_vigente_sem_categoria_e_inativa(self):
+        self.classificar()
+        self.classificar(categoria_id=self.outra.pk, inicio=date(2024, 2, 1))
+        sem = Atividade.objects.create(nome="Sem fictícia", local="Sala", monitor="Fictício")
+        self.client.force_login(self.equipe)
+        url = reverse("atividades:lista")
+        with patch("django.utils.timezone.localdate", return_value=date(2024, 1, 31)):
+            self.assertEqual(self.client.get(url, {"categoria": self.cat.pk}).context["pagina"].paginator.count, 1)
+            self.assertEqual(self.client.get(url, {"categoria": self.outra.pk}).context["pagina"].paginator.count, 0)
+            resposta = self.client.get(url, {"categoria": "sem_categoria"})
+            self.assertEqual([item.pk for item in resposta.context["pagina"]], [sem.pk])
+            salvar_categoria(usuario=self.admin, categoria_id=self.cat.pk, nome=self.cat.nome, ativa=False)
+            self.assertEqual(self.client.get(url, {"categoria": self.cat.pk}).context["pagina"].paginator.count, 1)
+        resposta = self.client.get(url, {"categoria": "invalida"})
+        self.assertTrue(resposta.context["filtro_categoria"].errors)
+
+    def test_paginacao_preserva_filtro_categoria(self):
+        self.classificar()
+        for indice in range(21):
+            atividade = Atividade.objects.create(nome=f"Fictícia {indice:02}", local="Sala", monitor="Fictício")
+            ClassificacaoAtividade.objects.create(atividade=atividade, categoria=self.cat,
+                categoria_nome=self.cat.nome, inicio=date(2024, 1, 1))
+        self.client.force_login(self.equipe)
+        resposta = self.client.get(reverse("atividades:lista"), {"categoria": self.cat.pk})
+        self.assertContains(resposta, f"?page=2&amp;categoria={self.cat.pk}")
+        self.assertEqual(resposta.context["pagina"].paginator.count, 22)
+
     def test_renomear_desativar_preserva_historico_e_novos_vinculos_bloqueados(self):
         self.classificar()
         aula = self.aula(date(2024, 1, 20))

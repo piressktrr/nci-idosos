@@ -2,6 +2,7 @@
 {% block content %}
 <p><a href="{% url 'atividades:lista' %}">Voltar às atividades</a></p>
 <h1>Categoria FMR de {{ atividade.nome }}</h1>
+<p>{% include "atividades/_categoria_atual.html" %}</p>
 <p>A categoria vale desde a data informada até a próxima mudança. Aulas usam a categoria da data em que ocorreram. Antes da primeira vigência ficam não classificadas.</p>
 {% if user.is_superuser %}<p><a href="{% url 'atividades:categorias_fmr' %}">Administrar categorias</a></p>{% endif %}
 {% if perms.atividades.change_atividade %}
@@ -10,5 +11,5 @@
 <button type="submit">Salvar classificação</button></form>
 {% endif %}
 <h2>Vigências registradas</h2>
-<ul>{% for item in classificacoes %}<li>Desde {{ item.inicio|date:"d/m/Y" }}: {{ item.categoria_nome }}</li>{% empty %}<li>Nenhuma classificação registrada.</li>{% endfor %}</ul>
+<ul>{% for item in classificacoes %}<li>Desde {{ item.inicio|date:"d/m/Y" }}: {{ item.categoria_nome }}{% if item.pk == atividade.classificacao_atual_id %} <strong class="category-badge">Vigente hoje</strong>{% endif %}</li>{% empty %}<li>Nenhuma classificação registrada.</li>{% endfor %}</ul>
 {% endblock %}

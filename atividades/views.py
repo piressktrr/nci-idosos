@@ -9,6 +9,8 @@ from django.utils import timezone
 
 from .forms import AtividadeForm, AulaForm, HorarioAtividadeForm, InscricaoForm, ChamadaForm, MotivoFaltaForm, CorrecaoFrequenciaForm, FrequenciaMensalForm
 from .integracoes.participantes import obter_provedor
+from .classificacao import com_categoria_vigente
+from .forms import FiltroCategoriaForm
 from .models import Atividade, Aula, HorarioAtividade, MotivoFalta, Frequencia, Inscricao
 from .services import (
     cadastrar_atividade, cadastrar_horario, alterar_horario, registrar_aula,
@@ -61,8 +63,18 @@ def lista(request):
             else:
                 messages.success(request, "Atividade cadastrada com sucesso.")
                 return redirect("atividades:lista")
-    pagina = Paginator(Atividade.objects.order_by("nome", "pk"), 20).get_page(request.GET.get("page"))
-    return render(request, "atividades/lista.html", {"form": form, "pagina": pagina})
+    atividades = com_categoria_vigente(Atividade.objects.order_by("nome", "pk"), timezone.localdate())
+    filtro_categoria = FiltroCategoriaForm(request.GET)
+    if filtro_categoria.is_valid():
+        categoria = filtro_categoria.cleaned_data["categoria"]
+        if categoria == "sem_categoria":
+            atividades = atividades.filter(categoria_atual_id__isnull=True)
+        elif categoria:
+            atividades = atividades.filter(categoria_atual_id=int(categoria))
+    else:
+        atividades = atividades.none()
+    pagina = Paginator(atividades, 20).get_page(request.GET.get("page"))
+    return render(request, "atividades/lista.html", {"form": form, "pagina": pagina, "filtro_categoria": filtro_categoria})
 
 
 @login_required

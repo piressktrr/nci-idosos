@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
-from .classificacao import autorizar, salvar_categoria, classificar_atividade
+from .classificacao import autorizar, salvar_categoria, classificar_atividade, com_categoria_vigente
 from .models import Atividade, CategoriaFMR
 
 
@@ -44,7 +44,7 @@ def categorias(request, categoria_id=None):
 @permission_required("atividades.view_atividade", raise_exception=True)
 @require_http_methods(["GET", "POST"])
 def classificacao(request, atividade_id):
-    atividade = get_object_or_404(Atividade, pk=atividade_id)
+    atividade = get_object_or_404(com_categoria_vigente(Atividade.objects.all(), timezone.localdate()), pk=atividade_id)
     if request.method == "POST":
         autorizar(request.user)
     form = ClassificacaoForm(request.POST if request.method == "POST" else None)

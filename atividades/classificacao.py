@@ -8,9 +8,17 @@ from datetime import date
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
+from django.db.models import OuterRef, Subquery
 
 from .models import (Atividade, CategoriaFMR, ClassificacaoAtividade,
                      RegistroCategoriaFMR, RegistroClassificacaoAtividade)
+
+
+def com_categoria_vigente(atividades, data):
+    vigencia = ClassificacaoAtividade.objects.filter(atividade_id=OuterRef("pk"), inicio__lte=data).order_by("-inicio")
+    return atividades.annotate(classificacao_atual_id=Subquery(vigencia.values("pk")[:1]),
+        categoria_atual_id=Subquery(vigencia.values("categoria_id")[:1]),
+        categoria_atual_nome=Subquery(vigencia.values("categoria_nome")[:1]))
 
 
 def autorizar(usuario, *, catalogo=False):

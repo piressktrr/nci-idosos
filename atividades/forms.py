@@ -1,7 +1,16 @@
 from django import forms
 from django.utils import timezone
 
-from .models import Atividade, Aula, HorarioAtividade, Frequencia, MotivoFalta
+from .models import Atividade, Aula, HorarioAtividade, Frequencia, MotivoFalta, CategoriaFMR
+
+
+class FiltroCategoriaForm(forms.Form):
+    categoria = forms.ChoiceField(label="Categoria atual", required=False)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["categoria"].choices = [("", "Todas as categorias"), ("sem_categoria", "Sem categoria"),
+            *((str(item.pk), item.nome if item.ativa else f"{item.nome} (inativa)") for item in CategoriaFMR.objects.all())]
 
 
 class FrequenciaMensalForm(forms.Form):

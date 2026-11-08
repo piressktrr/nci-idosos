@@ -19,16 +19,21 @@
 </section>
 {% endif %}
 <section aria-labelledby="atividades-cadastradas">
+  <form method="get">
+    {{ filtro_categoria.as_p }}
+    <button type="submit">Filtrar atividades</button>
+    <a href="{% url 'atividades:lista' %}">Limpar filtro</a>
+  </form>
   <h2 id="atividades-cadastradas">Atividades cadastradas ({{ pagina.paginator.count }})</h2>
   {% if pagina %}<div class="table-scroll"><table>
     <thead><tr><th scope="col">Atividade</th><th scope="col">Local</th><th scope="col">Monitor/oficineiro</th><th scope="col">Grade</th><th scope="col">Aulas</th><th scope="col">Inscrições</th></tr></thead>
-    <tbody>{% for atividade in pagina %}<tr><td>{{ atividade.nome }}<br><a href="{% url 'atividades:classificacao_fmr' atividade.pk %}">Categoria FMR</a></td><td>{{ atividade.local }}</td><td>{{ atividade.monitor }}</td><td>{% if perms.atividades.view_horarioatividade %}<a href="{% url 'atividades:grade' atividade.pk %}" aria-label="Ver horários de {{ atividade.nome }}">Ver horários</a>{% else %}—{% endif %}</td><td>{% if perms.atividades.view_aula %}<a href="{% url 'atividades:aulas' atividade.pk %}" aria-label="Ver aulas de {{ atividade.nome }}">Ver aulas</a>{% else %}—{% endif %}</td><td>{% if perms.atividades.view_inscricao %}<a href="{% url 'atividades:inscricoes' atividade.pk %}" aria-label="Ver inscrições de {{ atividade.nome }}">Ver inscrições</a>{% else %}—{% endif %}</td></tr>{% endfor %}</tbody>
+    <tbody>{% for atividade in pagina %}<tr><td>{{ atividade.nome }}<br>{% include "atividades/_categoria_atual.html" %}<br><a href="{% url 'atividades:classificacao_fmr' atividade.pk %}">Categoria FMR</a></td><td>{{ atividade.local }}</td><td>{{ atividade.monitor }}</td><td>{% if perms.atividades.view_horarioatividade %}<a href="{% url 'atividades:grade' atividade.pk %}" aria-label="Ver horários de {{ atividade.nome }}">Ver horários</a>{% else %}—{% endif %}</td><td>{% if perms.atividades.view_aula %}<a href="{% url 'atividades:aulas' atividade.pk %}" aria-label="Ver aulas de {{ atividade.nome }}">Ver aulas</a>{% else %}—{% endif %}</td><td>{% if perms.atividades.view_inscricao %}<a href="{% url 'atividades:inscricoes' atividade.pk %}" aria-label="Ver inscrições de {{ atividade.nome }}">Ver inscrições</a>{% else %}—{% endif %}</td></tr>{% endfor %}</tbody>
   </table></div>
   {% if pagina.has_other_pages %}<nav aria-label="Páginas de atividades">
-    {% if pagina.has_previous %}<a href="?page={{ pagina.previous_page_number }}">Anterior</a>{% endif %}
+    {% if pagina.has_previous %}<a href="?page={{ pagina.previous_page_number }}&amp;categoria={{ filtro_categoria.categoria.value|default:''|urlencode }}">Anterior</a>{% endif %}
     <span>Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
-    {% if pagina.has_next %}<a href="?page={{ pagina.next_page_number }}">Próxima</a>{% endif %}
+    {% if pagina.has_next %}<a href="?page={{ pagina.next_page_number }}&amp;categoria={{ filtro_categoria.categoria.value|default:''|urlencode }}">Próxima</a>{% endif %}
   </nav>{% endif %}
-  {% else %}<p>Nenhuma atividade cadastrada. Os novos cadastros aparecerão aqui.</p>{% endif %}
+  {% else %}{% if filtro_categoria.categoria.value %}<p>Nenhuma atividade encontrada para o filtro selecionado.</p>{% else %}<p>Nenhuma atividade cadastrada. Os novos cadastros aparecerão aqui.</p>{% endif %}{% endif %}
 </section>
 {% endblock %}
