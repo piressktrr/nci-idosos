@@ -7,6 +7,7 @@ from django.db import transaction
 from .models import (
     Atividade, Aula, HorarioAtividade, RegistroCadastroAtividade,
     RegistroGradeAtividade, RegistroRealizacaoAula, RegistroCancelamentoAula, Inscricao,
+    Frequencia, RegistroLancamentoFrequencia,
 )
 from .integracoes.participantes import obter_provedor
 
@@ -198,4 +199,56 @@ def obter_lista_chamada(*, usuario, atividade_id, aula_id):
         "disponivel": inscricao.participante_referencia in nomes,
     } for inscricao in aula.atividade.inscricoes.filter(origem_participante=provedor.origem)]
     participantes.sort(key=lambda item: (item["nome"].casefold(), item["referencia"]))
-    return {"aula": aula, "participantes": participantes, "demonstracao": provedor.demonstracao}
+    pode_ver = autor.has_perm("atividades.view_frequencia")
+    frequencias = {item.inscricao_id: item for item in aula.frequencias.all()} if pode_ver else {}
+    for participante in participantes:
+        participante["frequencia"] = frequencias.get(participante["inscricao_id"])
+    return {
+        "aula": aula, "participantes": participantes, "demonstracao": provedor.demonstracao,
+        "pode_ver_frequencia": pode_ver,
+        "pode_registrar_frequencia": pode_ver and autor.has_perm("atividades.add_frequencia"),
+    }
+
+
+@transaction.atomic
+def registrar_frequencias(*, usuario, atividade_id, aula_id, registros):
+    """Lançamento inicial explícito por inscrição; lote atômico, sem correção implícita."""
+    if not usuario or not usuario.is_authenticated or usuario.pk is None:
+        raise PermissionDenied("É necessário um usuário autorizado para lançar frequência.")
+    autor = get_user_model().objects.filter(pk=usuario.pk, is_active=True).first()
+    permissoes = ("atividades.view_atividade", "atividades.view_aula", "atividades.view_inscricao",
+                  "atividades.view_frequencia", "atividades.add_frequencia")
+    if autor is None or not autor.has_perms(permissoes):
+        raise PermissionDenied("Você não tem permissão para lançar frequência.")
+    if not isinstance(registros, dict) or not registros:
+        raise ValidationError("Selecione ao menos uma situação para lançar.")
+    for identificador, situacao in registros.items():
+        if type(identificador) is not int or identificador <= 0 or situacao not in Frequencia.Situacao.values:
+            raise ValidationError("Inscrição ou situação inválida.")
+    # O cancelamento usa o mesmo bloqueio: não há lançamento concorrente em aula cancelada.
+    aula = Aula.objects.select_for_update().get(pk=aula_id, atividade_id=atividade_id)
+    if aula.situacao != Aula.Situacao.REALIZADA:
+        raise ValidationError("Não é possível lançar frequência em aula cancelada.")
+    provedor = obter_provedor()
+    inscricoes = list(Inscricao.objects.select_for_update().filter(
+        pk__in=registros, atividade_id=atividade_id, origem_participante=provedor.origem,
+    ).order_by("pk"))
+    if len(inscricoes) != len(registros):
+        raise ValidationError("Há inscrição inválida para esta atividade ou origem de participantes.")
+    if aula.frequencias.filter(inscricao_id__in=registros).exists():
+        raise ValidationError("Há frequência já lançada. Correções não estão disponíveis nesta etapa.")
+    for inscricao in inscricoes:
+        if provedor.obter(inscricao.participante_referencia) is None:
+            raise ValidationError("Há participante indisponível. Confira o cadastro antes de lançar.")
+    resultado = []
+    for inscricao in inscricoes:
+        frequencia = Frequencia(aula=aula, inscricao=inscricao, situacao=registros[inscricao.pk])
+        frequencia.full_clean()
+        frequencia.save()
+        RegistroLancamentoFrequencia.objects.create(frequencia=frequencia, usuario=autor, dados={
+            "aula_id": aula.pk, "atividade_id": atividade_id, "data": aula.data.isoformat(),
+            "inscricao_id": inscricao.pk, "origem_participante": inscricao.origem_participante,
+            "participante_referencia": inscricao.participante_referencia, "situacao": frequencia.situacao,
+        })
+        resultado.append(frequencia)
+    return resultado

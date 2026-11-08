@@ -1,7 +1,7 @@
 from django import forms
 from django.utils import timezone
 
-from .models import Atividade, Aula, HorarioAtividade
+from .models import Atividade, Aula, HorarioAtividade, Frequencia
 
 
 class AtividadeForm(forms.ModelForm):
@@ -61,3 +61,26 @@ class InscricaoForm(forms.Form):
             ("", "Selecione um participante"),
             *((item.referencia, item.nome) for item in participantes),
         ]
+
+
+class ChamadaForm(forms.Form):
+    def __init__(self, *args, participantes=(), **kwargs):
+        super().__init__(*args, **kwargs)
+        for item in participantes:
+            if item["disponivel"] and item["frequencia"] is None:
+                self.fields[f"registro_{item['inscricao_id']}"] = forms.ChoiceField(
+                    label=f"Situação de {item['nome']}", required=False,
+                    choices=Frequencia.Situacao.choices, widget=forms.RadioSelect,
+                    initial=Frequencia.Situacao.PRESENTE,
+                )
+
+    def clean(self):
+        dados = super().clean()
+        for campo in self.data:
+            if campo.startswith("registro_"):
+                if campo not in self.fields or (hasattr(self.data, "getlist") and len(self.data.getlist(campo)) != 1):
+                    raise forms.ValidationError("Há inscrição inválida, repetida ou já lançada. Atualize a chamada.")
+        self.registros = {int(campo.removeprefix("registro_")): valor for campo, valor in dados.items() if valor}
+        if not self.registros and not self.errors:
+            raise forms.ValidationError("Selecione ao menos uma situação para lançar.")
+        return dados

@@ -12,11 +12,24 @@
 <p>Esta lista mostra as inscrições atuais da atividade. A lista física assinada continua obrigatória.</p>
 <section aria-labelledby="participantes-chamada">
   <h2 id="participantes-chamada">Participantes vinculados ({{ participantes|length }})</h2>
+  {% if pode_registrar_frequencia %}<p>Novos lançamentos começam com Presente marcado. Confira a lista assinada, ajuste as faltas e clique em Salvar frequência.</p>
+  <form method="post" action="{% url 'atividades:lancar_frequencias' aula.atividade_id aula.pk %}">{% csrf_token %}{{ form.non_field_errors }}{% endif %}
   {% if participantes %}<div class="table-scroll"><table>
-    <thead><tr><th scope="col">Nº</th><th scope="col">Participante</th></tr></thead>
-    <tbody>{% for participante in participantes %}<tr><td>{{ forloop.counter }}</td><td>{{ participante.nome }}{% if not participante.disponivel %} — confira o cadastro antes da chamada{% endif %}</td></tr>{% endfor %}</tbody>
+    <thead><tr><th scope="col">Nº</th><th scope="col">Participante</th><th scope="col">Presente</th><th scope="col">Ausente</th><th scope="col">Ausente justificado</th></tr></thead>
+    <tbody>{% for participante in participantes %}<tr><td>{{ forloop.counter }}</td><th scope="row">{{ participante.nome }}{% if not participante.disponivel %} — confira o cadastro antes da chamada{% endif %}</th>
+      {% if not pode_ver_frequencia %}<td colspan="3">—</td>
+      {% elif participante.frequencia %}
+        <td><input type="radio" disabled aria-label="Presente — {{ participante.nome }}" {% if participante.frequencia.situacao == 'presente' %}checked{% endif %}></td>
+        <td><input type="radio" disabled aria-label="Ausente — {{ participante.nome }}" {% if participante.frequencia.situacao == 'ausente' %}checked{% endif %}></td>
+        <td><input type="radio" disabled aria-label="Ausente justificado — {{ participante.nome }}" {% if participante.frequencia.situacao == 'ausente_justificado' %}checked{% endif %}></td>
+      {% elif pode_registrar_frequencia and participante.campo %}
+        {% for opcao in participante.campo %}<td>{{ opcao.tag }}<label class="sr-only" for="{{ opcao.id_for_label }}">{{ opcao.choice_label }} — {{ participante.nome }}</label></td>{% endfor %}
+      {% else %}<td colspan="3">Não lançado</td>{% endif %}
+    </tr>{% if participante.campo.errors %}<tr><td colspan="5">{{ participante.campo.errors }}</td></tr>{% endif %}{% endfor %}</tbody>
   </table></div>{% else %}<p>Nenhum participante inscrito nesta atividade.</p>{% endif %}
+  {% if pode_registrar_frequencia %}{% if form.fields %}<button type="submit">Salvar frequência</button>{% endif %}</form>{% endif %}
 </section>
-<p>O lançamento digital de presenças ainda não está disponível.</p>
+{% if not pode_registrar_frequencia %}<p>Sua conta não tem permissão para lançar frequência.</p>{% endif %}
+<p>Registros já lançados são somente leitura nesta etapa.</p>
 {% endif %}
 {% endblock %}

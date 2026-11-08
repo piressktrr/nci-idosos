@@ -94,7 +94,7 @@ class ChamadaTests(TestCase):
         self.assertContains(resposta, "Participante fictício 1")
         self.assertNotContains(resposta, "Participante fictício 3")
         self.assertContains(resposta, "lista física assinada continua obrigatória")
-        self.assertContains(resposta, "lançamento digital de presenças ainda não está disponível")
+        self.assertContains(resposta, "Sua conta não tem permissão para lançar frequência")
 
     def test_interface_so_leitura_post_nao_lanca_frequencia(self):
         self.client.force_login(self.usuario)

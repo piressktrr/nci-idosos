@@ -177,3 +177,39 @@ class Inscricao(models.Model):
         constraints = [
             models.UniqueConstraint(fields=["atividade", "origem_participante", "participante_referencia"], name="inscricao_participante_atividade_unica"),
         ]
+
+
+class Frequencia(models.Model):
+    class Situacao(models.TextChoices):
+        PRESENTE = "presente", "Presente"
+        AUSENTE = "ausente", "Ausente"
+        JUSTIFICADO = "ausente_justificado", "Ausente justificado"
+
+    aula = models.ForeignKey(Aula, on_delete=models.PROTECT, related_name="frequencias")
+    inscricao = models.ForeignKey(Inscricao, on_delete=models.PROTECT, related_name="frequencias")
+    situacao = models.CharField(max_length=20, choices=Situacao.choices)
+
+    class Meta:
+        verbose_name = "frequência"
+        verbose_name_plural = "frequências"
+        constraints = [
+            models.UniqueConstraint(fields=["aula", "inscricao"], name="frequencia_aula_inscricao_unica"),
+            models.CheckConstraint(condition=models.Q(situacao__in=["presente", "ausente", "ausente_justificado"]), name="frequencia_situacao_valida"),
+        ]
+
+    def clean(self):
+        super().clean()
+        atividade_aula = Aula.objects.filter(pk=self.aula_id).values_list("atividade_id", flat=True).first()
+        atividade_inscricao = Inscricao.objects.filter(pk=self.inscricao_id).values_list("atividade_id", flat=True).first()
+        if atividade_aula and atividade_inscricao and atividade_aula != atividade_inscricao:
+            raise ValidationError({"inscricao": "A inscrição não pertence à atividade da aula."})
+
+
+class RegistroLancamentoFrequencia(models.Model):
+    frequencia = models.OneToOneField(Frequencia, on_delete=models.PROTECT, related_name="registro_lancamento")
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    registrado_em = models.DateTimeField(auto_now_add=True)
+    dados = models.JSONField()
+
+    class Meta:
+        default_permissions = ()

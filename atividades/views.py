@@ -7,12 +7,12 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
 
-from .forms import AtividadeForm, AulaForm, HorarioAtividadeForm, InscricaoForm
+from .forms import AtividadeForm, AulaForm, HorarioAtividadeForm, InscricaoForm, ChamadaForm
 from .integracoes.participantes import obter_provedor
 from .models import Atividade, Aula, HorarioAtividade
 from .services import (
     cadastrar_atividade, cadastrar_horario, alterar_horario, registrar_aula,
-    cancelar_aula, registrar_aula_cancelada, inscrever_participante, obter_lista_chamada,
+    cancelar_aula, registrar_aula_cancelada, inscrever_participante, obter_lista_chamada, registrar_frequencias,
 )
 
 
@@ -187,8 +187,32 @@ def inscricoes(request, atividade_id):
 @permission_required(("atividades.view_atividade", "atividades.view_aula", "atividades.view_inscricao"), raise_exception=True)
 @require_http_methods(["GET"])
 def chamada(request, atividade_id, aula_id):
+    return _chamada(request, atividade_id, aula_id)
+
+
+@login_required
+@permission_required(("atividades.view_atividade", "atividades.view_aula", "atividades.view_inscricao", "atividades.view_frequencia", "atividades.add_frequencia"), raise_exception=True)
+@require_http_methods(["POST"])
+def lancar_frequencias(request, atividade_id, aula_id):
+    return _chamada(request, atividade_id, aula_id)
+
+
+def _chamada(request, atividade_id, aula_id):
     try:
         contexto = obter_lista_chamada(usuario=request.user, atividade_id=atividade_id, aula_id=aula_id)
+        form = ChamadaForm(request.POST if request.method == "POST" else None, participantes=contexto["participantes"])
+        if request.method == "POST" and form.is_valid():
+            try:
+                registrar_frequencias(usuario=request.user, atividade_id=atividade_id, aula_id=aula_id, registros=form.registros)
+            except ValidationError as erro:
+                form.add_error(None, erro)
+            else:
+                messages.success(request, "Frequência registrada com sucesso.")
+                return redirect("atividades:chamada", atividade_id=atividade_id, aula_id=aula_id)
+        for item in contexto["participantes"]:
+            chave = f"registro_{item['inscricao_id']}"
+            item["campo"] = form[chave] if chave in form.fields else None
+        contexto["form"] = form
     except Aula.DoesNotExist as erro:
         raise Http404("Aula não encontrada.") from erro
     except ValidationError as erro:
