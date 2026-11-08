@@ -7,12 +7,13 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
 
-from .forms import AtividadeForm, AulaForm, HorarioAtividadeForm, InscricaoForm, ChamadaForm, MotivoFaltaForm
+from .forms import AtividadeForm, AulaForm, HorarioAtividadeForm, InscricaoForm, ChamadaForm, MotivoFaltaForm, CorrecaoFrequenciaForm
 from .integracoes.participantes import obter_provedor
-from .models import Atividade, Aula, HorarioAtividade, MotivoFalta
+from .models import Atividade, Aula, HorarioAtividade, MotivoFalta, Frequencia
 from .services import (
     cadastrar_atividade, cadastrar_horario, alterar_horario, registrar_aula,
     cancelar_aula, registrar_aula_cancelada, inscrever_participante, obter_lista_chamada, registrar_frequencias, salvar_motivo_falta,
+    consultar_frequencia, corrigir_frequencia,
 )
 
 
@@ -200,6 +201,10 @@ def lancar_frequencias(request, atividade_id, aula_id):
 def _chamada(request, atividade_id, aula_id):
     try:
         contexto = obter_lista_chamada(usuario=request.user, atividade_id=atividade_id, aula_id=aula_id)
+        contexto["modo_correcao"] = (
+            request.GET.get("correcao") == "1" and contexto["pode_ver_frequencia"]
+            and request.user.has_perm("atividades.change_frequencia")
+        )
         form = ChamadaForm(request.POST if request.method == "POST" else None, participantes=contexto["participantes"])
         if request.method == "POST" and form.is_valid():
             try:
@@ -247,3 +252,32 @@ def motivos_falta(request, motivo_id=None):
     return render(request, "atividades/motivos_falta.html", {
         "form": form, "motivo": motivo, "motivos": MotivoFalta.objects.all(),
     })
+
+
+@login_required
+@permission_required(("atividades.view_atividade", "atividades.view_aula", "atividades.view_inscricao", "atividades.view_frequencia"), raise_exception=True)
+@require_http_methods(["GET", "POST"])
+def detalhe_frequencia(request, atividade_id, aula_id, frequencia_id):
+    try:
+        contexto = consultar_frequencia(usuario=request.user, atividade_id=atividade_id, aula_id=aula_id, frequencia_id=frequencia_id)
+        if request.method == "POST" and not contexto["pode_corrigir"]:
+            raise PermissionDenied
+        frequencia = contexto["frequencia"]
+        form = CorrecaoFrequenciaForm(request.POST if request.method == "POST" else None, frequencia=frequencia)
+        if request.method == "POST" and form.is_valid():
+            try:
+                resultado = corrigir_frequencia(usuario=request.user, atividade_id=atividade_id, aula_id=aula_id,
+                                               frequencia_id=frequencia_id, **form.cleaned_data)
+            except ValidationError as erro:
+                form.add_error(None, erro)
+                frequencia.refresh_from_db()
+            else:
+                messages.success(request, "Correção registrada com sucesso." if resultado.versao != frequencia.versao else "Nenhuma alteração nos dados.")
+                return redirect("atividades:detalhe_frequencia", atividade_id=atividade_id, aula_id=aula_id, frequencia_id=frequencia_id)
+        contexto.update({"form": form, "inicial": getattr(frequencia, "registro_lancamento", None),
+                         "correcoes": frequencia.correcoes.select_related("usuario")})
+    except Frequencia.DoesNotExist as erro:
+        raise Http404("Frequência não encontrada.") from erro
+    except ImproperlyConfigured:
+        return render(request, "atividades/chamada.html", {"erro": "Cadastro de participantes indisponível.", "atividade_id": atividade_id}, status=503)
+    return render(request, "atividades/detalhe_frequencia.html", contexto)

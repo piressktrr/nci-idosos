@@ -109,3 +109,25 @@ class MotivoFaltaForm(forms.ModelForm):
     class Meta:
         model = MotivoFalta
         fields = ("descricao", "ativo")
+
+
+class CorrecaoFrequenciaForm(forms.Form):
+    situacao = forms.ChoiceField(label="Situação", choices=Frequencia.Situacao.choices, widget=forms.RadioSelect)
+    motivo_id = forms.ModelChoiceField(label="Motivo (opcional)", queryset=MotivoFalta.objects.none(), required=False)
+    observacao = forms.CharField(label="Observação (opcional)", required=False, max_length=1000, widget=forms.Textarea(attrs={"rows": 3}))
+    versao_esperada = forms.IntegerField(widget=forms.HiddenInput, min_value=1)
+
+    def __init__(self, *args, frequencia, **kwargs):
+        super().__init__(*args, **kwargs)
+        from django.db.models import Q
+        self.fields["motivo_id"].queryset = MotivoFalta.objects.filter(Q(ativo=True) | Q(pk=frequencia.motivo_id))
+        self.initial.update({"situacao": frequencia.situacao, "motivo_id": frequencia.motivo_id,
+                             "observacao": frequencia.observacao, "versao_esperada": frequencia.versao})
+
+    def clean(self):
+        dados = super().clean()
+        motivo = dados.get("motivo_id")
+        dados["motivo_id"] = motivo.pk if motivo else None
+        if dados.get("situacao") != Frequencia.Situacao.JUSTIFICADO and (motivo or dados.get("observacao")):
+            raise forms.ValidationError("Motivo e observação só se aplicam à ausência justificada.")
+        return dados

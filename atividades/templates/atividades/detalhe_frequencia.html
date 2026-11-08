@@ -1,0 +1,30 @@
+{% extends "nci/base.html" %}
+{% load static %}
+{% block title %}Histórico da frequência · NCI Idade Dourada{% endblock %}
+{% block content %}
+<p><a href="{% url 'atividades:chamada' frequencia.aula.atividade_id frequencia.aula_id %}?correcao=1">Voltar à chamada</a></p>
+<h1>Frequência de {{ nome }}</h1>
+<p>{{ frequencia.aula.atividade.nome }} · {{ frequencia.aula.data|date:"d/m/Y" }} · {{ frequencia.aula.get_situacao_display }}</p>
+{% if demonstracao %}<p class="message">Demonstração: participante fictício.</p>{% endif %}
+<p>Situação atual: <strong>{{ frequencia.get_situacao_display }}</strong> · versão {{ frequencia.versao }}</p>
+{% if pode_corrigir %}<section><h2>Corrigir lançamento</h2>
+  <form method="post">{% csrf_token %}{{ form.non_field_errors }}{{ form.versao_esperada }}{{ form.versao_esperada.errors }}
+    <div class="table-scroll"><table><thead><tr><th>Presente</th><th>Ausente</th><th>Ausente justificado</th></tr></thead>
+      <tbody><tr>{% for opcao in form.situacao %}<td>{{ opcao.tag }}<label class="sr-only" for="{{ opcao.id_for_label }}">{{ opcao.choice_label }}</label></td>{% endfor %}</tr></tbody></table></div>{{ form.situacao.errors }}
+    <div data-justificativa="correcao" data-registro="situacao">
+      <div class="field">{{ form.motivo_id.label_tag }}{{ form.motivo_id }}{{ form.motivo_id.errors }}</div>
+      <div class="field">{{ form.observacao.label_tag }}{{ form.observacao }}{{ form.observacao.errors }}</div>
+    </div>
+    <button type="submit">Salvar correção</button>
+  </form>
+</section><script src="{% static 'atividades/frequencia.js' %}" defer></script>{% endif %}
+<section><h2>Histórico</h2>
+  {% if inicial %}<h3>Lançamento inicial</h3><p>{{ inicial.usuario.get_username }} · {{ inicial.registrado_em|date:"d/m/Y H:i" }}</p>
+  <p>Situação: {{ inicial.dados.situacao }} · Motivo: {{ inicial.dados.motivo_descricao|default:"Não informado" }}</p><p>{{ inicial.dados.observacao|linebreaksbr }}</p>
+  {% else %}<p>Sem auditoria de lançamento inicial disponível.</p>{% endif %}
+  {% for item in correcoes %}<h3>Correção {{ forloop.counter }}</h3><p>{{ item.usuario.get_username }} · {{ item.registrado_em|date:"d/m/Y H:i" }}</p>
+  <p>Antes: {{ item.anteriores.situacao }} · {{ item.anteriores.motivo_descricao|default:"Sem motivo" }}</p><p>{{ item.anteriores.observacao|linebreaksbr }}</p>
+  <p>Depois: {{ item.novos.situacao }} · {{ item.novos.motivo_descricao|default:"Sem motivo" }}</p><p>{{ item.novos.observacao|linebreaksbr }}</p>
+  {% empty %}<p>Nenhuma correção registrada.</p>{% endfor %}
+</section>
+{% endblock %}

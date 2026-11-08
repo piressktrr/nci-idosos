@@ -215,6 +215,7 @@ class Frequencia(models.Model):
     motivo = models.ForeignKey(MotivoFalta, on_delete=models.PROTECT, null=True, blank=True)
     motivo_descricao = models.CharField(max_length=150, blank=True, default="", editable=False)
     observacao = models.TextField("observação", max_length=1000, blank=True, default="")
+    versao = models.PositiveIntegerField(default=1, editable=False)
 
     class Meta:
         verbose_name = "frequência"
@@ -242,3 +243,15 @@ class RegistroLancamentoFrequencia(models.Model):
 
     class Meta:
         default_permissions = ()
+
+
+class RegistroCorrecaoFrequencia(models.Model):
+    frequencia = models.ForeignKey(Frequencia, on_delete=models.PROTECT, related_name="correcoes")
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    registrado_em = models.DateTimeField(auto_now_add=True)
+    anteriores = models.JSONField()
+    novos = models.JSONField()
+
+    class Meta:
+        default_permissions = ()
+        ordering = ["registrado_em", "pk"]

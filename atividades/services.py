@@ -7,7 +7,7 @@ from django.db import transaction
 from .models import (
     Atividade, Aula, HorarioAtividade, RegistroCadastroAtividade,
     RegistroGradeAtividade, RegistroRealizacaoAula, RegistroCancelamentoAula, Inscricao,
-    Frequencia, RegistroLancamentoFrequencia, MotivoFalta, RegistroMotivoFalta,
+    Frequencia, RegistroLancamentoFrequencia, MotivoFalta, RegistroMotivoFalta, RegistroCorrecaoFrequencia,
 )
 from .integracoes.participantes import obter_provedor
 
@@ -236,7 +236,7 @@ def registrar_frequencias(*, usuario, atividade_id, aula_id, registros, justific
     if len(inscricoes) != len(registros):
         raise ValidationError("Há inscrição inválida para esta atividade ou origem de participantes.")
     if aula.frequencias.filter(inscricao_id__in=registros).exists():
-        raise ValidationError("Há frequência já lançada. Correções não estão disponíveis nesta etapa.")
+        raise ValidationError("Há frequência já lançada. Use a ação de correção do registro.")
     for inscricao in inscricoes:
         if provedor.obter(inscricao.participante_referencia) is None:
             raise ValidationError("Há participante indisponível. Confira o cadastro antes de lançar.")
@@ -302,3 +302,63 @@ def salvar_motivo_falta(*, usuario, descricao, ativo=True, motivo_id=None):
     RegistroMotivoFalta.objects.create(motivo=motivo, usuario=autor, anteriores=anteriores,
                                       novos={"descricao": motivo.descricao, "ativo": motivo.ativo})
     return motivo
+
+
+def consultar_frequencia(*, usuario, atividade_id, aula_id, frequencia_id):
+    if not usuario or not usuario.is_authenticated or usuario.pk is None:
+        raise PermissionDenied
+    autor = get_user_model().objects.filter(pk=usuario.pk, is_active=True).first()
+    permissoes = ("atividades.view_atividade", "atividades.view_aula", "atividades.view_inscricao", "atividades.view_frequencia")
+    if autor is None or not autor.has_perms(permissoes):
+        raise PermissionDenied
+    frequencia = Frequencia.objects.select_related("aula__atividade", "inscricao", "motivo").get(
+        pk=frequencia_id, aula_id=aula_id, aula__atividade_id=atividade_id, inscricao__atividade_id=atividade_id,
+    )
+    provedor = obter_provedor()
+    if frequencia.inscricao.origem_participante != provedor.origem:
+        raise Frequencia.DoesNotExist
+    participante = provedor.obter(frequencia.inscricao.participante_referencia)
+    return {"frequencia": frequencia, "nome": participante.nome if participante else "Participante indisponível",
+            "demonstracao": provedor.demonstracao, "pode_corrigir": autor.has_perm("atividades.change_frequencia")}
+
+
+def _snapshot_frequencia(frequencia):
+    return {"situacao": frequencia.situacao, "motivo_id": frequencia.motivo_id,
+            "motivo_descricao": frequencia.motivo_descricao, "observacao": frequencia.observacao,
+            "versao": frequencia.versao}
+
+
+@transaction.atomic
+def corrigir_frequencia(*, usuario, atividade_id, aula_id, frequencia_id, versao_esperada,
+                       situacao, motivo_id=None, observacao=""):
+    contexto = consultar_frequencia(usuario=usuario, atividade_id=atividade_id, aula_id=aula_id, frequencia_id=frequencia_id)
+    if not contexto["pode_corrigir"]:
+        raise PermissionDenied("Você não tem permissão para corrigir frequência.")
+    # Mesmo bloqueio/ordem de lançamento e cancelamento; IDs do vínculo não são editáveis.
+    Aula.objects.select_for_update().get(pk=aula_id, atividade_id=atividade_id)
+    frequencia = Frequencia.objects.select_for_update().get(pk=frequencia_id, aula_id=aula_id)
+    if type(versao_esperada) is not int or versao_esperada != frequencia.versao:
+        raise ValidationError("Este registro foi alterado. Atualize a página e confira o histórico antes de salvar.")
+    if situacao not in Frequencia.Situacao.values or not isinstance(observacao, str) or len(observacao) > 1000:
+        raise ValidationError("Situação ou observação inválida.")
+    observacao = observacao.strip()
+    if situacao != Frequencia.Situacao.JUSTIFICADO and (motivo_id is not None or observacao):
+        raise ValidationError("Motivo e observação só se aplicam à ausência justificada.")
+    if motivo_id is not None and type(motivo_id) is not int:
+        raise ValidationError("Motivo inválido.")
+    anteriores = _snapshot_frequencia(frequencia)
+    if motivo_id != frequencia.motivo_id:
+        motivo = MotivoFalta.objects.select_for_update().filter(pk=motivo_id, ativo=True).first() if motivo_id is not None else None
+        if motivo_id is not None and motivo is None:
+            raise ValidationError("Motivo não encontrado ou desativado.")
+        frequencia.motivo = motivo
+        frequencia.motivo_descricao = motivo.descricao if motivo else ""
+    frequencia.situacao, frequencia.observacao = situacao, observacao
+    frequencia.full_clean()
+    if _snapshot_frequencia(frequencia) == anteriores:
+        return frequencia
+    frequencia.versao += 1
+    frequencia.save(update_fields=["situacao", "motivo", "motivo_descricao", "observacao", "versao"])
+    RegistroCorrecaoFrequencia.objects.create(frequencia=frequencia, usuario=usuario,
+                                             anteriores=anteriores, novos=_snapshot_frequencia(frequencia))
+    return frequencia

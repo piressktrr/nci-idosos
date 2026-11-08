@@ -14,6 +14,10 @@
 {% if perms.atividades.view_motivofalta %}<p><a href="{% url 'atividades:motivos_falta' %}">Gerenciar motivos de falta</a></p>{% endif %}
 <section aria-labelledby="participantes-chamada">
   <h2 id="participantes-chamada">Participantes vinculados ({{ participantes|length }})</h2>
+  {% if pode_ver_frequencia and perms.atividades.change_frequencia %}
+    {% if modo_correcao %}<p><strong>Modo de correção ativo.</strong> <a href="{% url 'atividades:chamada' aula.atividade_id aula.pk %}">Desativar modo de correção</a></p>
+    {% else %}<p><a href="{% url 'atividades:chamada' aula.atividade_id aula.pk %}?correcao=1">Ativar modo de correção</a></p>{% endif %}
+  {% endif %}
   {% if pode_registrar_frequencia %}<p>Novos lançamentos começam com Presente marcado. Confira a lista assinada, ajuste as faltas e clique em Salvar frequência.</p>
   <form method="post" action="{% url 'atividades:lancar_frequencias' aula.atividade_id aula.pk %}">{% csrf_token %}{{ form.non_field_errors }}{% endif %}
   {% if participantes %}<div class="table-scroll"><table>
@@ -27,7 +31,8 @@
       {% elif pode_registrar_frequencia and participante.campo %}
         {% for opcao in participante.campo %}<td>{{ opcao.tag }}<label class="sr-only" for="{{ opcao.id_for_label }}">{{ opcao.choice_label }} — {{ participante.nome }}</label></td>{% endfor %}
       {% else %}<td colspan="3">Não lançado</td>{% endif %}
-    </tr>{% if participante.campo.errors %}<tr><td colspan="5">{{ participante.campo.errors }}</td></tr>{% endif %}
+    </tr>{% if modo_correcao and participante.frequencia %}<tr><td colspan="5"><a href="{% url 'atividades:detalhe_frequencia' aula.atividade_id aula.pk participante.frequencia.pk %}">Histórico e correção — {{ participante.nome }}</a></td></tr>{% endif %}
+    {% if participante.campo.errors %}<tr><td colspan="5">{{ participante.campo.errors }}</td></tr>{% endif %}
     {% if pode_ver_frequencia and participante.frequencia.situacao == 'ausente_justificado' %}
       <tr><td colspan="5">Motivo: {{ participante.frequencia.motivo_descricao|default:"Não informado" }}{% if participante.frequencia.observacao %}<p>Observação: {{ participante.frequencia.observacao|linebreaksbr }}</p>{% endif %}</td></tr>
     {% elif pode_registrar_frequencia and participante.campo %}
@@ -40,7 +45,7 @@
   {% if pode_registrar_frequencia %}{% if form.fields %}<button type="submit">Salvar frequência</button>{% endif %}</form>{% endif %}
 </section>
 {% if not pode_registrar_frequencia %}<p>Sua conta não tem permissão para lançar frequência.</p>{% endif %}
-<p>Registros já lançados são somente leitura nesta etapa.</p>
+{% if modo_correcao %}<p>Para alterar um lançamento existente, use o histórico e a correção do registro.</p>{% endif %}
 {% if pode_registrar_frequencia %}<script src="{% static 'atividades/frequencia.js' %}" defer></script>{% endif %}
 {% endif %}
 {% endblock %}
