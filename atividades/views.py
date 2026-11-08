@@ -7,14 +7,37 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
 
-from .forms import AtividadeForm, AulaForm, HorarioAtividadeForm, InscricaoForm, ChamadaForm, MotivoFaltaForm, CorrecaoFrequenciaForm
+from .forms import AtividadeForm, AulaForm, HorarioAtividadeForm, InscricaoForm, ChamadaForm, MotivoFaltaForm, CorrecaoFrequenciaForm, FrequenciaMensalForm
 from .integracoes.participantes import obter_provedor
 from .models import Atividade, Aula, HorarioAtividade, MotivoFalta, Frequencia
 from .services import (
     cadastrar_atividade, cadastrar_horario, alterar_horario, registrar_aula,
     cancelar_aula, registrar_aula_cancelada, inscrever_participante, obter_lista_chamada, registrar_frequencias, salvar_motivo_falta,
-    consultar_frequencia, corrigir_frequencia,
+    consultar_frequencia, corrigir_frequencia, consultar_frequencia_mensal,
 )
+
+
+@login_required
+@permission_required(("atividades.view_atividade", "atividades.view_aula", "atividades.view_frequencia"), raise_exception=True)
+@require_http_methods(["GET"])
+def frequencia_mensal(request):
+    dados = request.GET.copy()
+    if "mes" not in dados:
+        dados["mes"] = timezone.localdate().strftime("%Y-%m")
+    form = FrequenciaMensalForm(dados)
+    contexto = {"form": form}
+    status = 200
+    if form.is_valid():
+        mes = form.cleaned_data["mes"]
+        atividade = form.cleaned_data["atividade"]
+        try:
+            contexto.update(consultar_frequencia_mensal(usuario=request.user, ano=mes.year, mes=mes.month,
+                atividade_id=atividade.pk if atividade else None))
+            contexto["mes_consultado"] = mes
+        except ImproperlyConfigured:
+            form.add_error(None, "A integração de participantes está indisponível.")
+            status = 503
+    return render(request, "atividades/frequencia_mensal.html", contexto, status=status)
 
 
 @login_required

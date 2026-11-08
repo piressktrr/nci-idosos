@@ -4,6 +4,13 @@ from django.utils import timezone
 from .models import Atividade, Aula, HorarioAtividade, Frequencia, MotivoFalta
 
 
+class FrequenciaMensalForm(forms.Form):
+    mes = forms.DateField(label="Mês", input_formats=["%Y-%m"],
+        widget=forms.DateInput(format="%Y-%m", attrs={"type": "month"}))
+    atividade = forms.ModelChoiceField(label="Atividade", queryset=Atividade.objects.order_by("nome", "pk"),
+        required=False, empty_label="Todas as atividades")
+
+
 class AtividadeForm(forms.ModelForm):
     class Meta:
         model = Atividade

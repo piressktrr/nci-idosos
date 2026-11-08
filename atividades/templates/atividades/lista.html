@@ -3,6 +3,9 @@
 {% block content %}
 <h1>Atividades</h1>
 <p>Cadastre as atividades e consulte as informações registradas.</p>
+{% if perms.atividades.view_aula and perms.atividades.view_frequencia %}
+<p><a href="{% url 'atividades:frequencia_mensal' %}">Consultar frequência mensal</a></p>
+{% endif %}
 {% if perms.atividades.add_atividade %}
 <section aria-labelledby="novo-cadastro">
   <h2 id="novo-cadastro">Cadastrar atividade</h2>

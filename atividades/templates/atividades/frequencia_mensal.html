@@ -1,0 +1,23 @@
+{% extends "nci/base.html" %}
+{% block title %}Frequência mensal · NCI{% endblock %}
+{% block content %}
+<h1>Frequência mensal</h1>
+<p><a href="{% url 'atividades:lista' %}">Voltar às atividades</a></p>
+<form method="get">
+  {{ form.non_field_errors }}
+  {% for field in form %}<div class="field">{{ field.label_tag }}{{ field }}{{ field.errors }}</div>{% endfor %}
+  <button type="submit">Consultar</button>
+</form>
+{% if mes_consultado %}
+<h2>Frequência em {{ mes_consultado|date:"m/Y" }}</h2>
+{% if demonstracao %}<p role="status">Demonstração com participantes fictícios. Contrato provisório; integração real pendente.</p>{% endif %}
+<p>Totais de lançamentos por aula, pela data de ocorrência. Uma pessoa pode ter várias presenças no mês. Aulas canceladas estão excluídas. Ausência de lançamento não é contabilizada como falta.</p>
+<div class="table-scroll"><table>
+  <thead><tr><th scope="col">Atividade</th><th scope="col">Aulas realizadas</th><th scope="col">Presente</th><th scope="col">Ausente</th><th scope="col">Ausente justificado</th><th scope="col">Lançamentos</th></tr></thead>
+  <tbody>{% for item in linhas %}<tr><th scope="row">{{ item.nome }}</th><td>{{ item.aulas_realizadas }}</td><td>{{ item.presentes }}</td><td>{{ item.ausentes }}</td><td>{{ item.justificados }}</td><td>{{ item.total_registros }}</td></tr>
+  {% empty %}<tr><td colspan="6">Nenhuma atividade cadastrada.</td></tr>{% endfor %}</tbody>
+  <tfoot><tr><th scope="row">Total</th><td>{{ totais.aulas_realizadas }}</td><td>{{ totais.presentes }}</td><td>{{ totais.ausentes }}</td><td>{{ totais.justificados }}</td><td>{{ totais.total_registros }}</td></tr></tfoot>
+</table></div>
+{% if not totais.total_registros %}<p>Nenhuma frequência lançada neste mês para a seleção.</p>{% endif %}
+{% endif %}
+{% endblock %}

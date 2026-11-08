@@ -1,8 +1,12 @@
 """Serviços provisórios de atividades, grade e aulas, com autorização e auditoria."""
 
+from calendar import monthrange
+from datetime import date
+
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
+from django.db.models import Count, Q
 
 from .models import (
     Atividade, Aula, HorarioAtividade, RegistroCadastroAtividade,
@@ -10,6 +14,41 @@ from .models import (
     Frequencia, RegistroLancamentoFrequencia, MotivoFalta, RegistroMotivoFalta, RegistroCorrecaoFrequencia,
 )
 from .integracoes.participantes import obter_provedor
+
+
+def consultar_frequencia_mensal(*, usuario, ano, mes, atividade_id=None):
+    """RF-ATV-11: totais de lançamentos atuais por ocorrência, sem inferir faltas.
+
+    Consulta operacional local; não representa indicadores ou classificação FMR.
+    A origem do contrato provisório separa frequências fictícias das reais.
+    """
+    if not usuario or not usuario.is_authenticated or usuario.pk is None:
+        raise PermissionDenied
+    autor = get_user_model().objects.filter(pk=usuario.pk, is_active=True).first()
+    permissoes = ("atividades.view_atividade", "atividades.view_aula", "atividades.view_frequencia")
+    if autor is None or not autor.has_perms(permissoes):
+        raise PermissionDenied
+    if type(ano) is not int or type(mes) is not int or not 1 <= ano <= 9999 or not 1 <= mes <= 12:
+        raise ValidationError("Informe um mês e ano válidos.")
+    atividades = Atividade.objects.all()
+    if atividade_id is not None:
+        atividade = atividades.get(pk=atividade_id)
+        atividades = atividades.filter(pk=atividade.pk)
+    provedor = obter_provedor()
+    periodo = Q(aulas__data__range=(date(ano, mes, 1), date(ano, mes, monthrange(ano, mes)[1])),
+                aulas__situacao=Aula.Situacao.REALIZADA)
+    origem = Q(aulas__frequencias__inscricao__origem_participante=provedor.origem)
+    contagens = {"aulas_realizadas": Count("aulas", filter=periodo, distinct=True)}
+    for chave, situacao in (("presentes", "presente"), ("ausentes", "ausente"),
+                            ("justificados", "ausente_justificado")):
+        contagens[chave] = Count("aulas__frequencias", distinct=True,
+            filter=periodo & origem & Q(aulas__frequencias__situacao=situacao))
+    linhas = list(atividades.order_by("nome", "pk").annotate(**contagens))
+    totais = {chave: sum(getattr(item, chave) for item in linhas) for chave in contagens}
+    for item in linhas:
+        item.total_registros = item.presentes + item.ausentes + item.justificados
+    totais["total_registros"] = totais["presentes"] + totais["ausentes"] + totais["justificados"]
+    return {"linhas": linhas, "totais": totais, "demonstracao": provedor.demonstracao}
 
 
 @transaction.atomic
