@@ -6,8 +6,9 @@ from django.db import transaction
 
 from .models import (
     Atividade, Aula, HorarioAtividade, RegistroCadastroAtividade,
-    RegistroGradeAtividade, RegistroRealizacaoAula, RegistroCancelamentoAula,
+    RegistroGradeAtividade, RegistroRealizacaoAula, RegistroCancelamentoAula, Inscricao,
 )
+from .integracoes.participantes import obter_provedor
 
 
 @transaction.atomic
@@ -147,3 +148,31 @@ def registrar_aula_cancelada(*, usuario, atividade_id, data, inicio, fim, tipo=A
         aula=aula, usuario=autor, dados_anteriores=None, dados_novos=_dados_aula(aula),
     )
     return aula
+
+
+@transaction.atomic
+def inscrever_participante(*, usuario, atividade_id, participante_referencia):
+    """RF-ATV-06: valida a identidade no provedor e grava o vínculo com autoria."""
+    if not usuario or not usuario.is_authenticated or usuario.pk is None:
+        raise PermissionDenied("É necessário um usuário autorizado para registrar inscrições.")
+    autor = get_user_model().objects.filter(pk=usuario.pk, is_active=True).first()
+    if autor is None or not autor.has_perm("atividades.add_inscricao"):
+        raise PermissionDenied("Você não tem permissão para registrar inscrições.")
+    if not isinstance(participante_referencia, str) or not participante_referencia.strip() or len(participante_referencia) > 64:
+        raise ValidationError({"participante_referencia": "Selecione um participante cadastrado."})
+    # Serializa inscrições da mesma atividade, inclusive a verificação de duplicação.
+    atividade = Atividade.objects.select_for_update().get(pk=atividade_id)
+    provedor = obter_provedor()
+    participante = provedor.obter(participante_referencia)
+    if participante is None:
+        raise ValidationError({"participante_referencia": "Participante não encontrado no cadastro."})
+    if Inscricao.objects.filter(atividade=atividade, origem_participante=provedor.origem,
+                               participante_referencia=participante.referencia).exists():
+        raise ValidationError({"participante_referencia": "Este participante já está inscrito nesta atividade."})
+    inscricao = Inscricao(
+        atividade=atividade, origem_participante=provedor.origem,
+        participante_referencia=participante.referencia, cadastrada_por=autor,
+    )
+    inscricao.full_clean()
+    inscricao.save()
+    return inscricao

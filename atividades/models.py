@@ -159,3 +159,21 @@ class RegistroCancelamentoAula(models.Model):
 
     class Meta:
         default_permissions = ()
+
+
+class Inscricao(models.Model):
+    """Vínculo com identidade externa provisória, sem duplicar o cadastro da pessoa."""
+
+    atividade = models.ForeignKey(Atividade, on_delete=models.PROTECT, related_name="inscricoes")
+    origem_participante = models.CharField(max_length=40)
+    participante_referencia = models.CharField(max_length=64)
+    cadastrada_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    cadastrada_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-cadastrada_em", "-pk"]
+        verbose_name = "inscrição"
+        verbose_name_plural = "inscrições"
+        constraints = [
+            models.UniqueConstraint(fields=["atividade", "origem_participante", "participante_referencia"], name="inscricao_participante_atividade_unica"),
+        ]

@@ -50,3 +50,14 @@ class AulaForm(forms.ModelForm):
             "inicio": forms.TimeInput(format="%H:%M", attrs={"type": "time", "step": "60"}),
             "fim": forms.TimeInput(format="%H:%M", attrs={"type": "time", "step": "60"}),
         }
+
+
+class InscricaoForm(forms.Form):
+    participante_referencia = forms.ChoiceField(label="Participante")
+
+    def __init__(self, *args, participantes=(), **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["participante_referencia"].choices = [
+            ("", "Selecione um participante"),
+            *((item.referencia, item.nome) for item in participantes),
+        ]
