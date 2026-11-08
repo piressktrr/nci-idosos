@@ -1,10 +1,13 @@
-"""Serviços provisórios de cadastro e grade (RF-ATV-01/02), com autorização e auditoria."""
+"""Serviços provisórios de atividades, grade e aulas, com autorização e auditoria."""
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 
-from .models import Atividade, HorarioAtividade, RegistroCadastroAtividade, RegistroGradeAtividade
+from .models import (
+    Atividade, Aula, HorarioAtividade, RegistroCadastroAtividade,
+    RegistroGradeAtividade, RegistroRealizacaoAula,
+)
 
 
 @transaction.atomic
@@ -71,3 +74,22 @@ def alterar_horario(*, usuario, atividade_id, horario_id, dia_semana, inicio, fi
         dados_anteriores=anteriores, dados_novos=_dados_horario(horario),
     )
     return horario
+
+
+@transaction.atomic
+def registrar_aula(*, usuario, atividade_id, data, inicio, fim):
+    """RF-ATV-03: registra data/horários efetivos sem vincular a aula à grade."""
+    if not usuario or not usuario.is_authenticated or usuario.pk is None:
+        raise PermissionDenied("É necessário um usuário autorizado para registrar aulas.")
+    autor = get_user_model().objects.filter(pk=usuario.pk, is_active=True).first()
+    if autor is None or not autor.has_perm("atividades.add_aula"):
+        raise PermissionDenied("Você não tem permissão para registrar aulas.")
+    atividade = Atividade.objects.get(pk=atividade_id)
+    aula = Aula(atividade=atividade, data=data, inicio=inicio, fim=fim)
+    aula.full_clean()
+    aula.save()
+    RegistroRealizacaoAula.objects.create(aula=aula, usuario=autor, dados={
+        "atividade_id": atividade.pk, "data": aula.data.isoformat(),
+        "inicio": aula.inicio.isoformat(), "fim": aula.fim.isoformat(),
+    })
+    return aula

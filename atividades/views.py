@@ -5,9 +5,9 @@ from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
 
-from .forms import AtividadeForm, HorarioAtividadeForm
+from .forms import AtividadeForm, AulaForm, HorarioAtividadeForm
 from .models import Atividade, HorarioAtividade
-from .services import cadastrar_atividade, cadastrar_horario, alterar_horario
+from .services import cadastrar_atividade, cadastrar_horario, alterar_horario, registrar_aula
 
 
 @login_required
@@ -76,3 +76,28 @@ def _grade(request, atividade_id, horario_id=None):
     return render(request, "atividades/grade.html", {
         "atividade": atividade, "horario": horario, "form": form, "horarios": atividade.horarios.all(),
     })
+
+
+@login_required
+@permission_required(("atividades.view_atividade", "atividades.view_aula"), raise_exception=True)
+@require_http_methods(["GET", "POST"])
+def aulas(request, atividade_id):
+    atividade = get_object_or_404(Atividade, pk=atividade_id)
+    form = AulaForm(request.POST if request.method == "POST" else None)
+    if request.method == "POST":
+        if not request.user.has_perm("atividades.add_aula"):
+            raise PermissionDenied
+        if form.is_valid():
+            try:
+                registrar_aula(usuario=request.user, atividade_id=atividade.pk, **form.cleaned_data)
+            except ValidationError as erro:
+                if hasattr(erro, "message_dict"):
+                    for campo, erros in erro.message_dict.items():
+                        form.add_error(campo if campo in form.fields else None, erros)
+                else:
+                    form.add_error(None, erro)
+            else:
+                messages.success(request, "Aula realizada registrada com sucesso.")
+                return redirect("atividades:aulas", atividade_id=atividade.pk)
+    pagina = Paginator(atividade.aulas.all(), 20).get_page(request.GET.get("page"))
+    return render(request, "atividades/aulas.html", {"atividade": atividade, "form": form, "pagina": pagina})

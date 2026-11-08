@@ -17,8 +17,8 @@
 <section aria-labelledby="atividades-cadastradas">
   <h2 id="atividades-cadastradas">Atividades cadastradas ({{ pagina.paginator.count }})</h2>
   {% if pagina %}<div class="table-scroll"><table>
-    <thead><tr><th scope="col">Atividade</th><th scope="col">Local</th><th scope="col">Monitor/oficineiro</th><th scope="col">Grade</th></tr></thead>
-    <tbody>{% for atividade in pagina %}<tr><td>{{ atividade.nome }}</td><td>{{ atividade.local }}</td><td>{{ atividade.monitor }}</td><td>{% if perms.atividades.view_horarioatividade %}<a href="{% url 'atividades:grade' atividade.pk %}" aria-label="Ver horários de {{ atividade.nome }}">Ver horários</a>{% else %}—{% endif %}</td></tr>{% endfor %}</tbody>
+    <thead><tr><th scope="col">Atividade</th><th scope="col">Local</th><th scope="col">Monitor/oficineiro</th><th scope="col">Grade</th><th scope="col">Aulas</th></tr></thead>
+    <tbody>{% for atividade in pagina %}<tr><td>{{ atividade.nome }}</td><td>{{ atividade.local }}</td><td>{{ atividade.monitor }}</td><td>{% if perms.atividades.view_horarioatividade %}<a href="{% url 'atividades:grade' atividade.pk %}" aria-label="Ver horários de {{ atividade.nome }}">Ver horários</a>{% else %}—{% endif %}</td><td>{% if perms.atividades.view_aula %}<a href="{% url 'atividades:aulas' atividade.pk %}" aria-label="Ver aulas de {{ atividade.nome }}">Ver aulas</a>{% else %}—{% endif %}</td></tr>{% endfor %}</tbody>
   </table></div>
   {% if pagina.has_other_pages %}<nav aria-label="Páginas de atividades">
     {% if pagina.has_previous %}<a href="?page={{ pagina.previous_page_number }}">Anterior</a>{% endif %}

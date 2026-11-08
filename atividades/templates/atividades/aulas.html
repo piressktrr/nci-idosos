@@ -1,0 +1,30 @@
+{% extends "nci/base.html" %}
+{% block title %}Aulas de {{ atividade.nome }} · NCI Idade Dourada{% endblock %}
+{% block content %}
+<p><a href="{% url 'atividades:lista' %}">Voltar às atividades</a></p>
+<h1>Aulas de {{ atividade.nome }}</h1>
+<p>Informe a data em que a aula aconteceu e seus horários efetivos.</p>
+{% if perms.atividades.add_aula %}
+<section aria-labelledby="registrar-aula">
+  <h2 id="registrar-aula">Registrar aula realizada</h2>
+  <form method="post">
+    {% csrf_token %}{{ form.non_field_errors }}
+    {% for field in form %}<div class="field">{{ field.label_tag }}{{ field }}{{ field.errors }}</div>{% endfor %}
+    <button type="submit">Registrar aula</button>
+  </form>
+</section>
+{% endif %}
+<section aria-labelledby="aulas-realizadas">
+  <h2 id="aulas-realizadas">Aulas realizadas ({{ pagina.paginator.count }})</h2>
+  {% if pagina %}<div class="table-scroll"><table>
+    <thead><tr><th scope="col">Data da aula</th><th scope="col">Início efetivo</th><th scope="col">Término efetivo</th></tr></thead>
+    <tbody>{% for aula in pagina %}<tr><td>{{ aula.data|date:"d/m/Y" }}</td><td>{{ aula.inicio|time:"H:i:s" }}</td><td>{{ aula.fim|time:"H:i:s" }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% if pagina.has_other_pages %}<nav aria-label="Páginas de aulas">
+    {% if pagina.has_previous %}<a href="?page={{ pagina.previous_page_number }}">Anterior</a>{% endif %}
+    <span>Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+    {% if pagina.has_next %}<a href="?page={{ pagina.next_page_number }}">Próxima</a>{% endif %}
+  </nav>{% endif %}
+  {% else %}<p>Nenhuma aula registrada para esta atividade.</p>{% endif %}
+</section>
+{% endblock %}

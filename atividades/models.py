@@ -85,3 +85,41 @@ class RegistroGradeAtividade(models.Model):
 
     class Meta:
         default_permissions = ()
+
+
+class Aula(models.Model):
+    """Ocorrência realizada; horários efetivos independem da grade semanal."""
+
+    atividade = models.ForeignKey(Atividade, on_delete=models.PROTECT, related_name="aulas")
+    data = models.DateField("data da aula")
+    inicio = models.TimeField("início efetivo")
+    fim = models.TimeField("término efetivo")
+
+    class Meta:
+        ordering = ["-data", "-inicio", "-pk"]
+        verbose_name = "aula realizada"
+        verbose_name_plural = "aulas realizadas"
+        constraints = [
+            models.CheckConstraint(condition=models.Q(fim__gt=models.F("inicio")), name="aula_fim_apos_inicio"),
+        ]
+
+    def clean(self):
+        super().clean()
+        for campo in ("inicio", "fim"):
+            valor = getattr(self, campo)
+            if isinstance(valor, time) and valor.tzinfo is not None:
+                raise ValidationError({campo: "Informe um horário local, sem fuso horário."})
+        if isinstance(self.inicio, time) and isinstance(self.fim, time) and self.fim <= self.inicio:
+            raise ValidationError({"fim": "O término deve ser posterior ao início, no mesmo dia."})
+
+
+class RegistroRealizacaoAula(models.Model):
+    """Auditoria da inclusão de uma aula realizada, com seus dados originais."""
+
+    aula = models.OneToOneField(Aula, on_delete=models.PROTECT, related_name="registro_realizacao")
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    registrado_em = models.DateTimeField(auto_now_add=True)
+    dados = models.JSONField()
+
+    class Meta:
+        default_permissions = ()
