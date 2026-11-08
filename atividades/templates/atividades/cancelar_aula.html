@@ -1,0 +1,13 @@
+{% extends "nci/base.html" %}
+{% block title %}Cancelar aula · NCI Idade Dourada{% endblock %}
+{% block content %}
+<p><a href="{% url 'atividades:aulas' aula.atividade_id %}">Voltar às aulas</a></p>
+<h1>Cancelar aula de {{ aula.atividade.nome }}</h1>
+<p>{{ aula.data|date:"d/m/Y" }} · {{ aula.inicio|time:"H:i" }} às {{ aula.fim|time:"H:i" }} · {{ aula.get_tipo_display }}</p>
+{% if erro %}<p class="errorlist" role="alert">{{ erro }}</p>{% endif %}
+{% if aula.situacao == 'cancelada' %}<p>Esta aula já está cancelada.</p>
+{% else %}<section aria-label="Confirmação de cancelamento">
+  <p>Ao confirmar, a aula deixa de contar como realizada. Seus dados e histórico serão preservados.</p>
+  <form method="post">{% csrf_token %}<button type="submit">Confirmar cancelamento</button></form>
+</section>{% endif %}
+{% endblock %}

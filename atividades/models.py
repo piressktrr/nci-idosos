@@ -87,8 +87,18 @@ class RegistroGradeAtividade(models.Model):
         default_permissions = ()
 
 
+class AulaQuerySet(models.QuerySet):
+    def realizadas(self):
+        """Base de consulta para totais de realização; exclui cancelamentos (RN-ATV-06)."""
+        return self.filter(situacao="realizada")
+
+
 class Aula(models.Model):
-    """Ocorrência realizada; horários efetivos independem da grade semanal."""
+    """Ocorrência realizada ou cancelada, independente da grade semanal."""
+
+    class Situacao(models.TextChoices):
+        REALIZADA = "realizada", "Realizada"
+        CANCELADA = "cancelada", "Cancelada"
 
     class Tipo(models.TextChoices):
         NAO_INFORMADO = "nao_informado", "Não informado"
@@ -101,17 +111,21 @@ class Aula(models.Model):
     inicio = models.TimeField("início efetivo")
     fim = models.TimeField("término efetivo")
     tipo = models.CharField("tipo de aula", max_length=13, choices=Tipo.choices, default=Tipo.NAO_INFORMADO)
+    situacao = models.CharField("situação", max_length=9, choices=Situacao.choices, default=Situacao.REALIZADA)
+    objects = AulaQuerySet.as_manager()
 
     class Meta:
         ordering = ["-data", "-inicio", "-pk"]
-        verbose_name = "aula realizada"
-        verbose_name_plural = "aulas realizadas"
+        verbose_name = "aula"
+        verbose_name_plural = "aulas"
+        permissions = [("cancelar_aula", "Pode registrar cancelamento de aula")]
         constraints = [
             models.CheckConstraint(condition=models.Q(fim__gt=models.F("inicio")), name="aula_fim_apos_inicio"),
             models.CheckConstraint(
                 condition=models.Q(tipo__in=["nao_informado", "regular", "extra", "remarcada"]),
                 name="aula_tipo_valido",
             ),
+            models.CheckConstraint(condition=models.Q(situacao__in=["realizada", "cancelada"]), name="aula_situacao_valida"),
         ]
 
     def clean(self):
@@ -131,6 +145,17 @@ class RegistroRealizacaoAula(models.Model):
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     registrado_em = models.DateTimeField(auto_now_add=True)
     dados = models.JSONField()
+
+    class Meta:
+        default_permissions = ()
+
+
+class RegistroCancelamentoAula(models.Model):
+    aula = models.OneToOneField(Aula, on_delete=models.PROTECT, related_name="registro_cancelamento")
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    registrado_em = models.DateTimeField(auto_now_add=True)
+    dados_anteriores = models.JSONField(null=True)
+    dados_novos = models.JSONField()
 
     class Meta:
         default_permissions = ()

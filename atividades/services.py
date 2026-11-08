@@ -6,7 +6,7 @@ from django.db import transaction
 
 from .models import (
     Atividade, Aula, HorarioAtividade, RegistroCadastroAtividade,
-    RegistroGradeAtividade, RegistroRealizacaoAula,
+    RegistroGradeAtividade, RegistroRealizacaoAula, RegistroCancelamentoAula,
 )
 
 
@@ -97,4 +97,53 @@ def registrar_aula(*, usuario, atividade_id, data, inicio, fim, tipo=Aula.Tipo.N
         "inicio": aula.inicio.isoformat(), "fim": aula.fim.isoformat(),
         "tipo": aula.tipo,
     })
+    return aula
+
+
+def _autorizar_cancelamento(usuario, cadastro=False):
+    if not usuario or not usuario.is_authenticated or usuario.pk is None:
+        raise PermissionDenied("É necessário um usuário autorizado para cancelar aulas.")
+    autor = get_user_model().objects.filter(pk=usuario.pk, is_active=True).first()
+    if autor is None or not autor.has_perm("atividades.cancelar_aula"):
+        raise PermissionDenied("Você não tem permissão para cancelar aulas.")
+    if cadastro and not autor.has_perm("atividades.add_aula"):
+        raise PermissionDenied("Você não tem permissão para registrar aulas.")
+    return autor
+
+
+def _dados_aula(aula):
+    return {
+        "atividade_id": aula.atividade_id, "data": aula.data.isoformat(),
+        "inicio": aula.inicio.isoformat(), "fim": aula.fim.isoformat(),
+        "tipo": aula.tipo, "situacao": aula.situacao,
+    }
+
+
+@transaction.atomic
+def cancelar_aula(*, usuario, atividade_id, aula_id):
+    """Cancela uma ocorrência existente sem apagar seus dados ou auditoria original."""
+    autor = _autorizar_cancelamento(usuario)
+    aula = Aula.objects.select_for_update().get(pk=aula_id, atividade_id=atividade_id)
+    if aula.situacao == Aula.Situacao.CANCELADA:
+        raise ValidationError("Esta aula já está cancelada.")
+    anteriores = _dados_aula(aula)
+    aula.situacao = Aula.Situacao.CANCELADA
+    aula.save(update_fields=["situacao"])
+    RegistroCancelamentoAula.objects.create(
+        aula=aula, usuario=autor, dados_anteriores=anteriores, dados_novos=_dados_aula(aula),
+    )
+    return aula
+
+
+@transaction.atomic
+def registrar_aula_cancelada(*, usuario, atividade_id, data, inicio, fim, tipo=Aula.Tipo.NAO_INFORMADO):
+    """Registra diretamente uma aula que não ocorreu; horários indicam o previsto."""
+    autor = _autorizar_cancelamento(usuario, cadastro=True)
+    atividade = Atividade.objects.get(pk=atividade_id)
+    aula = Aula(atividade=atividade, data=data, inicio=inicio, fim=fim, tipo=tipo, situacao=Aula.Situacao.CANCELADA)
+    aula.full_clean()
+    aula.save()
+    RegistroCancelamentoAula.objects.create(
+        aula=aula, usuario=autor, dados_anteriores=None, dados_novos=_dados_aula(aula),
+    )
     return aula

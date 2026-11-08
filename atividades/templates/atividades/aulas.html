@@ -4,11 +4,14 @@
 {% block content %}
 <p><a href="{% url 'atividades:lista' %}">Voltar às atividades</a></p>
 <h1>Aulas de {{ atividade.nome }}</h1>
-<p>Informe a data em que a aula aconteceu e seus horários efetivos.</p>
+{% if modo_cancelamento %}<p>Registre a data e os horários previstos da aula que foi cancelada.</p>
+<p><a href="{% url 'atividades:aulas' atividade.pk %}">Voltar às aulas</a></p>
+{% else %}<p>Informe a data em que a aula aconteceu e seus horários efetivos.</p>
+{% if perms.atividades.cancelar_aula and perms.atividades.add_aula %}<p><a href="{% url 'atividades:nova_aula_cancelada' atividade.pk %}">Registrar aula cancelada</a></p>{% endif %}{% endif %}
 <p>Escolha Regular, Extra ou Remarcada. Aulas extras e remarcadas podem ocorrer fora da grade semanal.</p>
 {% if perms.atividades.add_aula %}
 <section aria-labelledby="registrar-aula">
-  <h2 id="registrar-aula">Registrar aula realizada</h2>
+  <h2 id="registrar-aula">{% if modo_cancelamento %}Registrar aula cancelada{% else %}Registrar aula realizada{% endif %}</h2>
   <p>A data começa em hoje. Para aulas regulares, os horários da grade são sugestões e podem ser ajustados.</p>
   <form method="post" id="form-aula" data-bound="{{ form.is_bound|yesno:'true,false' }}">
     {% csrf_token %}{{ form.non_field_errors }}
@@ -18,17 +21,18 @@
       <select id="horario-sugerido"></select>
     </div>
     <p id="aviso-sugestao" role="status" aria-live="polite"></p>
-    <button type="submit">Registrar aula</button>
+    <button type="submit">{% if modo_cancelamento %}Registrar cancelamento{% else %}Registrar aula{% endif %}</button>
   </form>
   {{ sugestoes|json_script:"sugestoes-aula" }}
   <script src="{% static 'atividades/aulas.js' %}" defer></script>
 </section>
 {% endif %}
-<section aria-labelledby="aulas-realizadas">
-  <h2 id="aulas-realizadas">Aulas realizadas ({{ pagina.paginator.count }})</h2>
+<section aria-labelledby="aulas-registradas">
+  <h2 id="aulas-registradas">Aulas registradas ({{ pagina.paginator.count }})</h2>
+  <p>Realizadas: {{ total_realizadas }} · Canceladas: {{ total_canceladas }}</p>
   {% if pagina %}<div class="table-scroll"><table>
-    <thead><tr><th scope="col">Tipo</th><th scope="col">Data da aula</th><th scope="col">Início efetivo</th><th scope="col">Término efetivo</th></tr></thead>
-    <tbody>{% for aula in pagina %}<tr><td>{{ aula.get_tipo_display }}</td><td>{{ aula.data|date:"d/m/Y" }}</td><td>{{ aula.inicio|time:"H:i" }}</td><td>{{ aula.fim|time:"H:i" }}</td></tr>{% endfor %}</tbody>
+    <thead><tr><th scope="col">Tipo</th><th scope="col">Data da aula</th><th scope="col">Início</th><th scope="col">Término</th><th scope="col">Situação</th>{% if perms.atividades.cancelar_aula %}<th scope="col">Ação</th>{% endif %}</tr></thead>
+    <tbody>{% for aula in pagina %}<tr><td>{{ aula.get_tipo_display }}</td><td>{{ aula.data|date:"d/m/Y" }}</td><td>{{ aula.inicio|time:"H:i" }}</td><td>{{ aula.fim|time:"H:i" }}</td><td>{{ aula.get_situacao_display }}</td>{% if perms.atividades.cancelar_aula %}<td>{% if aula.situacao == 'realizada' %}<a href="{% url 'atividades:cancelar_aula' atividade.pk aula.pk %}">Cancelar aula</a>{% else %}—{% endif %}</td>{% endif %}</tr>{% endfor %}</tbody>
   </table></div>
   {% if pagina.has_other_pages %}<nav aria-label="Páginas de aulas">
     {% if pagina.has_previous %}<a href="?page={{ pagina.previous_page_number }}">Anterior</a>{% endif %}
@@ -37,4 +41,5 @@
   </nav>{% endif %}
   {% else %}<p>Nenhuma aula registrada para esta atividade.</p>{% endif %}
 </section>
+<p>Nas aulas canceladas, os horários identificam a ocorrência prevista ou originalmente registrada.</p>
 {% endblock %}

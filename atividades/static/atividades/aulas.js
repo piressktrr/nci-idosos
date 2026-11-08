@@ -46,7 +46,7 @@
     } else {
       aviso.textContent = tipo.value === "regular"
         ? "Sem horário sugerido para este dia. Você pode informar os horários manualmente."
-        : "Confira os horários efetivos antes de registrar a aula.";
+        : "Confira os horários antes de registrar a aula.";
     }
   }
 
