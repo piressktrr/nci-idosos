@@ -1,10 +1,14 @@
 from django.urls import path
 
 from . import views
+from . import views_classificacao
 
 app_name = "atividades"
 urlpatterns = [
     path("", views.lista, name="lista"),
+    path("categorias-fmr/", views_classificacao.categorias, name="categorias_fmr"),
+    path("categorias-fmr/<int:categoria_id>/editar/", views_classificacao.categorias, name="editar_categoria_fmr"),
+    path("<int:atividade_id>/classificacao-fmr/", views_classificacao.classificacao, name="classificacao_fmr"),
     path("frequencia-mensal/", views.frequencia_mensal, name="frequencia_mensal"),
     path("motivos-falta/", views.motivos_falta, name="motivos_falta"),
     path("motivos-falta/<int:motivo_id>/editar/", views.motivos_falta, name="editar_motivo_falta"),

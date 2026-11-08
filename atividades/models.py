@@ -88,6 +88,13 @@ class RegistroGradeAtividade(models.Model):
 
 
 class AulaQuerySet(models.QuerySet):
+    def com_categoria_fmr(self):
+        """Categoria pela vigência iniciada até a data da ocorrência."""
+        vigencia = ClassificacaoAtividade.objects.filter(
+            atividade_id=models.OuterRef("atividade_id"), inicio__lte=models.OuterRef("data")).order_by("-inicio")
+        return self.annotate(categoria_fmr_id=models.Subquery(vigencia.values("categoria_id")[:1]),
+                             categoria_fmr_nome=models.Subquery(vigencia.values("categoria_nome")[:1]))
+
     def realizadas(self):
         """Base de consulta para totais de realização; exclui cancelamentos (RN-ATV-06)."""
         return self.filter(situacao="realizada")
@@ -255,3 +262,50 @@ class RegistroCorrecaoFrequencia(models.Model):
     class Meta:
         default_permissions = ()
         ordering = ["registrado_em", "pk"]
+
+
+class CategoriaFMR(models.Model):
+    nome = models.CharField(max_length=150)
+    ativa = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["nome", "pk"]
+        default_permissions = ("view",)
+        verbose_name = "categoria FMR"
+
+    def __str__(self):
+        return self.nome
+
+
+class ClassificacaoAtividade(models.Model):
+    atividade = models.ForeignKey(Atividade, on_delete=models.PROTECT, related_name="classificacoes")
+    categoria = models.ForeignKey(CategoriaFMR, on_delete=models.PROTECT)
+    categoria_nome = models.CharField(max_length=150, editable=False)
+    inicio = models.DateField("vigente a partir de")
+
+    class Meta:
+        ordering = ["-inicio", "-pk"]
+        default_permissions = ()
+        constraints = [models.UniqueConstraint(fields=["atividade", "inicio"], name="classificacao_atividade_inicio_unico")]
+
+
+class RegistroCategoriaFMR(models.Model):
+    categoria = models.ForeignKey(CategoriaFMR, on_delete=models.PROTECT)
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    registrado_em = models.DateTimeField(auto_now_add=True)
+    anteriores = models.JSONField(null=True)
+    novos = models.JSONField()
+
+    class Meta:
+        default_permissions = ()
+
+
+class RegistroClassificacaoAtividade(models.Model):
+    classificacao = models.ForeignKey(ClassificacaoAtividade, on_delete=models.PROTECT, related_name="registros")
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    registrado_em = models.DateTimeField(auto_now_add=True)
+    anteriores = models.JSONField(null=True)
+    novos = models.JSONField()
+
+    class Meta:
+        default_permissions = ()

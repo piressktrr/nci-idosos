@@ -147,7 +147,7 @@ def _aulas(request, atividade_id, modo_cancelamento=False):
             else:
                 messages.success(request, "Aula cancelada registrada com sucesso." if modo_cancelamento else "Aula realizada registrada com sucesso.")
                 return redirect("atividades:aulas", atividade_id=atividade.pk)
-    pagina = Paginator(atividade.aulas.all(), 20).get_page(request.GET.get("page"))
+    pagina = Paginator(atividade.aulas.com_categoria_fmr(), 20).get_page(request.GET.get("page"))
     return render(request, "atividades/aulas.html", {
         "atividade": atividade, "form": form, "pagina": pagina,
         "sugestoes": {"horarios": horarios, "fuso": timezone.get_current_timezone_name()},

@@ -1,0 +1,10 @@
+{% extends "nci/base.html" %}
+{% block content %}
+<p><a href="{% url 'atividades:lista' %}">Voltar às atividades</a></p>
+<h1>Categorias do FMR</h1>
+<h2>{% if categoria %}Editar categoria{% else %}Criar categoria{% endif %}</h2>
+<form method="post">{% csrf_token %}{{ form.as_p }}<button type="submit">Salvar categoria</button></form>
+<p>Desativar impede novos vínculos. Renomear preserva os nomes guardados nas classificações anteriores.</p>
+<ul>{% for item in categorias %}<li>{{ item.nome }} — {{ item.ativa|yesno:"Ativa,Inativa" }} · <a href="{% url 'atividades:editar_categoria_fmr' item.pk %}">Editar</a></li>{% empty %}<li>Nenhuma categoria cadastrada.</li>{% endfor %}</ul>
+{% if categoria %}<a href="{% url 'atividades:categorias_fmr' %}">Criar outra categoria</a>{% endif %}
+{% endblock %}
