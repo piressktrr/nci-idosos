@@ -2,6 +2,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.core.exceptions import ImproperlyConfigured, PermissionDenied, ValidationError
 from django.core.paginator import Paginator
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
@@ -11,7 +12,7 @@ from .integracoes.participantes import obter_provedor
 from .models import Atividade, Aula, HorarioAtividade
 from .services import (
     cadastrar_atividade, cadastrar_horario, alterar_horario, registrar_aula,
-    cancelar_aula, registrar_aula_cancelada, inscrever_participante,
+    cancelar_aula, registrar_aula_cancelada, inscrever_participante, obter_lista_chamada,
 )
 
 
@@ -180,3 +181,20 @@ def inscricoes(request, atividade_id):
     return render(request, "atividades/inscricoes.html", {
         "atividade": atividade, "form": form, "pagina": pagina, "linhas": linhas, "demonstracao": provedor.demonstracao,
     })
+
+
+@login_required
+@permission_required(("atividades.view_atividade", "atividades.view_aula", "atividades.view_inscricao"), raise_exception=True)
+@require_http_methods(["GET"])
+def chamada(request, atividade_id, aula_id):
+    try:
+        contexto = obter_lista_chamada(usuario=request.user, atividade_id=atividade_id, aula_id=aula_id)
+    except Aula.DoesNotExist as erro:
+        raise Http404("Aula não encontrada.") from erro
+    except ValidationError as erro:
+        contexto = {"erro": " ".join(erro.messages), "atividade_id": atividade_id}
+    except ImproperlyConfigured:
+        return render(request, "atividades/chamada.html", {
+            "erro": "Cadastro de participantes indisponível.", "atividade_id": atividade_id,
+        }, status=503)
+    return render(request, "atividades/chamada.html", contexto)

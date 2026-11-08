@@ -1,0 +1,22 @@
+{% extends "nci/base.html" %}
+{% block title %}Lista de chamada · NCI Idade Dourada{% endblock %}
+{% block content %}
+{% if erro %}
+<p><a href="{% url 'atividades:aulas' atividade_id %}">Voltar às aulas</a></p>
+<h1>Lista de chamada</h1><p role="alert">{{ erro }}</p>
+{% else %}
+<p><a href="{% url 'atividades:aulas' aula.atividade_id %}">Voltar às aulas</a></p>
+<h1>Chamada de {{ aula.atividade.nome }}</h1>
+<p>{{ aula.data|date:"d/m/Y" }} · {{ aula.inicio|time:"H:i" }} às {{ aula.fim|time:"H:i" }} · {{ aula.get_tipo_display }}</p>
+{% if demonstracao %}<p class="message" role="status">Demonstração: os participantes desta tela são fictícios.</p>{% endif %}
+<p>Esta lista mostra as inscrições atuais da atividade. A lista física assinada continua obrigatória.</p>
+<section aria-labelledby="participantes-chamada">
+  <h2 id="participantes-chamada">Participantes vinculados ({{ participantes|length }})</h2>
+  {% if participantes %}<div class="table-scroll"><table>
+    <thead><tr><th scope="col">Nº</th><th scope="col">Participante</th></tr></thead>
+    <tbody>{% for participante in participantes %}<tr><td>{{ forloop.counter }}</td><td>{{ participante.nome }}{% if not participante.disponivel %} — confira o cadastro antes da chamada{% endif %}</td></tr>{% endfor %}</tbody>
+  </table></div>{% else %}<p>Nenhum participante inscrito nesta atividade.</p>{% endif %}
+</section>
+<p>O lançamento digital de presenças ainda não está disponível.</p>
+{% endif %}
+{% endblock %}

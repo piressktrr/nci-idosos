@@ -176,3 +176,26 @@ def inscrever_participante(*, usuario, atividade_id, participante_referencia):
     inscricao.full_clean()
     inscricao.save()
     return inscricao
+
+
+def obter_lista_chamada(*, usuario, atividade_id, aula_id):
+    """RF-ATV-07: consulta vínculos atuais; não infere frequência nem vigência histórica."""
+    if not usuario or not usuario.is_authenticated or usuario.pk is None:
+        raise PermissionDenied("É necessário um usuário autorizado para consultar a chamada.")
+    autor = get_user_model().objects.filter(pk=usuario.pk, is_active=True).first()
+    permissoes = ("atividades.view_atividade", "atividades.view_aula", "atividades.view_inscricao")
+    if autor is None or not autor.has_perms(permissoes):
+        raise PermissionDenied("Você não tem permissão para consultar a chamada.")
+    aula = Aula.objects.select_related("atividade").get(pk=aula_id, atividade_id=atividade_id)
+    if aula.situacao == Aula.Situacao.CANCELADA:
+        raise ValidationError("Esta aula está cancelada e não possui chamada.")
+    provedor = obter_provedor()
+    nomes = {item.referencia: item.nome for item in provedor.listar()}
+    participantes = [{
+        "inscricao_id": inscricao.pk,
+        "referencia": inscricao.participante_referencia,
+        "nome": nomes.get(inscricao.participante_referencia, "Participante indisponível"),
+        "disponivel": inscricao.participante_referencia in nomes,
+    } for inscricao in aula.atividade.inscricoes.filter(origem_participante=provedor.origem)]
+    participantes.sort(key=lambda item: (item["nome"].casefold(), item["referencia"]))
+    return {"aula": aula, "participantes": participantes, "demonstracao": provedor.demonstracao}
