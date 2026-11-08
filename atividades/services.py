@@ -7,7 +7,7 @@ from django.db import transaction
 from .models import (
     Atividade, Aula, HorarioAtividade, RegistroCadastroAtividade,
     RegistroGradeAtividade, RegistroRealizacaoAula, RegistroCancelamentoAula, Inscricao,
-    Frequencia, RegistroLancamentoFrequencia,
+    Frequencia, RegistroLancamentoFrequencia, MotivoFalta, RegistroMotivoFalta,
 )
 from .integracoes.participantes import obter_provedor
 
@@ -211,7 +211,7 @@ def obter_lista_chamada(*, usuario, atividade_id, aula_id):
 
 
 @transaction.atomic
-def registrar_frequencias(*, usuario, atividade_id, aula_id, registros):
+def registrar_frequencias(*, usuario, atividade_id, aula_id, registros, justificativas=None):
     """Lançamento inicial explícito por inscrição; lote atômico, sem correção implícita."""
     if not usuario or not usuario.is_authenticated or usuario.pk is None:
         raise PermissionDenied("É necessário um usuário autorizado para lançar frequência.")
@@ -240,15 +240,65 @@ def registrar_frequencias(*, usuario, atividade_id, aula_id, registros):
     for inscricao in inscricoes:
         if provedor.obter(inscricao.participante_referencia) is None:
             raise ValidationError("Há participante indisponível. Confira o cadastro antes de lançar.")
+    justificativas = {} if justificativas is None else justificativas
+    if not isinstance(justificativas, dict):
+        raise ValidationError("Justificativas inválidas.")
+    ids_motivos = sorted({dados.get("motivo_id") for dados in justificativas.values()
+                         if isinstance(dados, dict) and type(dados.get("motivo_id")) is int})
+    motivos_ativos = {motivo.pk: motivo for motivo in MotivoFalta.objects.select_for_update().filter(
+        pk__in=ids_motivos, ativo=True,
+    ).order_by("pk")}
+    detalhes = {}
+    for identificador, dados in justificativas.items():
+        if type(identificador) is not int or identificador not in registros or registros[identificador] != Frequencia.Situacao.JUSTIFICADO:
+            raise ValidationError("Justificativa sem ausência justificada correspondente.")
+        if not isinstance(dados, dict) or set(dados) - {"motivo_id", "observacao"}:
+            raise ValidationError("Dados da justificativa inválidos.")
+        observacao = dados.get("observacao", "")
+        if not isinstance(observacao, str) or len(observacao) > 1000:
+            raise ValidationError("Observação deve ser um texto de até 1000 caracteres.")
+        motivo_id = dados.get("motivo_id")
+        motivo = None
+        if motivo_id is not None:
+            if type(motivo_id) is not int:
+                raise ValidationError("Motivo inválido.")
+            motivo = motivos_ativos.get(motivo_id)
+            if motivo is None:
+                raise ValidationError("Motivo não encontrado ou desativado.")
+        detalhes[identificador] = (motivo, observacao.strip())
     resultado = []
     for inscricao in inscricoes:
-        frequencia = Frequencia(aula=aula, inscricao=inscricao, situacao=registros[inscricao.pk])
+        motivo, observacao = detalhes.get(inscricao.pk, (None, ""))
+        frequencia = Frequencia(aula=aula, inscricao=inscricao, situacao=registros[inscricao.pk],
+                                motivo=motivo, motivo_descricao=motivo.descricao if motivo else "", observacao=observacao)
         frequencia.full_clean()
         frequencia.save()
         RegistroLancamentoFrequencia.objects.create(frequencia=frequencia, usuario=autor, dados={
             "aula_id": aula.pk, "atividade_id": atividade_id, "data": aula.data.isoformat(),
             "inscricao_id": inscricao.pk, "origem_participante": inscricao.origem_participante,
             "participante_referencia": inscricao.participante_referencia, "situacao": frequencia.situacao,
+            "motivo_id": frequencia.motivo_id, "motivo_descricao": frequencia.motivo_descricao,
+            "observacao": frequencia.observacao,
         })
         resultado.append(frequencia)
     return resultado
+
+
+@transaction.atomic
+def salvar_motivo_falta(*, usuario, descricao, ativo=True, motivo_id=None):
+    permissao = "atividades.change_motivofalta" if motivo_id is not None else "atividades.add_motivofalta"
+    if not usuario or not usuario.is_authenticated or usuario.pk is None:
+        raise PermissionDenied
+    autor = get_user_model().objects.filter(pk=usuario.pk, is_active=True).first()
+    if autor is None or not autor.has_perm(permissao):
+        raise PermissionDenied
+    if not isinstance(descricao, str) or type(ativo) is not bool:
+        raise ValidationError("Informe descrição textual e situação válida.")
+    motivo = MotivoFalta.objects.select_for_update().get(pk=motivo_id) if motivo_id is not None else MotivoFalta()
+    anteriores = {"descricao": motivo.descricao, "ativo": motivo.ativo} if motivo.pk else None
+    motivo.descricao, motivo.ativo = descricao.strip(), ativo
+    motivo.full_clean()
+    motivo.save()
+    RegistroMotivoFalta.objects.create(motivo=motivo, usuario=autor, anteriores=anteriores,
+                                      novos={"descricao": motivo.descricao, "ativo": motivo.ativo})
+    return motivo

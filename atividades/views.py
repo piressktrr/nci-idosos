@@ -7,12 +7,12 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
 
-from .forms import AtividadeForm, AulaForm, HorarioAtividadeForm, InscricaoForm, ChamadaForm
+from .forms import AtividadeForm, AulaForm, HorarioAtividadeForm, InscricaoForm, ChamadaForm, MotivoFaltaForm
 from .integracoes.participantes import obter_provedor
-from .models import Atividade, Aula, HorarioAtividade
+from .models import Atividade, Aula, HorarioAtividade, MotivoFalta
 from .services import (
     cadastrar_atividade, cadastrar_horario, alterar_horario, registrar_aula,
-    cancelar_aula, registrar_aula_cancelada, inscrever_participante, obter_lista_chamada, registrar_frequencias,
+    cancelar_aula, registrar_aula_cancelada, inscrever_participante, obter_lista_chamada, registrar_frequencias, salvar_motivo_falta,
 )
 
 
@@ -203,7 +203,8 @@ def _chamada(request, atividade_id, aula_id):
         form = ChamadaForm(request.POST if request.method == "POST" else None, participantes=contexto["participantes"])
         if request.method == "POST" and form.is_valid():
             try:
-                registrar_frequencias(usuario=request.user, atividade_id=atividade_id, aula_id=aula_id, registros=form.registros)
+                registrar_frequencias(usuario=request.user, atividade_id=atividade_id, aula_id=aula_id,
+                                      registros=form.registros, justificativas=form.justificativas)
             except ValidationError as erro:
                 form.add_error(None, erro)
             else:
@@ -212,6 +213,8 @@ def _chamada(request, atividade_id, aula_id):
         for item in contexto["participantes"]:
             chave = f"registro_{item['inscricao_id']}"
             item["campo"] = form[chave] if chave in form.fields else None
+            item["campo_motivo"] = form[f"motivo_{item['inscricao_id']}"] if chave in form.fields else None
+            item["campo_observacao"] = form[f"observacao_{item['inscricao_id']}"] if chave in form.fields else None
         contexto["form"] = form
     except Aula.DoesNotExist as erro:
         raise Http404("Aula não encontrada.") from erro
@@ -222,3 +225,25 @@ def _chamada(request, atividade_id, aula_id):
             "erro": "Cadastro de participantes indisponível.", "atividade_id": atividade_id,
         }, status=503)
     return render(request, "atividades/chamada.html", contexto)
+
+
+@login_required
+@permission_required("atividades.view_motivofalta", raise_exception=True)
+@require_http_methods(["GET", "POST"])
+def motivos_falta(request, motivo_id=None):
+    permissao = "atividades.change_motivofalta" if motivo_id is not None else "atividades.add_motivofalta"
+    if (motivo_id is not None or request.method == "POST") and not request.user.has_perm(permissao):
+        raise PermissionDenied
+    motivo = get_object_or_404(MotivoFalta, pk=motivo_id) if motivo_id is not None else None
+    form = MotivoFaltaForm(request.POST if request.method == "POST" else None, instance=motivo)
+    if request.method == "POST" and form.is_valid():
+        try:
+            salvar_motivo_falta(usuario=request.user, motivo_id=motivo_id, **form.cleaned_data)
+        except ValidationError as erro:
+            form.add_error(None, erro)
+        else:
+            messages.success(request, "Motivo salvo com sucesso.")
+            return redirect("atividades:motivos_falta")
+    return render(request, "atividades/motivos_falta.html", {
+        "form": form, "motivo": motivo, "motivos": MotivoFalta.objects.all(),
+    })

@@ -1,0 +1,18 @@
+{% extends "nci/base.html" %}
+{% block title %}Motivos de falta · NCI Idade Dourada{% endblock %}
+{% block content %}
+<p><a href="{% url 'atividades:lista' %}">Voltar às atividades</a></p>
+<h1>Motivos de falta</h1>
+{% if motivo or perms.atividades.add_motivofalta %}<section>
+  <h2>{% if motivo %}Editar motivo{% else %}Cadastrar motivo{% endif %}</h2>
+  <form method="post">{% csrf_token %}{{ form.non_field_errors }}
+    {% for field in form %}<div class="field">{{ field.label_tag }}{{ field }}{{ field.errors }}</div>{% endfor %}
+    <button type="submit">Salvar motivo</button> {% if motivo %}<a href="{% url 'atividades:motivos_falta' %}">Cancelar edição</a>{% endif %}
+  </form>
+</section>{% endif %}
+<section><h2>Catálogo</h2>
+<p>Desative motivos que não serão usados em novos lançamentos. O histórico será preservado.</p>
+{% for item in motivos %}<p>{{ item.descricao }} — {{ item.ativo|yesno:"Ativo,Desativado" }} {% if perms.atividades.change_motivofalta %}<a href="{% url 'atividades:editar_motivo_falta' item.pk %}">Editar</a>{% endif %}</p>
+{% empty %}<p>Nenhum motivo cadastrado.</p>{% endfor %}
+</section>
+{% endblock %}

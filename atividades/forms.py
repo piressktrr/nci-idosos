@@ -1,7 +1,7 @@
 from django import forms
 from django.utils import timezone
 
-from .models import Atividade, Aula, HorarioAtividade, Frequencia
+from .models import Atividade, Aula, HorarioAtividade, Frequencia, MotivoFalta
 
 
 class AtividadeForm(forms.ModelForm):
@@ -73,14 +73,39 @@ class ChamadaForm(forms.Form):
                     choices=Frequencia.Situacao.choices, widget=forms.RadioSelect,
                     initial=Frequencia.Situacao.PRESENTE,
                 )
+                self.fields[f"motivo_{item['inscricao_id']}"] = forms.ModelChoiceField(
+                    label=f"Motivo da falta de {item['nome']} (opcional)", required=False,
+                    queryset=MotivoFalta.objects.filter(ativo=True), empty_label="Sem motivo informado",
+                )
+                self.fields[f"observacao_{item['inscricao_id']}"] = forms.CharField(
+                    label=f"Observação sobre a falta de {item['nome']} (opcional)", required=False, max_length=1000,
+                    widget=forms.Textarea(attrs={"rows": 2}),
+                )
 
     def clean(self):
         dados = super().clean()
         for campo in self.data:
-            if campo.startswith("registro_"):
+            if campo.startswith(("registro_", "motivo_", "observacao_")):
                 if campo not in self.fields or (hasattr(self.data, "getlist") and len(self.data.getlist(campo)) != 1):
                     raise forms.ValidationError("Há inscrição inválida, repetida ou já lançada. Atualize a chamada.")
-        self.registros = {int(campo.removeprefix("registro_")): valor for campo, valor in dados.items() if valor}
+        self.registros = {int(campo.removeprefix("registro_")): valor for campo, valor in dados.items() if campo.startswith("registro_") and valor}
+        self.justificativas = {}
+        for campo, valor in list(dados.items()):
+            if campo.startswith(("motivo_", "observacao_")) and valor and int(campo.split("_")[1]) not in self.registros:
+                self.add_error(campo, "Selecione a ausência justificada correspondente.")
+        for identificador, situacao in self.registros.items():
+            motivo = dados.get(f"motivo_{identificador}")
+            observacao = dados.get(f"observacao_{identificador}", "")
+            if situacao != Frequencia.Situacao.JUSTIFICADO and (motivo or observacao):
+                self.add_error(f"registro_{identificador}", "Motivo e observação só se aplicam à ausência justificada.")
+            elif situacao == Frequencia.Situacao.JUSTIFICADO:
+                self.justificativas[identificador] = {"motivo_id": motivo.pk if motivo else None, "observacao": observacao}
         if not self.registros and not self.errors:
             raise forms.ValidationError("Selecione ao menos uma situação para lançar.")
         return dados
+
+
+class MotivoFaltaForm(forms.ModelForm):
+    class Meta:
+        model = MotivoFalta
+        fields = ("descricao", "ativo")

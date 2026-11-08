@@ -207,7 +207,7 @@ class FrequenciaTests(TestCase):
         resposta = self.client.get(self.url)
         dados = RadiosMarcados(resposta.content.decode()).dados
         self.assertEqual(dados, {self.campo(i): "presente" for i in range(3)})
-        self.assertNotContains(resposta, "<select")
+        self.assertNotContains(resposta, '<select name="registro_')
         self.assertFalse(Frequencia.objects.exists())
         dados[self.campo(1)] = "ausente"
         self.assertEqual(self.client.post(self.post_url, dados).status_code, 302)

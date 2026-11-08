@@ -179,6 +179,30 @@ class Inscricao(models.Model):
         ]
 
 
+class MotivoFalta(models.Model):
+    descricao = models.CharField("descrição", max_length=150)
+    ativo = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["descricao", "pk"]
+        verbose_name = "motivo de falta"
+        verbose_name_plural = "motivos de falta"
+
+    def __str__(self):
+        return self.descricao
+
+
+class RegistroMotivoFalta(models.Model):
+    motivo = models.ForeignKey(MotivoFalta, on_delete=models.PROTECT)
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    registrado_em = models.DateTimeField(auto_now_add=True)
+    anteriores = models.JSONField(null=True)
+    novos = models.JSONField()
+
+    class Meta:
+        default_permissions = ()
+
+
 class Frequencia(models.Model):
     class Situacao(models.TextChoices):
         PRESENTE = "presente", "Presente"
@@ -188,6 +212,9 @@ class Frequencia(models.Model):
     aula = models.ForeignKey(Aula, on_delete=models.PROTECT, related_name="frequencias")
     inscricao = models.ForeignKey(Inscricao, on_delete=models.PROTECT, related_name="frequencias")
     situacao = models.CharField(max_length=20, choices=Situacao.choices)
+    motivo = models.ForeignKey(MotivoFalta, on_delete=models.PROTECT, null=True, blank=True)
+    motivo_descricao = models.CharField(max_length=150, blank=True, default="", editable=False)
+    observacao = models.TextField("observação", max_length=1000, blank=True, default="")
 
     class Meta:
         verbose_name = "frequência"
@@ -199,6 +226,8 @@ class Frequencia(models.Model):
 
     def clean(self):
         super().clean()
+        if self.situacao != self.Situacao.JUSTIFICADO and (self.motivo_id or self.observacao or self.motivo_descricao):
+            raise ValidationError("Motivo e observação pertencem somente à ausência justificada.")
         atividade_aula = Aula.objects.filter(pk=self.aula_id).values_list("atividade_id", flat=True).first()
         atividade_inscricao = Inscricao.objects.filter(pk=self.inscricao_id).values_list("atividade_id", flat=True).first()
         if atividade_aula and atividade_inscricao and atividade_aula != atividade_inscricao:

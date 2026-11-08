@@ -1,4 +1,5 @@
 {% extends "nci/base.html" %}
+{% load static %}
 {% block title %}Lista de chamada · NCI Idade Dourada{% endblock %}
 {% block content %}
 {% if erro %}
@@ -10,6 +11,7 @@
 <p>{{ aula.data|date:"d/m/Y" }} · {{ aula.inicio|time:"H:i" }} às {{ aula.fim|time:"H:i" }} · {{ aula.get_tipo_display }}</p>
 {% if demonstracao %}<p class="message" role="status">Demonstração: os participantes desta tela são fictícios.</p>{% endif %}
 <p>Esta lista mostra as inscrições atuais da atividade. A lista física assinada continua obrigatória.</p>
+{% if perms.atividades.view_motivofalta %}<p><a href="{% url 'atividades:motivos_falta' %}">Gerenciar motivos de falta</a></p>{% endif %}
 <section aria-labelledby="participantes-chamada">
   <h2 id="participantes-chamada">Participantes vinculados ({{ participantes|length }})</h2>
   {% if pode_registrar_frequencia %}<p>Novos lançamentos começam com Presente marcado. Confira a lista assinada, ajuste as faltas e clique em Salvar frequência.</p>
@@ -25,11 +27,20 @@
       {% elif pode_registrar_frequencia and participante.campo %}
         {% for opcao in participante.campo %}<td>{{ opcao.tag }}<label class="sr-only" for="{{ opcao.id_for_label }}">{{ opcao.choice_label }} — {{ participante.nome }}</label></td>{% endfor %}
       {% else %}<td colspan="3">Não lançado</td>{% endif %}
-    </tr>{% if participante.campo.errors %}<tr><td colspan="5">{{ participante.campo.errors }}</td></tr>{% endif %}{% endfor %}</tbody>
+    </tr>{% if participante.campo.errors %}<tr><td colspan="5">{{ participante.campo.errors }}</td></tr>{% endif %}
+    {% if pode_ver_frequencia and participante.frequencia.situacao == 'ausente_justificado' %}
+      <tr><td colspan="5">Motivo: {{ participante.frequencia.motivo_descricao|default:"Não informado" }}{% if participante.frequencia.observacao %}<p>Observação: {{ participante.frequencia.observacao|linebreaksbr }}</p>{% endif %}</td></tr>
+    {% elif pode_registrar_frequencia and participante.campo %}
+      <tr data-justificativa="{{ participante.inscricao_id }}"><td colspan="5">
+        <div class="field">{{ participante.campo_motivo.label_tag }}{{ participante.campo_motivo }}{{ participante.campo_motivo.errors }}</div>
+        <div class="field">{{ participante.campo_observacao.label_tag }}{{ participante.campo_observacao }}{{ participante.campo_observacao.errors }}</div>
+      </td></tr>
+    {% endif %}{% endfor %}</tbody>
   </table></div>{% else %}<p>Nenhum participante inscrito nesta atividade.</p>{% endif %}
   {% if pode_registrar_frequencia %}{% if form.fields %}<button type="submit">Salvar frequência</button>{% endif %}</form>{% endif %}
 </section>
 {% if not pode_registrar_frequencia %}<p>Sua conta não tem permissão para lançar frequência.</p>{% endif %}
 <p>Registros já lançados são somente leitura nesta etapa.</p>
+{% if pode_registrar_frequencia %}<script src="{% static 'atividades/frequencia.js' %}" defer></script>{% endif %}
 {% endif %}
 {% endblock %}
