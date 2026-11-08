@@ -20,7 +20,7 @@
   <h2 id="inscricoes-registradas">Inscrições registradas ({{ pagina.paginator.count }})</h2>
   {% if linhas %}<div class="table-scroll"><table>
     <thead><tr><th scope="col">Participante</th><th scope="col">Inscrito em</th></tr></thead>
-    <tbody>{% for linha in linhas %}<tr><td>{{ linha.nome }}</td><td>{{ linha.inscricao.cadastrada_em|date:"d/m/Y H:i" }}</td></tr>{% endfor %}</tbody>
+    <tbody>{% for linha in linhas %}<tr><td>{{ linha.nome }}{% if perms.atividades.view_aula and perms.atividades.view_frequencia %}<br><a href="{% url 'atividades:historico_participante' atividade.pk linha.inscricao.pk %}" aria-label="Ver frequência de {{ linha.nome }}">Ver frequência</a>{% endif %}</td><td>{{ linha.inscricao.cadastrada_em|date:"d/m/Y H:i" }}</td></tr>{% endfor %}</tbody>
   </table></div>
   {% if pagina.has_other_pages %}<nav aria-label="Páginas de inscrições">
     {% if pagina.has_previous %}<a href="?page={{ pagina.previous_page_number }}">Anterior</a>{% endif %}

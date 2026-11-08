@@ -9,11 +9,11 @@ from django.utils import timezone
 
 from .forms import AtividadeForm, AulaForm, HorarioAtividadeForm, InscricaoForm, ChamadaForm, MotivoFaltaForm, CorrecaoFrequenciaForm, FrequenciaMensalForm
 from .integracoes.participantes import obter_provedor
-from .models import Atividade, Aula, HorarioAtividade, MotivoFalta, Frequencia
+from .models import Atividade, Aula, HorarioAtividade, MotivoFalta, Frequencia, Inscricao
 from .services import (
     cadastrar_atividade, cadastrar_horario, alterar_horario, registrar_aula,
     cancelar_aula, registrar_aula_cancelada, inscrever_participante, obter_lista_chamada, registrar_frequencias, salvar_motivo_falta,
-    consultar_frequencia, corrigir_frequencia, consultar_frequencia_mensal,
+    consultar_frequencia, corrigir_frequencia, consultar_frequencia_mensal, consultar_historico_participante,
 )
 
 
@@ -219,6 +219,20 @@ def chamada(request, atividade_id, aula_id):
 @require_http_methods(["POST"])
 def lancar_frequencias(request, atividade_id, aula_id):
     return _chamada(request, atividade_id, aula_id)
+
+
+@login_required
+@permission_required(("atividades.view_atividade", "atividades.view_aula", "atividades.view_inscricao", "atividades.view_frequencia"), raise_exception=True)
+@require_http_methods(["GET"])
+def historico_participante(request, atividade_id, inscricao_id):
+    try:
+        contexto = consultar_historico_participante(usuario=request.user, atividade_id=atividade_id, inscricao_id=inscricao_id)
+    except Inscricao.DoesNotExist:
+        raise Http404
+    except ImproperlyConfigured:
+        return render(request, "atividades/historico_participante.html", {"indisponivel": True}, status=503)
+    contexto["pagina"] = Paginator(contexto.pop("frequencias"), 20).get_page(request.GET.get("page"))
+    return render(request, "atividades/historico_participante.html", contexto)
 
 
 def _chamada(request, atividade_id, aula_id):

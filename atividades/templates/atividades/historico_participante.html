@@ -1,0 +1,23 @@
+{% extends "nci/base.html" %}
+{% block title %}Histórico de frequência · NCI{% endblock %}
+{% block content %}
+{% if indisponivel %}<h1>Histórico de frequência</h1><p role="alert">Integração de participantes indisponível.</p>
+{% else %}
+<p><a href="{% url 'atividades:inscricoes' atividade.pk %}">Voltar às inscrições</a></p>
+<h1>Frequência de {{ nome }}</h1>
+<p>Atividade: {{ atividade.nome }}</p>
+{% if demonstracao %}<p role="status">Participante fictício. Contrato provisório; integração real pendente.</p>{% endif %}
+<h2>Total de presenças: {{ total_presencas }}</h2>
+<p>Total de todo o histórico nesta atividade, considerando a situação atual dos registros em aulas realizadas. Aulas canceladas ficam no histórico, fora do total. Aulas sem lançamento não geram faltas automaticamente.</p>
+<div class="table-scroll"><table>
+<thead><tr><th scope="col">Data da aula</th><th scope="col">Horário</th><th scope="col">Aula</th><th scope="col">Frequência</th><th scope="col">Motivo registrado</th><th scope="col">Observação</th></tr></thead>
+<tbody>{% for item in pagina %}<tr><td>{{ item.aula.data|date:"d/m/Y" }}</td><td>{{ item.aula.inicio|time:"H:i" }}–{{ item.aula.fim|time:"H:i" }}</td><td>{{ item.aula.get_situacao_display }}</td><td>{{ item.get_situacao_display }}</td><td>{{ item.motivo_descricao|default:"—" }}</td><td>{{ item.observacao|default:"—" }}</td></tr>
+{% empty %}<tr><td colspan="6">Nenhuma frequência registrada para este participante nesta atividade.</td></tr>{% endfor %}</tbody>
+</table></div>
+{% if pagina.has_other_pages %}<nav aria-label="Páginas do histórico">
+{% if pagina.has_previous %}<a href="?page={{ pagina.previous_page_number }}">Anterior</a>{% endif %}
+<span>Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+{% if pagina.has_next %}<a href="?page={{ pagina.next_page_number }}">Próxima</a>{% endif %}
+</nav>{% endif %}
+{% endif %}
+{% endblock %}

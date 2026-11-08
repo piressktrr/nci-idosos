@@ -361,6 +361,27 @@ def consultar_frequencia(*, usuario, atividade_id, aula_id, frequencia_id):
             "demonstracao": provedor.demonstracao, "pode_corrigir": autor.has_perm("atividades.change_frequencia")}
 
 
+def consultar_historico_participante(*, usuario, atividade_id, inscricao_id):
+    """RF-ATV-12: histórico preservado mesmo sem identidade disponível no provedor."""
+    if not usuario or not usuario.is_authenticated or usuario.pk is None:
+        raise PermissionDenied
+    autor = get_user_model().objects.filter(pk=usuario.pk, is_active=True).first()
+    permissoes = ("atividades.view_atividade", "atividades.view_aula", "atividades.view_inscricao", "atividades.view_frequencia")
+    if autor is None or not autor.has_perms(permissoes):
+        raise PermissionDenied
+    provedor = obter_provedor()
+    inscricao = Inscricao.objects.select_related("atividade").get(
+        pk=inscricao_id, atividade_id=atividade_id, origem_participante=provedor.origem)
+    participante = provedor.obter(inscricao.participante_referencia)
+    frequencias = Frequencia.objects.filter(inscricao=inscricao, aula__atividade_id=atividade_id).select_related("aula").order_by(
+        "-aula__data", "-aula__inicio", "-aula_id", "-pk")
+    total_presencas = frequencias.filter(situacao=Frequencia.Situacao.PRESENTE,
+        aula__situacao=Aula.Situacao.REALIZADA).count()
+    return {"inscricao": inscricao, "atividade": inscricao.atividade,
+            "nome": participante.nome if participante else "Participante indisponível",
+            "demonstracao": provedor.demonstracao, "frequencias": frequencias, "total_presencas": total_presencas}
+
+
 def _snapshot_frequencia(frequencia):
     return {"situacao": frequencia.situacao, "motivo_id": frequencia.motivo_id,
             "motivo_descricao": frequencia.motivo_descricao, "observacao": frequencia.observacao,
