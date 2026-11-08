@@ -77,19 +77,24 @@ def alterar_horario(*, usuario, atividade_id, horario_id, dia_semana, inicio, fi
 
 
 @transaction.atomic
-def registrar_aula(*, usuario, atividade_id, data, inicio, fim):
-    """RF-ATV-03: registra data/horários efetivos sem vincular a aula à grade."""
+def registrar_aula(*, usuario, atividade_id, data, inicio, fim, tipo=Aula.Tipo.NAO_INFORMADO):
+    """RF-ATV-03/04: registra a realização e seu tipo, independentemente da grade.
+
+    O padrão mantém a compatibilidade com o contrato anterior, sem inferir um tipo.
+    Novos formulários exigem a escolha entre regular, extra e remarcada.
+    """
     if not usuario or not usuario.is_authenticated or usuario.pk is None:
         raise PermissionDenied("É necessário um usuário autorizado para registrar aulas.")
     autor = get_user_model().objects.filter(pk=usuario.pk, is_active=True).first()
     if autor is None or not autor.has_perm("atividades.add_aula"):
         raise PermissionDenied("Você não tem permissão para registrar aulas.")
     atividade = Atividade.objects.get(pk=atividade_id)
-    aula = Aula(atividade=atividade, data=data, inicio=inicio, fim=fim)
+    aula = Aula(atividade=atividade, data=data, inicio=inicio, fim=fim, tipo=tipo)
     aula.full_clean()
     aula.save()
     RegistroRealizacaoAula.objects.create(aula=aula, usuario=autor, dados={
         "atividade_id": atividade.pk, "data": aula.data.isoformat(),
         "inicio": aula.inicio.isoformat(), "fim": aula.fim.isoformat(),
+        "tipo": aula.tipo,
     })
     return aula

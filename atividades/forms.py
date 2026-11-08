@@ -21,9 +21,16 @@ class HorarioAtividadeForm(forms.ModelForm):
 
 
 class AulaForm(forms.ModelForm):
+    tipo = forms.ChoiceField(label="Tipo de aula", choices=[
+        ("", "Selecione o tipo de aula"),
+        (Aula.Tipo.REGULAR, "Regular"),
+        (Aula.Tipo.EXTRA, "Extra"),
+        (Aula.Tipo.REMARCADA, "Remarcada"),
+    ])
+
     class Meta:
         model = Aula
-        fields = ("data", "inicio", "fim")
+        fields = ("tipo", "data", "inicio", "fim")
         widgets = {
             "data": forms.DateInput(format="%Y-%m-%d", attrs={"type": "date"}),
             "inicio": forms.TimeInput(format="%H:%M:%S", attrs={"type": "time", "step": "1"}),

@@ -24,7 +24,7 @@ class AulaTests(TestCase):
         cls.atividade = Atividade.objects.create(nome="Atividade fictícia", local="Sala de teste", monitor="Fictício")
         cls.outra = Atividade.objects.create(nome="Outra fictícia", local="Outra sala", monitor="Fictício")
         cls.dados = {"data": date(2024, 2, 29), "inicio": time(9, 15), "fim": time(10, 10)}
-        cls.post = {"data": "2024-02-29", "inicio": "09:15", "fim": "10:10"}
+        cls.post = {"data": "2024-02-29", "inicio": "09:15", "fim": "10:10", "tipo": "regular"}
 
     def registrar(self, **dados):
         return registrar_aula(usuario=self.usuario, atividade_id=self.atividade.pk, **(self.dados | dados))
@@ -46,7 +46,8 @@ class AulaTests(TestCase):
         self.assertEqual(registro.usuario_id, self.usuario.pk)
         self.assertNotEqual(registro.registrado_em.date(), aula.data)
         self.assertEqual(registro.dados, {
-            "atividade_id": self.atividade.pk, "data": "2024-02-29", "inicio": "09:15:00", "fim": "10:10:00"
+            "atividade_id": self.atividade.pk, "data": "2024-02-29", "inicio": "09:15:00", "fim": "10:10:00",
+            "tipo": "nao_informado",
         })
 
     def test_mais_de_uma_aula_no_mesmo_dia(self):

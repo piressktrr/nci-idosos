@@ -90,10 +90,17 @@ class RegistroGradeAtividade(models.Model):
 class Aula(models.Model):
     """Ocorrência realizada; horários efetivos independem da grade semanal."""
 
+    class Tipo(models.TextChoices):
+        NAO_INFORMADO = "nao_informado", "Não informado"
+        REGULAR = "regular", "Regular"
+        EXTRA = "extra", "Extra"
+        REMARCADA = "remarcada", "Remarcada"
+
     atividade = models.ForeignKey(Atividade, on_delete=models.PROTECT, related_name="aulas")
     data = models.DateField("data da aula")
     inicio = models.TimeField("início efetivo")
     fim = models.TimeField("término efetivo")
+    tipo = models.CharField("tipo de aula", max_length=13, choices=Tipo.choices, default=Tipo.NAO_INFORMADO)
 
     class Meta:
         ordering = ["-data", "-inicio", "-pk"]
@@ -101,6 +108,10 @@ class Aula(models.Model):
         verbose_name_plural = "aulas realizadas"
         constraints = [
             models.CheckConstraint(condition=models.Q(fim__gt=models.F("inicio")), name="aula_fim_apos_inicio"),
+            models.CheckConstraint(
+                condition=models.Q(tipo__in=["nao_informado", "regular", "extra", "remarcada"]),
+                name="aula_tipo_valido",
+            ),
         ]
 
     def clean(self):
