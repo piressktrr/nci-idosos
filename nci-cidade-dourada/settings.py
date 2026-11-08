@@ -35,6 +35,7 @@ ALLOWED_HOSTS = [host.strip() for host in os.getenv('DJANGO_ALLOWED_HOSTS', 'loc
 # Application definition
 
 INSTALLED_APPS = [
+    'atividades.apps.AtividadesConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
