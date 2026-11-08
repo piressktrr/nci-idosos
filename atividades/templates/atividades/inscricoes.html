@@ -3,6 +3,7 @@
 {% block content %}
 <p><a href="{% url 'atividades:lista' %}">Voltar às atividades</a></p>
 <h1>Inscrições de {{ atividade.nome }}</h1>
+{% if perms.atividades.view_esperaatividade %}<p><a href="{% url 'atividades:lista_espera' atividade.pk %}">Ver lista de espera</a></p>{% endif %}
 {% if indisponivel %}<p role="alert">Cadastro de participantes indisponível. Tente novamente após a integração ser configurada.</p>
 {% else %}
 {% if demonstracao %}<p class="message" role="status">Demonstração: os participantes desta tela são fictícios.</p>{% endif %}

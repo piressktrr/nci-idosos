@@ -2,6 +2,7 @@ from django.urls import path
 
 from . import views
 from . import views_classificacao
+from . import views_espera
 
 app_name = "atividades"
 urlpatterns = [
@@ -19,6 +20,9 @@ urlpatterns = [
     path("<int:atividade_id>/aulas/<int:aula_id>/chamada/", views.chamada, name="chamada"),
     path("<int:atividade_id>/aulas/<int:aula_id>/chamada/registrar/", views.lancar_frequencias, name="lancar_frequencias"),
     path("<int:atividade_id>/inscricoes/", views.inscricoes, name="inscricoes"),
+    path("<int:atividade_id>/espera/", views_espera.lista_espera, name="lista_espera"),
+    path("<int:atividade_id>/espera/<int:espera_id>/atender/", views_espera.atender_espera, name="atender_espera"),
+    path("<int:atividade_id>/espera/<int:espera_id>/retirar/", views_espera.atender_espera, {"retirar": True}, name="retirar_espera"),
     path("<int:atividade_id>/inscricoes/<int:inscricao_id>/frequencia/", views.historico_participante, name="historico_participante"),
     path("<int:atividade_id>/aulas/canceladas/nova/", views.nova_aula_cancelada, name="nova_aula_cancelada"),
     path("<int:atividade_id>/aulas/<int:aula_id>/cancelar/", views.confirmar_cancelamento, name="cancelar_aula"),

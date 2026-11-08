@@ -1,0 +1,10 @@
+{% extends "nci/base.html" %}
+{% block content %}
+<p><a href="{% url 'atividades:lista_espera' espera.atividade_id %}">Voltar à espera</a></p>
+<h1>{% if retirar %}Retirar da espera{% else %}Atender lista de espera{% endif %}</h1>
+<p>{{ nome }} · {{ espera.atividade.nome }}</p>
+<form method="post">{% csrf_token %}
+{% if retirar %}{{ form.non_field_errors }}<p>Confirmar a retirada? O histórico será preservado.</p>{% else %}{{ form.as_p }}<p>Somente o primeiro em espera pode ser inscrito.</p>{% endif %}
+<button type="submit">{% if retirar %}Confirmar retirada{% else %}Confirmar inscrição{% endif %}</button>
+</form>
+{% endblock %}

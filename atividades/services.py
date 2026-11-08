@@ -191,7 +191,7 @@ def registrar_aula_cancelada(*, usuario, atividade_id, data, inicio, fim, tipo=A
 
 
 @transaction.atomic
-def inscrever_participante(*, usuario, atividade_id, participante_referencia):
+def inscrever_participante(*, usuario, atividade_id, participante_referencia, espera_id=None, vaga_confirmada=False):
     """RF-ATV-06: valida a identidade no provedor e grava o vínculo com autoria."""
     if not usuario or not usuario.is_authenticated or usuario.pk is None:
         raise PermissionDenied("É necessário um usuário autorizado para registrar inscrições.")
@@ -209,12 +209,17 @@ def inscrever_participante(*, usuario, atividade_id, participante_referencia):
     if Inscricao.objects.filter(atividade=atividade, origem_participante=provedor.origem,
                                participante_referencia=participante.referencia).exists():
         raise ValidationError({"participante_referencia": "Este participante já está inscrito nesta atividade."})
+    from .espera import validar_atendimento, registrar_atendimento
+    espera = validar_atendimento(usuario=autor, atividade=atividade, provedor=provedor, participante=participante,
+        espera_id=espera_id, vaga_confirmada=vaga_confirmada)
     inscricao = Inscricao(
         atividade=atividade, origem_participante=provedor.origem,
         participante_referencia=participante.referencia, cadastrada_por=autor,
     )
     inscricao.full_clean()
     inscricao.save()
+    if espera is not None:
+        registrar_atendimento(espera=espera, inscricao=inscricao, usuario=autor)
     return inscricao
 
 

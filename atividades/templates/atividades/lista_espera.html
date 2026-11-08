@@ -1,0 +1,13 @@
+{% extends "nci/base.html" %}
+{% block content %}
+<p><a href="{% url 'atividades:inscricoes' atividade.pk %}">Voltar às inscrições</a></p>
+<h1>Lista de espera de {{ atividade.nome }}</h1>
+{% if indisponivel %}<p role="alert">Integração de participantes indisponível.</p>{% else %}
+{% if demonstracao %}<p role="status">Participantes fictícios; contrato provisório, integração real pendente.</p>{% endif %}
+<p>Participantes em espera não estão inscritos e não aparecem na chamada. A equipe confirma manualmente a vaga e atende por ordem de entrada.</p>
+{% if perms.atividades.add_esperaatividade %}<form method="post">{% csrf_token %}{{ form.as_p }}<button type="submit">Adicionar à espera</button></form>{% endif %}
+<div class="table-scroll"><table><thead><tr><th scope="col">Participante</th><th scope="col">Entrada</th><th scope="col">Situação</th><th scope="col">Ações</th></tr></thead>
+<tbody>{% for linha in linhas %}<tr><td>{{ linha.nome }}</td><td>{{ linha.espera.cadastrada_em|date:"d/m/Y H:i" }}</td><td>{{ linha.espera.get_situacao_display }}</td><td>{% if linha.espera.situacao == 'aguardando' and perms.atividades.change_esperaatividade %}{% if linha.espera.pk == primeiro.pk and perms.atividades.add_inscricao %}<a href="{% url 'atividades:atender_espera' atividade.pk linha.espera.pk %}">Atender primeiro</a><br>{% endif %}<a href="{% url 'atividades:retirar_espera' atividade.pk linha.espera.pk %}">Retirar da espera</a>{% else %}—{% endif %}</td></tr>{% empty %}<tr><td colspan="4">Nenhum participante na lista de espera.</td></tr>{% endfor %}</tbody></table></div>
+{% if pagina.has_other_pages %}<nav aria-label="Páginas da espera">{% if pagina.has_previous %}<a href="?page={{ pagina.previous_page_number }}">Anterior</a>{% endif %} Página {{ pagina.number }} de {{ pagina.paginator.num_pages }} {% if pagina.has_next %}<a href="?page={{ pagina.next_page_number }}">Próxima</a>{% endif %}</nav>{% endif %}
+{% endif %}
+{% endblock %}

@@ -277,6 +277,42 @@ class CategoriaFMR(models.Model):
         return self.nome
 
 
+class EsperaAtividade(models.Model):
+    class Situacao(models.TextChoices):
+        AGUARDANDO = "aguardando", "Aguardando"
+        INSCRITO = "inscrito", "Inscrito"
+        RETIRADO = "retirado", "Retirado"
+
+    atividade = models.ForeignKey(Atividade, on_delete=models.PROTECT, related_name="lista_espera")
+    origem_participante = models.CharField(max_length=40)
+    participante_referencia = models.CharField(max_length=64)
+    situacao = models.CharField(max_length=10, choices=Situacao.choices, default=Situacao.AGUARDANDO)
+    cadastrada_em = models.DateTimeField(auto_now_add=True)
+    inscricao = models.OneToOneField(Inscricao, on_delete=models.PROTECT, null=True, blank=True)
+
+    class Meta:
+        ordering = ["cadastrada_em", "pk"]
+        default_permissions = ("add", "view", "change")
+        constraints = [
+            models.UniqueConstraint(fields=["atividade", "origem_participante", "participante_referencia"],
+                condition=models.Q(situacao="aguardando"), name="espera_ativa_participante_unica"),
+            models.CheckConstraint(condition=models.Q(situacao__in=["aguardando", "inscrito", "retirado"]), name="espera_situacao_valida"),
+            models.CheckConstraint(condition=(models.Q(situacao="inscrito", inscricao__isnull=False)
+                | models.Q(situacao__in=["aguardando", "retirado"], inscricao__isnull=True)), name="espera_inscricao_coerente"),
+        ]
+
+
+class RegistroEsperaAtividade(models.Model):
+    espera = models.ForeignKey(EsperaAtividade, on_delete=models.PROTECT, related_name="registros")
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    registrado_em = models.DateTimeField(auto_now_add=True)
+    anteriores = models.JSONField(null=True)
+    novos = models.JSONField()
+
+    class Meta:
+        default_permissions = ()
+
+
 class ClassificacaoAtividade(models.Model):
     atividade = models.ForeignKey(Atividade, on_delete=models.PROTECT, related_name="classificacoes")
     categoria = models.ForeignKey(CategoriaFMR, on_delete=models.PROTECT)
