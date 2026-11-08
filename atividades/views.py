@@ -4,6 +4,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
+from django.utils import timezone
 
 from .forms import AtividadeForm, AulaForm, HorarioAtividadeForm
 from .models import Atividade, HorarioAtividade
@@ -83,7 +84,10 @@ def _grade(request, atividade_id, horario_id=None):
 @require_http_methods(["GET", "POST"])
 def aulas(request, atividade_id):
     atividade = get_object_or_404(Atividade, pk=atividade_id)
-    form = AulaForm(request.POST if request.method == "POST" else None)
+    horarios = []
+    if request.user.has_perm("atividades.add_aula") and request.user.has_perm("atividades.view_horarioatividade"):
+        horarios = list(atividade.horarios.values("pk", "dia_semana", "inicio", "fim"))
+    form = AulaForm(request.POST if request.method == "POST" else None, horarios=horarios)
     if request.method == "POST":
         if not request.user.has_perm("atividades.add_aula"):
             raise PermissionDenied
@@ -100,4 +104,7 @@ def aulas(request, atividade_id):
                 messages.success(request, "Aula realizada registrada com sucesso.")
                 return redirect("atividades:aulas", atividade_id=atividade.pk)
     pagina = Paginator(atividade.aulas.all(), 20).get_page(request.GET.get("page"))
-    return render(request, "atividades/aulas.html", {"atividade": atividade, "form": form, "pagina": pagina})
+    return render(request, "atividades/aulas.html", {
+        "atividade": atividade, "form": form, "pagina": pagina,
+        "sugestoes": {"horarios": horarios, "fuso": timezone.get_current_timezone_name()},
+    })

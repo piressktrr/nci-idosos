@@ -1,4 +1,5 @@
 {% extends "nci/base.html" %}
+{% load static %}
 {% block title %}Aulas de {{ atividade.nome }} · NCI Idade Dourada{% endblock %}
 {% block content %}
 <p><a href="{% url 'atividades:lista' %}">Voltar às atividades</a></p>
@@ -8,18 +9,26 @@
 {% if perms.atividades.add_aula %}
 <section aria-labelledby="registrar-aula">
   <h2 id="registrar-aula">Registrar aula realizada</h2>
-  <form method="post">
+  <p>A data começa em hoje. Para aulas regulares, os horários da grade são sugestões e podem ser ajustados.</p>
+  <form method="post" id="form-aula" data-bound="{{ form.is_bound|yesno:'true,false' }}">
     {% csrf_token %}{{ form.non_field_errors }}
     {% for field in form %}<div class="field">{{ field.label_tag }}{{ field }}{{ field.errors }}</div>{% endfor %}
+    <div class="field" id="selecao-grade" hidden>
+      <label for="horario-sugerido">Horário da grade (opcional)</label>
+      <select id="horario-sugerido"></select>
+    </div>
+    <p id="aviso-sugestao" role="status" aria-live="polite"></p>
     <button type="submit">Registrar aula</button>
   </form>
+  {{ sugestoes|json_script:"sugestoes-aula" }}
+  <script src="{% static 'atividades/aulas.js' %}" defer></script>
 </section>
 {% endif %}
 <section aria-labelledby="aulas-realizadas">
   <h2 id="aulas-realizadas">Aulas realizadas ({{ pagina.paginator.count }})</h2>
   {% if pagina %}<div class="table-scroll"><table>
     <thead><tr><th scope="col">Tipo</th><th scope="col">Data da aula</th><th scope="col">Início efetivo</th><th scope="col">Término efetivo</th></tr></thead>
-    <tbody>{% for aula in pagina %}<tr><td>{{ aula.get_tipo_display }}</td><td>{{ aula.data|date:"d/m/Y" }}</td><td>{{ aula.inicio|time:"H:i:s" }}</td><td>{{ aula.fim|time:"H:i:s" }}</td></tr>{% endfor %}</tbody>
+    <tbody>{% for aula in pagina %}<tr><td>{{ aula.get_tipo_display }}</td><td>{{ aula.data|date:"d/m/Y" }}</td><td>{{ aula.inicio|time:"H:i" }}</td><td>{{ aula.fim|time:"H:i" }}</td></tr>{% endfor %}</tbody>
   </table></div>
   {% if pagina.has_other_pages %}<nav aria-label="Páginas de aulas">
     {% if pagina.has_previous %}<a href="?page={{ pagina.previous_page_number }}">Anterior</a>{% endif %}
