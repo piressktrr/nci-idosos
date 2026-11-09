@@ -1,0 +1,26 @@
+* { box-sizing: border-box; }
+body { margin: 0; background: #f5f6f8; color: #243041; font: 17px/1.5 system-ui, sans-serif; }
+header { background: #fff; border-bottom: 1px solid #d9dfe5; }
+header > div, main { max-width: 1000px; margin: auto; padding: 24px; }
+header > div { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; }
+a { color: #164c82; }
+h1 { margin: 0 0 8px; font-size: 1.9rem; }
+h2 { margin-top: 0; font-size: 1.3rem; }
+section { background: white; border: 1px solid #d9dfe5; border-radius: 8px; padding: 24px; margin: 24px 0; }
+label { display: block; font-weight: 600; margin-bottom: 6px; }
+input, select, textarea { width: 100%; max-width: 560px; padding: 10px; border: 1px solid #8290a0; border-radius: 4px; font: inherit; }
+input[type="checkbox"] { width: 22px; height: 22px; }
+input[type="radio"] { width: 22px; height: 22px; padding: 0; accent-color: #164c82; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+button { background: #164c82; color: white; border: 0; border-radius: 4px; padding: 11px 18px; cursor: pointer; font: inherit; }
+button.secondary { background: #e9eef3; color: #243041; }
+.field { margin-bottom: 18px; }
+.errorlist { color: #9d2020; padding-left: 22px; }
+.message { background: #e5f3e9; padding: 14px; border-left: 4px solid #297144; }
+.category-badge { display: inline-block; background: #e5f3e9; color: #18532a; border: 1px solid #297144; border-radius: 4px; padding: 3px 8px; font-weight: 600; margin: 6px 0; }
+.category-badge.missing { background: #fff3d6; color: #754700; border-color: #956000; }
+.table-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; text-align: left; }
+th, td { border-bottom: 1px solid #d9dfe5; padding: 12px; vertical-align: top; overflow-wrap: anywhere; }
+.account { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+:focus-visible { outline: 3px solid #b46a00; outline-offset: 3px; }

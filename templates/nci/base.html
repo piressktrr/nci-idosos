@@ -1,0 +1,23 @@
+{% load static %}
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}NCI Idade Dourada{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/base.css' %}">
+</head>
+<body>
+<header><div>
+  <strong>NCI Idade Dourada</strong>
+  {% if user.is_authenticated %}<div class="account">
+    <span>{{ user.get_username }}</span>
+    <form method="post" action="{% url 'sair' %}">{% csrf_token %}<button class="secondary" type="submit">Sair</button></form>
+  </div>{% endif %}
+</div></header>
+<main>
+  {% for message in messages %}<p class="message" role="status">{{ message }}</p>{% endfor %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>
