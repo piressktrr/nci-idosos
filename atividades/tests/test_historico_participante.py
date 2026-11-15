@@ -6,11 +6,12 @@ from django.core.exceptions import PermissionDenied
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from atividades.models import Atividade, Aula, Inscricao, Frequencia, RegistroCorrecaoFrequencia
+from atividades.tests.auditoria import registro_unico, registros
+from atividades.models import Atividade, Aula, Inscricao, Frequencia
 from atividades.services import consultar_historico_participante, registrar_frequencias, corrigir_frequencia
 
 
-@override_settings(DEBUG=True)
+@override_settings(DEBUG=True, NCI_PARTICIPANTES_PROVIDER="atividades.integracoes.participantes_placeholder.ProvedorPlaceholder")
 class HistoricoParticipanteTests(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -52,7 +53,7 @@ class HistoricoParticipanteTests(TestCase):
         resultado = self.consultar()
         self.assertEqual(resultado["total_presencas"], 0)
         self.assertEqual(resultado["frequencias"].get().situacao, "ausente")
-        self.assertEqual(self.freq.registro_lancamento.dados["situacao"], "presente")
+        self.assertEqual(registro_unico(self.freq, "lancamento").novos["situacao"], "presente")
 
     def test_isolamento_inscricao_atividade_e_origem(self):
         outra = Atividade.objects.create(nome="Outra", local="Sala", monitor="Fictício")
@@ -103,7 +104,7 @@ class HistoricoParticipanteTests(TestCase):
         self.assertContains(resposta, "09:00–10:00")
         self.assertNotContains(resposta, "09:00:00")
         self.assertEqual(Frequencia.objects.count(), 1)
-        self.assertEqual(RegistroCorrecaoFrequencia.objects.count(), 0)
+        self.assertEqual(registros(Frequencia, "correcao").count(), 0)
         self.assertContains(self.client.get(reverse("atividades:inscricoes", args=[self.atividade.pk])), self.url)
 
     def test_paginacao_mantem_total_de_todo_historico(self):

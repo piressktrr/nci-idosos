@@ -1,0 +1,26 @@
+{% extends "nci/base.html" %}
+{% block title %}{{ participante.nome_completo }} · NCI Idade Dourada{% endblock %}
+{% block content %}
+<p><a href="{% url 'participantes:lista' %}">Voltar para participantes</a></p>
+<h1>{{ participante.nome_completo }}</h1>
+<section aria-label="Cadastro">
+  <table><tbody>
+    <tr><th scope="row">Data de nascimento</th><td>{{ participante.data_nascimento|date:"d/m/Y" }} ({{ participante.idade }} anos)</td></tr>
+    <tr><th scope="row">Faixa etária (FMR)</th><td>{{ participante.faixa_etaria|default:"Abaixo de 60 anos" }}</td></tr>
+    <tr><th scope="row">Sexo</th><td>{{ participante.get_sexo_display }}</td></tr>
+    <tr><th scope="row">Raça/cor autodeclarada</th><td>{{ participante.get_raca_cor_display }}</td></tr>
+    <tr><th scope="row">Identidade de gênero</th><td>{{ participante.get_identidade_genero_display }}</td></tr>
+  </tbody></table>
+  {% if perms.participantes.change_participante %}<p><a href="{% url 'participantes:corrigir' participante.pk %}">Corrigir cadastro</a></p>{% endif %}
+</section>
+{% if registros is not None %}<section aria-labelledby="historico">
+  <h2 id="historico">Histórico de alterações</h2>
+  <div class="table-scroll"><table>
+    <thead><tr><th scope="col">Data</th><th scope="col">Ação</th><th scope="col">Usuário</th><th scope="col">Campo</th><th scope="col">Antes</th><th scope="col">Depois</th></tr></thead>
+    <tbody>{% for item in registros %}{% for campo, antes, depois in item.mudancas %}<tr>
+      <td>{{ item.registro.registrado_em|date:"d/m/Y H:i" }}</td><td>{{ item.registro.acao|capfirst }}</td>
+      <td>{{ item.registro.usuario.get_username }}</td><td>{{ campo }}</td><td>{{ antes|default:"—" }}</td><td>{{ depois }}</td>
+    </tr>{% endfor %}{% endfor %}</tbody>
+  </table></div>
+</section>{% endif %}
+{% endblock %}

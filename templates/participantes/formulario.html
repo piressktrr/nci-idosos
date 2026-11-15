@@ -1,0 +1,16 @@
+{% extends "nci/base.html" %}
+{% block title %}{% if participante %}Corrigir cadastro{% else %}Cadastrar participante{% endif %} · NCI Idade Dourada{% endblock %}
+{% block content %}
+<p><a href="{% if participante %}{% url 'participantes:detalhe' participante.pk %}{% else %}{% url 'participantes:lista' %}{% endif %}">Voltar</a></p>
+<h1>{% if participante %}Corrigir cadastro{% else %}Cadastrar participante{% endif %}</h1>
+<section aria-label="Dados do participante">
+  <form method="post">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    {% for field in form.visible_fields %}<div class="field">{{ field.label_tag }}{{ field }}{{ field.errors }}</div>{% endfor %}
+    {% for field in form.hidden_fields %}{{ field }}{% endfor %}
+    {% if form.mostrar_confirmacao %}<input type="hidden" name="confirmar_duplicidade_exibida" value="1">{% endif %}
+    <button type="submit">{% if participante %}Salvar correção{% else %}Cadastrar participante{% endif %}</button>
+  </form>
+</section>
+{% endblock %}

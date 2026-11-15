@@ -8,6 +8,8 @@ from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
+from core.auditoria import historico
+
 from ..forms import ChamadaForm, CorrecaoFrequenciaForm, FrequenciaMensalForm, MotivoFaltaForm
 from ..models import Aula, Frequencia, Inscricao, MotivoFalta
 from ..services import (
@@ -143,8 +145,9 @@ def detalhe_frequencia(request, atividade_id, aula_id, frequencia_id):
             else:
                 messages.success(request, "Correção registrada com sucesso." if resultado.versao != frequencia.versao else "Nenhuma alteração nos dados.")
                 return redirect("atividades:detalhe_frequencia", atividade_id=atividade_id, aula_id=aula_id, frequencia_id=frequencia_id)
-        contexto.update({"form": form, "inicial": getattr(frequencia, "registro_lancamento", None),
-                         "correcoes": frequencia.correcoes.select_related("usuario")})
+        registros = historico(frequencia)
+        contexto.update({"form": form, "inicial": registros.filter(acao="lancamento").first(),
+                         "correcoes": registros.filter(acao="correcao")})
     except Frequencia.DoesNotExist as erro:
         raise Http404("Frequência não encontrada.") from erro
     except ImproperlyConfigured:

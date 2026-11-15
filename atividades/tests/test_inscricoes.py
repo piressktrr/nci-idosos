@@ -39,7 +39,7 @@ class ProvedorIndisponivel:
         raise ImproperlyConfigured("Integração não configurada")
 
 
-@override_settings(DEBUG=True)
+@override_settings(DEBUG=True, NCI_PARTICIPANTES_PROVIDER="atividades.integracoes.participantes_placeholder.ProvedorPlaceholder")
 class InscricaoTests(TestCase):
     @classmethod
     def setUpTestData(cls):

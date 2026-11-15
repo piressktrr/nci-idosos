@@ -10,6 +10,10 @@
 <body>
 <header><div>
   <strong>NCI Idade Dourada</strong>
+  {% if user.is_authenticated %}<nav aria-label="Seções" class="account">
+    {% if perms.atividades.view_atividade %}<a href="{% url 'atividades:lista' %}">Atividades</a>{% endif %}
+    {% if perms.participantes.view_participante %}<a href="{% url 'participantes:lista' %}">Participantes</a>{% endif %}
+  </nav>{% endif %}
   {% if user.is_authenticated %}<div class="account">
     <span>{{ user.get_username }}</span>
     <form method="post" action="{% url 'sair' %}">{% csrf_token %}<button class="secondary" type="submit">Sair</button></form>

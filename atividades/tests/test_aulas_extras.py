@@ -9,7 +9,8 @@ from django.db.migrations.executor import MigrationExecutor
 from django.test import Client, TestCase, TransactionTestCase
 from django.urls import reverse
 
-from atividades.models import Atividade, Aula, RegistroRealizacaoAula
+from atividades.tests.auditoria import registro_unico, registros
+from atividades.models import Atividade, Aula
 from atividades.services import cadastrar_horario, registrar_aula
 
 
@@ -40,8 +41,8 @@ class AulasExtrasTests(TestCase):
                 self.assertEqual(aula.tipo, tipo)
                 self.assertEqual(aula.data.weekday(), 3)
                 self.assertEqual(aula.inicio, time(9))
-                self.assertEqual(aula.registro_realizacao.dados["tipo"], tipo)
-                self.assertEqual(aula.registro_realizacao.usuario_id, self.usuario.pk)
+                self.assertEqual(registro_unico(aula, "realizacao").novos["tipo"], tipo)
+                self.assertEqual(registro_unico(aula, "realizacao").usuario_id, self.usuario.pk)
 
     def test_todos_os_tipos_podem_ser_registrados_sem_grade(self):
         for tipo in (Aula.Tipo.REGULAR, Aula.Tipo.EXTRA, Aula.Tipo.REMARCADA):
@@ -55,23 +56,23 @@ class AulasExtrasTests(TestCase):
                 self.registrar(tipo=tipo)
             self.assertIn("tipo", erro.exception.message_dict)
         self.assertFalse(Aula.objects.exists())
-        self.assertFalse(RegistroRealizacaoAula.objects.exists())
+        self.assertFalse(registros(Aula, "realizacao").exists())
 
     def test_remarcada_nao_altera_outra_aula_nem_a_grade(self):
         original = self.registrar(tipo=Aula.Tipo.REGULAR)
-        snapshot = original.registro_realizacao.dados.copy()
+        snapshot = registro_unico(original, "realizacao").novos.copy()
         self.registrar(tipo=Aula.Tipo.REMARCADA, data=date(2024, 3, 1))
         original.refresh_from_db()
         self.assertEqual(original.data, self.dados["data"])
         self.assertEqual(original.tipo, Aula.Tipo.REGULAR)
-        self.assertEqual(original.registro_realizacao.dados, snapshot)
+        self.assertEqual(registro_unico(original, "realizacao").novos, snapshot)
         self.assertEqual(Aula.objects.count(), 2)
         self.assertFalse(self.atividade.horarios.exists())
 
     def test_falha_auditoria_desfaz_registro_extra_ou_remarcado(self):
         for tipo in (Aula.Tipo.EXTRA, Aula.Tipo.REMARCADA):
             with self.subTest(tipo=tipo), patch(
-                "atividades.services.RegistroRealizacaoAula.objects.create", side_effect=RuntimeError
+                "atividades.services.registrar", side_effect=RuntimeError
             ):
                 with self.assertRaises(RuntimeError):
                     self.registrar(tipo=tipo)
@@ -101,7 +102,7 @@ class AulasExtrasTests(TestCase):
                 resposta = self.client.post(self.url, self.post | {"tipo": tipo}, follow=True)
                 self.assertContains(resposta, f"<td>{rotulo}</td>", html=True)
                 aula = Aula.objects.get(tipo=tipo)
-                self.assertEqual(aula.registro_realizacao.dados["tipo"], tipo)
+                self.assertEqual(registro_unico(aula, "realizacao").novos["tipo"], tipo)
         self.assertEqual(Aula.objects.count(), 2)
 
     def test_interface_exige_tipo_e_rejeita_nao_informado_para_novos_registros(self):
@@ -137,7 +138,7 @@ class AulasExtrasTests(TestCase):
             client.get(self.url)
             token = client.cookies["csrftoken"].value
             self.assertEqual(client.post(self.url, dados | {"csrfmiddlewaretoken": token}).status_code, 302)
-        self.assertEqual(RegistroRealizacaoAula.objects.count(), 2)
+        self.assertEqual(registros(Aula, "realizacao").count(), 2)
 
 
 class TipoAulaMigrationTests(TransactionTestCase):

@@ -8,11 +8,9 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.db.models import Count, Q
 
-from .models import (
-    Atividade, Aula, HorarioAtividade, RegistroCadastroAtividade,
-    RegistroGradeAtividade, RegistroRealizacaoAula, RegistroCancelamentoAula, Inscricao,
-    Frequencia, RegistroLancamentoFrequencia, MotivoFalta, RegistroMotivoFalta, RegistroCorrecaoFrequencia,
-)
+from core.auditoria import registrar
+
+from .models import Atividade, Aula, HorarioAtividade, Inscricao, Frequencia, MotivoFalta
 from .integracoes.participantes import obter_provedor
 
 
@@ -69,7 +67,7 @@ def cadastrar_atividade(*, usuario, nome, local, monitor):
     atividade = Atividade(**dados)
     atividade.full_clean()
     atividade.save()
-    RegistroCadastroAtividade.objects.create(atividade=atividade, usuario=autor, dados=dados)
+    registrar(objeto=atividade, acao="cadastro", usuario=autor, novos=dados)
     return atividade
 
 
@@ -94,10 +92,7 @@ def cadastrar_horario(*, usuario, atividade_id, dia_semana, inicio, fim):
     horario = HorarioAtividade(atividade=atividade, dia_semana=dia_semana, inicio=inicio, fim=fim)
     horario.full_clean()
     horario.save()
-    RegistroGradeAtividade.objects.create(
-        horario=horario, usuario=autor, acao=RegistroGradeAtividade.Acao.CADASTRO,
-        dados_anteriores=None, dados_novos=_dados_horario(horario),
-    )
+    registrar(objeto=horario, acao="cadastro", usuario=autor, novos=_dados_horario(horario))
     return horario
 
 
@@ -110,10 +105,7 @@ def alterar_horario(*, usuario, atividade_id, horario_id, dia_semana, inicio, fi
     horario.dia_semana, horario.inicio, horario.fim = dia_semana, inicio, fim
     horario.full_clean()
     horario.save(update_fields=["dia_semana", "inicio", "fim"])
-    RegistroGradeAtividade.objects.create(
-        horario=horario, usuario=autor, acao=RegistroGradeAtividade.Acao.ALTERACAO,
-        dados_anteriores=anteriores, dados_novos=_dados_horario(horario),
-    )
+    registrar(objeto=horario, acao="alteracao", usuario=autor, anteriores=anteriores, novos=_dados_horario(horario))
     return horario
 
 
@@ -133,7 +125,7 @@ def registrar_aula(*, usuario, atividade_id, data, inicio, fim, tipo=Aula.Tipo.N
     aula = Aula(atividade=atividade, data=data, inicio=inicio, fim=fim, tipo=tipo)
     aula.full_clean()
     aula.save()
-    RegistroRealizacaoAula.objects.create(aula=aula, usuario=autor, dados={
+    registrar(objeto=aula, acao="realizacao", usuario=autor, novos={
         "atividade_id": atividade.pk, "data": aula.data.isoformat(),
         "inicio": aula.inicio.isoformat(), "fim": aula.fim.isoformat(),
         "tipo": aula.tipo,
@@ -170,9 +162,7 @@ def cancelar_aula(*, usuario, atividade_id, aula_id):
     anteriores = _dados_aula(aula)
     aula.situacao = Aula.Situacao.CANCELADA
     aula.save(update_fields=["situacao"])
-    RegistroCancelamentoAula.objects.create(
-        aula=aula, usuario=autor, dados_anteriores=anteriores, dados_novos=_dados_aula(aula),
-    )
+    registrar(objeto=aula, acao="cancelamento", usuario=autor, anteriores=anteriores, novos=_dados_aula(aula))
     return aula
 
 
@@ -184,9 +174,7 @@ def registrar_aula_cancelada(*, usuario, atividade_id, data, inicio, fim, tipo=A
     aula = Aula(atividade=atividade, data=data, inicio=inicio, fim=fim, tipo=tipo, situacao=Aula.Situacao.CANCELADA)
     aula.full_clean()
     aula.save()
-    RegistroCancelamentoAula.objects.create(
-        aula=aula, usuario=autor, dados_anteriores=None, dados_novos=_dados_aula(aula),
-    )
+    registrar(objeto=aula, acao="cancelamento", usuario=autor, novos=_dados_aula(aula))
     return aula
 
 
@@ -317,7 +305,7 @@ def registrar_frequencias(*, usuario, atividade_id, aula_id, registros, justific
                                 motivo=motivo, motivo_descricao=motivo.descricao if motivo else "", observacao=observacao)
         frequencia.full_clean()
         frequencia.save()
-        RegistroLancamentoFrequencia.objects.create(frequencia=frequencia, usuario=autor, dados={
+        registrar(objeto=frequencia, acao="lancamento", usuario=autor, novos={
             "aula_id": aula.pk, "atividade_id": atividade_id, "data": aula.data.isoformat(),
             "inscricao_id": inscricao.pk, "origem_participante": inscricao.origem_participante,
             "participante_referencia": inscricao.participante_referencia, "situacao": frequencia.situacao,
@@ -343,8 +331,8 @@ def salvar_motivo_falta(*, usuario, descricao, ativo=True, motivo_id=None):
     motivo.descricao, motivo.ativo = descricao.strip(), ativo
     motivo.full_clean()
     motivo.save()
-    RegistroMotivoFalta.objects.create(motivo=motivo, usuario=autor, anteriores=anteriores,
-                                      novos={"descricao": motivo.descricao, "ativo": motivo.ativo})
+    registrar(objeto=motivo, acao="cadastro" if anteriores is None else "alteracao", usuario=autor,
+              anteriores=anteriores, novos={"descricao": motivo.descricao, "ativo": motivo.ativo})
     return motivo
 
 
@@ -424,6 +412,6 @@ def corrigir_frequencia(*, usuario, atividade_id, aula_id, frequencia_id, versao
         return frequencia
     frequencia.versao += 1
     frequencia.save(update_fields=["situacao", "motivo", "motivo_descricao", "observacao", "versao"])
-    RegistroCorrecaoFrequencia.objects.create(frequencia=frequencia, usuario=usuario,
-                                             anteriores=anteriores, novos=_snapshot_frequencia(frequencia))
+    registrar(objeto=frequencia, acao="correcao", usuario=usuario,
+              anteriores=anteriores, novos=_snapshot_frequencia(frequencia))
     return frequencia

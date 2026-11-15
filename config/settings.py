@@ -35,7 +35,9 @@ ALLOWED_HOSTS = [host.strip() for host in os.getenv('DJANGO_ALLOWED_HOSTS', 'loc
 # Application definition
 
 INSTALLED_APPS = [
+    'core.apps.CoreConfig',
     'atividades.apps.AtividadesConfig',
+    'participantes.apps.ParticipantesConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -49,6 +51,9 @@ AUTH_USER_MODEL = 'auth.User'
 LOGIN_URL = 'entrar'
 LOGIN_REDIRECT_URL = 'atividades:lista'
 LOGOUT_REDIRECT_URL = 'entrar'
+
+# Cadastro real de participantes usado por inscrição e chamada de atividades.
+NCI_PARTICIPANTES_PROVIDER = 'participantes.provedor.ProvedorParticipantes'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -131,6 +136,15 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
+
+# RNF-SEG-06: com DEBUG desligado (produção), tráfego só por HTTPS e cookies seguros.
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 3600
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_REFERRER_POLICY = 'same-origin'
 
 
 # Email

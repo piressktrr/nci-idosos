@@ -24,5 +24,6 @@ urlpatterns = [
     path('entrar/', LoginView.as_view(template_name='nci/login.html'), name='entrar'),
     path('sair/', LogoutView.as_view(), name='sair'),
     path('atividades/', include('atividades.urls')),
+    path('participantes/', include('participantes.urls')),
     path('admin/', admin.site.urls),
 ]

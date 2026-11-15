@@ -1,0 +1,23 @@
+{% extends "nci/base.html" %}
+{% block title %}Participantes · NCI Idade Dourada{% endblock %}
+{% block content %}
+<h1>Participantes</h1>
+{% if perms.participantes.add_participante %}<p><a href="{% url 'participantes:cadastrar' %}">Cadastrar participante</a></p>{% endif %}
+<section aria-labelledby="participantes-cadastrados">
+  <h2 id="participantes-cadastrados">Participantes cadastrados ({{ pagina.paginator.count }})</h2>
+  {% if pagina %}<div class="table-scroll"><table>
+    <thead><tr><th scope="col">Nome</th><th scope="col">Data de nascimento</th><th scope="col">Faixa etária (FMR)</th></tr></thead>
+    <tbody>{% for participante in pagina %}<tr>
+      <td><a href="{% url 'participantes:detalhe' participante.pk %}">{{ participante.nome_completo }}</a></td>
+      <td>{{ participante.data_nascimento|date:"d/m/Y" }}</td>
+      <td>{{ participante.faixa_etaria|default:"Abaixo de 60 anos" }}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+  {% if pagina.has_other_pages %}<nav aria-label="Páginas de participantes">
+    {% if pagina.has_previous %}<a href="?page={{ pagina.previous_page_number }}">Anterior</a>{% endif %}
+    <span>Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+    {% if pagina.has_next %}<a href="?page={{ pagina.next_page_number }}">Próxima</a>{% endif %}
+  </nav>{% endif %}
+  {% else %}<p>Nenhum participante cadastrado.</p>{% endif %}
+</section>
+{% endblock %}

@@ -8,7 +8,8 @@ from django.db import IntegrityError, transaction
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from atividades.models import Atividade, HorarioAtividade, RegistroGradeAtividade
+from atividades.tests.auditoria import registros, registros_de
+from atividades.models import Atividade, HorarioAtividade
 from atividades.services import cadastrar_horario, alterar_horario
 
 
@@ -43,12 +44,12 @@ class GradeTests(TestCase):
         horario.refresh_from_db()
         self.assertEqual(horario.atividade_id, self.atividade.pk)
         self.assertEqual(horario.get_dia_semana_display(), "Segunda-feira")
-        registro = horario.registros.get()
+        registro = registros_de(horario).get()
         self.assertEqual(registro.acao, "cadastro")
         self.assertEqual(registro.usuario_id, self.usuario.pk)
         self.assertIsNotNone(registro.registrado_em)
-        self.assertIsNone(registro.dados_anteriores)
-        self.assertEqual(registro.dados_novos, {"dia_semana": 0, "inicio": "09:00:00", "fim": "10:00:00"})
+        self.assertIsNone(registro.anteriores)
+        self.assertEqual(registro.novos, {"dia_semana": 0, "inicio": "09:00:00", "fim": "10:00:00"})
 
     def test_varios_horarios_por_dia_e_atividade(self):
         self.cadastrar()
@@ -64,10 +65,10 @@ class GradeTests(TestCase):
         self.assertEqual(horario.dia_semana, 2)
         self.assertEqual(horario.inicio, time(11))
         self.assertEqual(horario.fim, time(12))
-        registro = horario.registros.get(acao="alteracao")
-        self.assertEqual(registro.dados_anteriores["inicio"], "09:00:00")
-        self.assertEqual(registro.dados_novos, {"dia_semana": 2, "inicio": "11:00:00", "fim": "12:00:00"})
-        self.assertEqual(horario.registros.count(), 2)
+        registro = registros_de(horario).get(acao="alteracao")
+        self.assertEqual(registro.anteriores["inicio"], "09:00:00")
+        self.assertEqual(registro.novos, {"dia_semana": 2, "inicio": "11:00:00", "fim": "12:00:00"})
+        self.assertEqual(registros_de(horario).count(), 2)
 
     def test_validacao_de_dia_e_intervalo_antes_de_gravar(self):
         for dados in ({"dia_semana": -1}, {"dia_semana": 7}, {"dia_semana": "inválido"},
@@ -76,7 +77,7 @@ class GradeTests(TestCase):
             with self.subTest(dados=dados), self.assertRaises(ValidationError):
                 self.cadastrar(**dados)
         self.assertFalse(HorarioAtividade.objects.exists())
-        self.assertFalse(RegistroGradeAtividade.objects.exists())
+        self.assertFalse(registros(HorarioAtividade).exists())
 
     def test_alteracao_invalida_mantem_grade_e_auditoria(self):
         horario = self.cadastrar()
@@ -84,7 +85,7 @@ class GradeTests(TestCase):
             self.alterar(horario, fim=time(8))
         horario.refresh_from_db()
         self.assertEqual(horario.fim, time(10))
-        self.assertEqual(horario.registros.count(), 1)
+        self.assertEqual(registros_de(horario).count(), 1)
 
     def test_anonimo_sem_permissao_e_desativado_nao_gravam(self):
         sem_acesso = get_user_model().objects.create_user(username="grade_sem_permissao")
@@ -111,7 +112,7 @@ class GradeTests(TestCase):
         horario = self.cadastrar()
         with self.assertRaises(HorarioAtividade.DoesNotExist):
             alterar_horario(usuario=self.usuario, atividade_id=self.outra.pk, horario_id=horario.pk, **self.dados)
-        self.assertEqual(horario.registros.count(), 1)
+        self.assertEqual(registros_de(horario).count(), 1)
 
     def test_atividade_inexistente_nao_cria_grade(self):
         with self.assertRaises(Atividade.DoesNotExist):
@@ -119,17 +120,17 @@ class GradeTests(TestCase):
         self.assertFalse(HorarioAtividade.objects.exists())
 
     def test_falha_na_auditoria_reverte_cadastro_e_alteracao(self):
-        with patch("atividades.services.RegistroGradeAtividade.objects.create", side_effect=RuntimeError):
+        with patch("atividades.services.registrar", side_effect=RuntimeError):
             with self.assertRaises(RuntimeError):
                 self.cadastrar()
         self.assertFalse(HorarioAtividade.objects.exists())
         horario = self.cadastrar()
-        with patch("atividades.services.RegistroGradeAtividade.objects.create", side_effect=RuntimeError):
+        with patch("atividades.services.registrar", side_effect=RuntimeError):
             with self.assertRaises(RuntimeError):
                 self.alterar(horario, dia_semana=3)
         horario.refresh_from_db()
         self.assertEqual(horario.dia_semana, 0)
-        self.assertEqual(horario.registros.count(), 1)
+        self.assertEqual(registros_de(horario).count(), 1)
 
     def test_banco_rejeita_dia_ou_intervalo_invalido(self):
         for dados in ({"dia_semana": 7}, {"fim": time(8)}):
@@ -151,9 +152,9 @@ class GradeTests(TestCase):
         self.assertContains(resposta, "Sexta-feira")
         self.assertContains(resposta, "<td>11:00</td>", html=True)
         self.assertNotContains(resposta, "11:00:00")
-        registro = horario.registros.get(acao="alteracao")
-        self.assertEqual(registro.dados_anteriores["dia_semana"], 0)
-        self.assertEqual(registro.dados_novos["dia_semana"], 4)
+        registro = registros_de(horario).get(acao="alteracao")
+        self.assertEqual(registro.anteriores["dia_semana"], 0)
+        self.assertEqual(registro.novos["dia_semana"], 4)
         self.client.get(self.url())
         self.assertEqual(HorarioAtividade.objects.count(), 1)
 
@@ -192,7 +193,7 @@ class GradeTests(TestCase):
         for metodo in (self.client.get, self.client.post):
             self.assertEqual(metodo(self.editar_url(horario, self.outra)).status_code, 404)
             self.assertEqual(metodo(reverse("atividades:grade", args=[999999])).status_code, 404)
-        self.assertEqual(horario.registros.count(), 1)
+        self.assertEqual(registros_de(horario).count(), 1)
 
     def test_csrf_em_cadastro_e_alteracao(self):
         horario = self.cadastrar()
@@ -205,4 +206,4 @@ class GradeTests(TestCase):
             token = client.cookies["csrftoken"].value
             self.assertEqual(client.post(url, dados | {"csrfmiddlewaretoken": token}).status_code, 302)
         self.assertEqual(HorarioAtividade.objects.count(), 2)
-        self.assertEqual(RegistroGradeAtividade.objects.count(), 3)
+        self.assertEqual(registros(HorarioAtividade).count(), 3)

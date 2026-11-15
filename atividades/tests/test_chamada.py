@@ -11,7 +11,7 @@ from atividades.models import Atividade, Aula, Inscricao
 from atividades.services import obter_lista_chamada
 
 
-@override_settings(DEBUG=True)
+@override_settings(DEBUG=True, NCI_PARTICIPANTES_PROVIDER="atividades.integracoes.participantes_placeholder.ProvedorPlaceholder")
 class ChamadaTests(TestCase):
     @classmethod
     def setUpTestData(cls):
