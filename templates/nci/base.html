@@ -1,27 +1,58 @@
-{% load static %}
-<!doctype html>
+{% load static %}<!doctype html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}NCI Idade Dourada{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&family=Questrial&display=swap">
+  <link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.min.css' %}">
   <link rel="stylesheet" href="{% static 'css/base.css' %}">
+  <script src="{% static 'js/nci.js' %}"></script>
+  <script defer src="{% static 'vendor/alpine/alpine.min.js' %}"></script>
+  <script defer src="{% static 'vendor/bootstrap/bootstrap.bundle.min.js' %}"></script>
 </head>
 <body>
-<header><div>
-  <strong>NCI Idade Dourada</strong>
-  {% if user.is_authenticated %}<nav aria-label="Seções" class="account">
-    {% if perms.atividades.view_atividade %}<a href="{% url 'atividades:lista' %}">Atividades</a>{% endif %}
-    {% if perms.participantes.view_participante %}<a href="{% url 'participantes:lista' %}">Participantes</a>{% endif %}
-  </nav>{% endif %}
-  {% if user.is_authenticated %}<div class="account">
-    <span>{{ user.get_username }}</span>
-    <form method="post" action="{% url 'sair' %}">{% csrf_token %}<button class="secondary" type="submit">Sair</button></form>
-  </div>{% endif %}
-</div></header>
-<main>
-  {% for message in messages %}<p class="message" role="status">{{ message }}</p>{% endfor %}
-  {% block content %}{% endblock %}
-</main>
+{% block corpo %}
+{% with ns=request.resolver_match.namespace nome=request.resolver_match.url_name %}
+<div class="nci-layout">
+  <nav class="nci-menu" aria-label="Menu principal" x-data="{ aberto: window.innerWidth >= 768 }">
+    <div class="d-flex justify-content-between align-items-start">
+      <a href="{% url 'inicio' %}" aria-label="Início"><img class="nci-logo" src="{% static 'img/logo-nci.png' %}" alt="Logo NCI Idade Dourada"></a>
+      <button type="button" class="btn btn-sm d-md-none" x-on:click="aberto = !aberto" x-bind:aria-expanded="aberto" aria-controls="menu-links">Menu</button>
+    </div>
+    {% if user.is_authenticated %}
+    <div id="menu-links" x-show="aberto" x-cloak>
+      {% if perms.participantes.view_participante %}<a href="{% url 'participantes:lista' %}" class="{% if ns == 'participantes' %}ativo{% endif %}">Gestão de Participantes</a>{% endif %}
+      {% if perms.atividades.view_atividade %}<a href="{% url 'atividades:lista' %}" class="{% if ns == 'atividades' and nome != 'frequencia_mensal' and nome != 'chamada' %}ativo{% endif %}">Gestão de Atividades</a>
+      <div x-data="{ grupo: {% if nome == 'frequencia_mensal' or nome == 'chamada' %}true{% else %}false{% endif %} }">
+        <button type="button" class="nci-menu-grupo {% if nome == 'frequencia_mensal' or nome == 'chamada' %}ativo{% endif %}" x-on:click="grupo = !grupo" x-bind:aria-expanded="grupo">Frequência <span aria-hidden="true" x-text="grupo ? '⌃' : '⌄'">⌄</span></button>
+        <div class="nci-submenu" x-show="grupo" x-cloak>
+          <a href="{% url 'atividades:lista' %}" title="Escolha a atividade e a aula para fazer a chamada" class="{% if nome == 'chamada' %}ativo{% endif %}">Registro Diário</a>
+          <a href="{% url 'atividades:frequencia_mensal' %}" class="{% if nome == 'frequencia_mensal' %}ativo{% endif %}">Frequência Mensal</a>
+        </div>
+      </div>{% endif %}
+      <span class="d-block py-1 nci-desativado" title="Em construção">FMR</span>
+      {% if user.is_staff %}<a href="{% url 'admin:auth_user_changelist' %}">Gestão de Colaboradores</a>{% endif %}
+    </div>
+    {% endif %}
+  </nav>
+  <div class="nci-conteudo">
+    <div class="nci-topo mb-2">
+      <div class="nci-data">{% now "l, j \d\e F" %}</div>
+      {% if user.is_authenticated %}<div class="nci-conta d-flex align-items-center gap-2">
+        <span>{{ user.get_full_name|default:user.get_username }}</span>
+        <form method="post" action="{% url 'sair' %}">{% csrf_token %}<button class="btn btn-sm btn-outline-secondary rounded-pill" type="submit">Sair</button></form>
+      </div>{% endif %}
+    </div>
+    <main>
+      {% for message in messages %}<div class="alert alert-success" role="status">{{ message }}</div>{% endfor %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+{% endwith %}
+{% endblock %}
 </body>
 </html>

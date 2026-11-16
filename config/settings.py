@@ -49,7 +49,7 @@ INSTALLED_APPS = [
 # Decisão atual: usar o usuário padrão do Django, sem modelo customizado.
 AUTH_USER_MODEL = 'auth.User'
 LOGIN_URL = 'entrar'
-LOGIN_REDIRECT_URL = 'atividades:lista'
+LOGIN_REDIRECT_URL = 'inicio'
 LOGOUT_REDIRECT_URL = 'entrar'
 
 # Cadastro real de participantes usado por inscrição e chamada de atividades.

@@ -129,7 +129,8 @@ class InterfaceAtividadeTests(TestCase):
         resposta = self.client.post(reverse("entrar"), {
             "username": self.usuario.username, "password": "SenhaApenasParaTestes-8173"
         })
-        self.assertRedirects(resposta, self.url)
+        # Depois do login o sistema abre a tela inicial do protótipo, com o cartão de atividades.
+        self.assertRedirects(resposta, reverse("inicio"))
         self.assertContains(self.client.get(self.url), "Cadastrar atividade")
         resposta = self.client.post(self.url, self.dados, follow=True)
         self.assertContains(resposta, "Atividade cadastrada com sucesso")
@@ -171,4 +172,6 @@ class InterfaceAtividadeTests(TestCase):
         self.assertNotContains(resposta, "<script>alert(1)</script>")
 
     def test_raiz_leva_para_atividades(self):
-        self.assertRedirects(self.client.get("/"), self.url, fetch_redirect_response=False)
+        # A raiz agora é a tela inicial do protótipo, que tem o atalho para atividades.
+        self.client.force_login(self.usuario)
+        self.assertContains(self.client.get("/"), self.url)

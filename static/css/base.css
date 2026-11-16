@@ -1,26 +1,124 @@
-* { box-sizing: border-box; }
-body { margin: 0; background: #f5f6f8; color: #243041; font: 17px/1.5 system-ui, sans-serif; }
-header { background: #fff; border-bottom: 1px solid #d9dfe5; }
-header > div, main { max-width: 1000px; margin: auto; padding: 24px; }
-header > div { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; }
-a { color: #164c82; }
-h1 { margin: 0 0 8px; font-size: 1.9rem; }
-h2 { margin-top: 0; font-size: 1.3rem; }
-section { background: white; border: 1px solid #d9dfe5; border-radius: 8px; padding: 24px; margin: 24px 0; }
-label { display: block; font-weight: 600; margin-bottom: 6px; }
-input, select, textarea { width: 100%; max-width: 560px; padding: 10px; border: 1px solid #8290a0; border-radius: 4px; font: inherit; }
-input[type="checkbox"] { width: 22px; height: 22px; }
-input[type="radio"] { width: 22px; height: 22px; padding: 0; accent-color: #164c82; }
-.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
-button { background: #164c82; color: white; border: 0; border-radius: 4px; padding: 11px 18px; cursor: pointer; font: inherit; }
-button.secondary { background: #e9eef3; color: #243041; }
-.field { margin-bottom: 18px; }
-.errorlist { color: #9d2020; padding-left: 22px; }
-.message { background: #e5f3e9; padding: 14px; border-left: 4px solid #297144; }
+/* Identidade visual do protótipo NCI (Figma), sobre o Bootstrap 5. */
+:root {
+  --nci-verde: #5d9451;
+  --nci-verde-escuro: #3f7535;
+  --nci-verde-claro: #d9e6d6;
+  --nci-amarelo: #e0bc41;
+  --nci-bege: #f8efd4;
+  --nci-bege-claro: #fbf4df;
+  --nci-fundo: #f6f8f5;
+  --nci-texto: #6b6b6b;
+  --nci-vermelho: #945151;
+  --nci-cinza: #b3b3b3;
+
+  --bs-body-font-family: "Questrial", system-ui, sans-serif;
+  --bs-body-color: var(--nci-texto);
+  --bs-body-bg: var(--nci-fundo);
+  --bs-body-font-size: 1.05rem;
+  --bs-link-color-rgb: 93, 148, 81;
+  --bs-link-hover-color-rgb: 63, 117, 53;
+  --bs-border-radius: .6rem;
+  --bs-primary: var(--nci-verde);
+  --bs-primary-rgb: 93, 148, 81;
+}
+
+h1, h2, h3, .nci-titulo { font-family: "Poppins", system-ui, sans-serif; font-weight: 700; color: var(--nci-verde); }
+h1 { font-size: 1.9rem; }
+h2 { font-size: 1.25rem; }
+
+/* Layout: menu lateral bege + conteúdo */
+.nci-layout { min-height: 100vh; display: flex; }
+.nci-menu { width: 230px; flex-shrink: 0; background: var(--nci-bege); padding: 1rem .9rem; }
+.nci-menu .nci-logo { width: 56px; height: auto; margin-bottom: 1.5rem; }
+.nci-menu a, .nci-menu button.nci-menu-grupo {
+  display: block; color: var(--nci-amarelo); text-decoration: none; font-size: 1.1rem; padding: .35rem 0;
+  background: none; border: 0; text-align: left; width: 100%;
+}
+.nci-menu a:hover, .nci-menu a.ativo, .nci-menu button.nci-menu-grupo.ativo { color: var(--nci-verde); }
+.nci-menu .nci-submenu a { padding-left: 1.1rem; font-size: 1rem; }
+.nci-menu .nci-desativado { color: #cdb877; cursor: not-allowed; }
+.nci-conteudo { flex: 1; min-width: 0; padding: 1.25rem 2rem 3rem; }
+.nci-topo { display: flex; justify-content: space-between; align-items: start; gap: 1rem; }
+.nci-data { font-family: "Poppins", sans-serif; font-weight: 700; font-size: .78rem; color: var(--nci-amarelo); }
+.nci-conta { font-size: .9rem; }
+@media (max-width: 767.98px) {
+  .nci-layout { flex-direction: column; }
+  .nci-menu { width: 100%; }
+  .nci-conteudo { padding: 1rem; }
+}
+
+/* Botões verdes arredondados */
+.btn-nci { background: var(--nci-verde); color: #fff; border-radius: 2rem; padding: .45rem 1.1rem; border: 0; }
+.btn-nci:hover, .btn-nci:focus { background: var(--nci-verde-escuro); color: #fff; }
+.btn-nci-sec { background: #8a8a8a; color: #fff; border-radius: 2rem; padding: .45rem 1.1rem; border: 0; }
+.btn-nci-sec:hover { background: #6b6b6b; color: #fff; }
+
+/* Campos arredondados com borda verde */
+.form-control, .form-select { border-radius: 2rem; border: 1px solid var(--nci-cinza); color: #333; }
+textarea.form-control { border-radius: 1rem; }
+.form-control:focus, .form-select:focus { border-color: var(--nci-verde); box-shadow: 0 0 0 .2rem rgba(93,148,81,.25); }
+.form-label, label { color: var(--nci-texto); }
+.nci-busca { border: 2px solid var(--nci-verde); border-radius: 2rem; overflow: hidden; background: #fff; }
+.nci-busca .form-control { border: 0; }
+.nci-busca .btn { background: var(--nci-verde); color: #fff; border-radius: 0 2rem 2rem 0; }
+
+/* Cartão com faixa verde no topo (formulários do protótipo) */
+.nci-cartao { background: #fff; border: 2px solid var(--nci-verde); border-radius: 1rem; overflow: hidden; margin-bottom: 1.5rem; }
+.nci-cartao > .nci-cartao-titulo {
+  background: var(--nci-verde); color: #fff; text-align: center; font-family: "Poppins", sans-serif;
+  font-weight: 700; padding: .55rem; text-transform: uppercase; letter-spacing: .02em;
+}
+.nci-cartao > .nci-cartao-corpo { padding: 1.25rem 1.5rem; }
+
+/* Tabelas com cabeçalho cinza (lista) ou verde (frequência) */
+.nci-tabela { border: 2px solid var(--nci-cinza); border-radius: 1rem; overflow: hidden; background: #fff; }
+.nci-tabela table { margin: 0; }
+.nci-tabela thead th {
+  background: var(--nci-cinza); color: #fff; font-family: "Poppins", sans-serif; font-weight: 700;
+  text-transform: uppercase; font-size: .9rem; border: 0;
+}
+.nci-tabela.verde { border-color: var(--nci-verde); }
+.nci-tabela.verde thead th { background: var(--nci-verde); }
+.nci-tabela td { color: var(--nci-texto); vertical-align: middle; }
+.status-ativo, .table td.status-ativo { color: var(--nci-verde) !important; }
+.status-inativo, .table td.status-inativo { color: var(--nci-texto) !important; }
+.status-cancelado, .table td.status-cancelado { color: var(--nci-vermelho) !important; }
+
+/* Tela de boas-vindas: cartões de módulos */
+.nci-modulos { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem; max-width: 900px; margin: 2.5rem auto 0; }
+.nci-modulo {
+  background: var(--nci-bege-claro); border-radius: 1.25rem; aspect-ratio: 1 / 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: .6rem; color: var(--nci-amarelo); text-decoration: none; text-align: center;
+  padding: .75rem; transition: background .15s;
+}
+.nci-modulo svg { width: 64px; height: 64px; }
+.nci-modulo:hover, .nci-modulo:focus { background: var(--nci-verde-claro); color: var(--nci-verde); }
+.nci-modulo.desativado { opacity: .55; pointer-events: none; }
+
+/* Login */
+.nci-login { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--nci-fundo); }
+.nci-login-caixa { background: var(--nci-verde); border-radius: 1rem; padding: 1.5rem; color: #fff; width: 100%; max-width: 340px; }
+.nci-login-caixa label { color: #fff; }
+
+/* Compatibilidade com as telas de atividades (classes antigas) */
+section { background: #fff; border: 1px solid #e3e7e1; border-radius: 1rem; padding: 1.5rem; margin: 1.5rem 0; }
+.field { margin-bottom: 1.1rem; }
+.field input:not([type=checkbox]):not([type=radio]), .field select, .field textarea {
+  display: block; width: 100%; max-width: 560px; padding: .45rem .9rem; border: 1px solid var(--nci-cinza);
+  border-radius: 2rem; font: inherit; color: #333; background: #fff;
+}
+.field textarea { border-radius: 1rem; }
+.field label { display: block; margin-bottom: .3rem; }
+main button:not(.btn):not(.btn-close), section button:not(.btn) {
+  background: var(--nci-verde); color: #fff; border: 0; border-radius: 2rem; padding: .45rem 1.1rem;
+}
+main button.secondary { background: #e9eef3; color: #243041; }
+.errorlist { color: #9d2020; padding-left: 1.2rem; margin: .25rem 0 0; font-size: .95rem; }
+.message { background: #e5f3e9; padding: .8rem 1rem; border-left: 4px solid var(--nci-verde); border-radius: .5rem; }
 .category-badge { display: inline-block; background: #e5f3e9; color: #18532a; border: 1px solid #297144; border-radius: 4px; padding: 3px 8px; font-weight: 600; margin: 6px 0; }
 .category-badge.missing { background: #fff3d6; color: #754700; border-color: #956000; }
 .table-scroll { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; text-align: left; }
-th, td { border-bottom: 1px solid #d9dfe5; padding: 12px; vertical-align: top; overflow-wrap: anywhere; }
-.account { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+main table:not(.table) { width: 100%; border-collapse: collapse; text-align: left; }
+main table:not(.table) th, main table:not(.table) td { border-bottom: 1px solid #e3e7e1; padding: .7rem; vertical-align: top; overflow-wrap: anywhere; }
 :focus-visible { outline: 3px solid #b46a00; outline-offset: 3px; }
+[x-cloak] { display: none !important; }

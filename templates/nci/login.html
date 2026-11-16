@@ -1,15 +1,25 @@
 {% extends "nci/base.html" %}
+{% load static %}
 {% block title %}Entrar · NCI Idade Dourada{% endblock %}
-{% block content %}
-<h1>Entrar</h1>
-<p>Use sua conta do NCI para acessar as atividades.</p>
-<section aria-label="Acesso ao sistema">
-  <form method="post">
-    {% csrf_token %}
-    {{ form.non_field_errors }}
-    {% for field in form %}<div class="field">{{ field.label_tag }}{{ field }}{{ field.errors }}</div>{% endfor %}
-    <input type="hidden" name="next" value="{{ next }}">
-    <button type="submit">Entrar</button>
-  </form>
-</section>
+{% block corpo %}
+<main class="nci-login">
+  <div class="text-center px-3">
+    <img src="{% static 'img/logo-nci.png' %}" alt="Logo NCI Idade Dourada" width="90" class="mb-2">
+    <h1 class="h4 mb-3 nci-titulo">Associação Idade Dourada de Pinheiros</h1>
+    <form method="post" id="form-login" class="nci-login-caixa text-start mx-auto" aria-label="Acesso ao sistema">
+      {% csrf_token %}
+      {% if form.non_field_errors %}<div class="alert alert-warning py-2">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+      <div class="mb-3">
+        <label class="form-label" for="{{ form.username.id_for_label }}">Usuário</label>
+        <input class="form-control" type="text" name="username" id="{{ form.username.id_for_label }}" value="{{ form.username.value|default_if_none:'' }}" placeholder="Digite seu usuário" autocomplete="username" autofocus required>
+      </div>
+      <div class="mb-1">
+        <label class="form-label" for="{{ form.password.id_for_label }}">Senha</label>
+        <input class="form-control" type="password" name="password" id="{{ form.password.id_for_label }}" placeholder="Digite sua senha" autocomplete="current-password" required>
+      </div>
+      <input type="hidden" name="next" value="{{ next }}">
+    </form>
+    <button type="submit" form="form-login" class="btn btn-nci mt-3 px-4">ENTRAR</button>
+  </div>
+</main>
 {% endblock %}
