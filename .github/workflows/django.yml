@@ -1,0 +1,124 @@
+# CI do NCI Idade Dourada: lint e testes do Django com PostgreSQL.
+# Roda em pull requests e pushes para main e develop (docs/workflow_git.md).
+name: nci-CI
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+# Um push novo no mesmo PR/branch cancela a execução anterior.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.14"
+
+jobs:
+  lint:
+    name: Lint (ruff)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Instalar ruff
+        run: pip install "$(grep '^ruff==' requirements-dev.txt)"
+
+      # Bloqueia o PR: erros de sintaxe, nomes indefinidos e comparações inválidas.
+      - name: Erros críticos
+        run: ruff check --select E9,F63,F7,F82 --output-format github .
+
+      # Só informa, até a equipe combinar a limpeza do código existente
+      # (regras completas do pyproject.toml e formatação).
+      - name: Regras completas (informativo)
+        run: ruff check --output-format github --exit-zero .
+
+      - name: Formatação (informativo)
+        continue-on-error: true
+        run: ruff format --check .
+
+  testes:
+    name: Testes (Django + PostgreSQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17.11-alpine  # mesma versão do docker-compose.yaml
+        env:
+          POSTGRES_DB: nci_ci
+          POSTGRES_USER: nci_ci
+          POSTGRES_PASSWORD: nci_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U nci_ci -d nci_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # Valores fictícios, só para o CI; nenhum secret real é usado.
+      # DEBUG=True evita o redirecionamento para HTTPS nos testes (o runner do Django força DEBUG=False
+      # durante os testes de qualquer forma); a configuração de produção é checada no passo --deploy.
+      DJANGO_DEBUG: "True"
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
+      POSTGRES_DB: nci_ci
+      POSTGRES_USER: nci_ci
+      POSTGRES_PASSWORD: nci_ci
+      POSTGRES_HOST: 127.0.0.1
+      POSTGRES_PORT: "5432"
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Instalar dependências
+        run: pip install -r requirements-dev.txt
+
+      - name: Gerar SECRET_KEY descartável
+        run: echo "DJANGO_SECRET_KEY=$(python -c 'import secrets; print(secrets.token_urlsafe(64))')" >> "$GITHUB_ENV"
+
+      - name: Checagem do Django
+        run: python manage.py check
+
+      - name: Migrations em dia com os models
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: Migrations aplicam do zero
+        run: python manage.py migrate --noinput
+
+      - name: Configuração de produção (falha só em erro; avisos de HSTS são intencionais)
+        env:
+          DJANGO_DEBUG: "False"
+        run: python manage.py check --deploy --fail-level ERROR
+
+      - name: Testes com cobertura
+        run: coverage run manage.py test --noinput
+
+      - name: Relatório de cobertura
+        if: always()
+        run: |
+          coverage report
+          {
+            echo '### Cobertura'
+            echo '```'
+            coverage report --format=text
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
