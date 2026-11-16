@@ -1,18 +1,8 @@
 """
-URL configuration for mysite project.
+Rotas principais do sistema NCI Idade Dourada.
 
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/6.1/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
+Início, entrada/saída (autenticação padrão do Django), os apps de atividades e
+participantes e o admin.
 """
 from django.contrib import admin
 from django.contrib.auth.views import LoginView, LogoutView
@@ -22,7 +12,7 @@ from core.views import inicio
 
 urlpatterns = [
     path('', inicio, name='inicio'),
-    path('entrar/', LoginView.as_view(template_name='nci/login.html'), name='entrar'),
+    path('entrar/', LoginView.as_view(template_name='nci/login.html', redirect_authenticated_user=True), name='entrar'),
     path('sair/', LogoutView.as_view(), name='sair'),
     path('atividades/', include('atividades.urls')),
     path('participantes/', include('participantes.urls')),
