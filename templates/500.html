@@ -1,0 +1,22 @@
+{% load static %}<!doctype html>
+{# Renderizado pelo Django sem contexto (sem request/user): não estender base.html nem usar url/csrf/perms. #}
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Erro interno · NCI Idade Dourada</title>
+  <link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.min.css' %}">
+  <link rel="stylesheet" href="{% static 'css/base.css' %}">
+</head>
+<body>
+<main class="nci-login">
+  <div class="nci-erro px-3">
+    <img src="{% static 'img/logo-nci.png' %}" alt="Logo NCI Idade Dourada" width="90" class="mb-2">
+    <p class="nci-erro-codigo" aria-hidden="true">500</p>
+    <h1>Erro interno</h1>
+    <p>Algo deu errado do nosso lado. A equipe foi avisada. Tente de novo em alguns minutos.</p>
+    <a class="btn btn-nci" href="/">Voltar ao início</a>
+  </div>
+</main>
+</body>
+</html>
