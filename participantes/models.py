@@ -96,8 +96,11 @@ class Participante(ProtegidoPorAuditoria, models.Model):
             if self.data_nascimento < data_minima_nascimento():
                 raise ValidationError({"data_nascimento": "Confira a data de nascimento informada."})
         # Endereço e ensino médio são obrigatórios pelo próprio campo (blank=False), validado no full_clean.
+        # Só espaços passa no clean_fields; depois de normalizar, vazio também é recusado.
         if isinstance(self.endereco, str):
             self.endereco = normalizar_espacos(self.endereco)
+            if not self.endereco:
+                raise ValidationError({"endereco": "Informe o endereço."})
         if isinstance(self.observacao_encaminhamento, str):
             self.observacao_encaminhamento = self.observacao_encaminhamento.strip()
         self._validar_telefones()
