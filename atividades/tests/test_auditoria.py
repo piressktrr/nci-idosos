@@ -7,7 +7,7 @@ from django.db.migrations.executor import MigrationExecutor
 from django.db.models.deletion import ProtectedError
 from django.test import TestCase, TransactionTestCase
 
-from .models import (Atividade, EventoAuditoria, RegistroCadastroAtividade,
+from atividades.models import (Atividade, EventoAuditoria, RegistroCadastroAtividade,
                      RegistroGradeAtividade, RegistroLancamentoFrequencia)
 
 
@@ -42,7 +42,7 @@ class AuditoriaUnificadaTests(TestCase):
             self.usuario.delete()
 
     def test_frequencia_sem_auditoria_inicial_continua_consultavel(self):
-        from .models import Aula, Inscricao, Frequencia
+        from atividades.models import Aula, Inscricao, Frequencia
         aula = Aula.objects.create(atividade=self.atividade, data=date(2024, 1, 1), inicio=time(9), fim=time(10))
         inscricao = Inscricao.objects.create(atividade=self.atividade, origem_participante="placeholder",
             participante_referencia="demo-1", cadastrada_por=self.usuario)
