@@ -1,0 +1,22 @@
+{% extends "nci/base.html" %}
+{% block title %}Situação social · NCI Idade Dourada{% endblock %}
+{% block content %}
+<p class="mb-1"><a href="{% url 'participantes:detalhe' participante.pk %}">← Voltar</a></p>
+<h1>Situação social</h1>
+<p>{{ participante.nome_completo }}. As situações anteriores continuam no histórico e valem para os meses passados.</p>
+<form method="post" class="nci-cartao" novalidate>
+  <div class="nci-cartao-titulo">Registrar situação</div>
+  <div class="nci-cartao-corpo">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert alert-warning">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+    <div style="max-width: 280px">{% include "participantes/_campo.html" with campo=form.vigente_desde obrigatorio=True %}</div>
+    {% for campo in form %}{% if campo.name != "vigente_desde" %}<div class="form-check form-switch mb-2">
+      {{ campo }} <label class="form-check-label" for="{{ campo.id_for_label }}">{{ campo.label|capfirst }}</label>
+    </div>{% endif %}{% endfor %}
+    <div class="d-flex justify-content-end gap-2 mt-3">
+      <a class="btn btn-nci-sec" href="{% url 'participantes:detalhe' participante.pk %}">Cancelar</a>
+      <button type="submit" class="btn btn-nci">Registrar situação</button>
+    </div>
+  </div>
+</form>
+{% endblock %}

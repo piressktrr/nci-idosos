@@ -14,8 +14,26 @@ def historico(participante):
     return RegistroParticipante.objects.filter(participante=participante).select_related("usuario")
 
 
+def _rotulo(campo):
+    from django.core.exceptions import FieldDoesNotExist
+
+    from .models import Participante, SituacaoSocial
+    for modelo in (Participante, SituacaoSocial):
+        try:
+            return str(modelo._meta.get_field(campo).verbose_name).capitalize()
+        except FieldDoesNotExist:
+            continue
+    return campo
+
+
+def _exibir(valor):
+    if isinstance(valor, bool):
+        return "Sim" if valor else "Não"
+    return valor
+
+
 def diferencas(evento):
     """Campos que mudaram em um evento: [(campo, antes, depois)]. No cadastro, antes é None."""
     anteriores = evento.anteriores or {}
-    return [(campo, anteriores.get(campo), valor) for campo, valor in evento.novos.items()
+    return [(_rotulo(campo), _exibir(anteriores.get(campo)), _exibir(valor)) for campo, valor in evento.novos.items()
             if evento.anteriores is None or anteriores.get(campo) != valor]

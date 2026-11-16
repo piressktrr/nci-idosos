@@ -1,16 +1,50 @@
 {% extends "nci/base.html" %}
-{% block title %}{% if participante %}Corrigir cadastro{% else %}Cadastrar participante{% endif %} · NCI Idade Dourada{% endblock %}
+{% block title %}{% if participante %}Editar cadastro{% else %}Novo cadastro{% endif %} · NCI Idade Dourada{% endblock %}
 {% block content %}
-<p><a href="{% if participante %}{% url 'participantes:detalhe' participante.pk %}{% else %}{% url 'participantes:lista' %}{% endif %}">Voltar</a></p>
-<h1>{% if participante %}Corrigir cadastro{% else %}Cadastrar participante{% endif %}</h1>
-<section aria-label="Dados do participante">
-  <form method="post">
+<h1>Gestão de Participantes - Cadastro</h1>
+<form method="post" class="nci-cartao mt-3" novalidate>
+  <div class="nci-cartao-titulo">{% if participante %}Editar cadastro{% else %}Novo cadastro{% endif %}</div>
+  <div class="nci-cartao-corpo">
     {% csrf_token %}
-    {{ form.non_field_errors }}
-    {% for field in form.visible_fields %}<div class="field">{{ field.label_tag }}{{ field }}{{ field.errors }}</div>{% endfor %}
-    {% for field in form.hidden_fields %}{{ field }}{% endfor %}
-    {% if form.mostrar_confirmacao %}<input type="hidden" name="confirmar_duplicidade_exibida" value="1">{% endif %}
-    <button type="submit">{% if participante %}Salvar correção{% else %}Cadastrar participante{% endif %}</button>
-  </form>
-</section>
+    {% if form.non_field_errors %}<div class="alert alert-warning">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+    <div class="row g-3">
+      <div class="col-lg-6">
+        {% include "participantes/_campo.html" with campo=form.nome_completo obrigatorio=True %}
+        {% include "participantes/_campo.html" with campo=form.endereco obrigatorio=True %}
+        {% include "participantes/_campo.html" with campo=form.identidade_genero obrigatorio=True %}
+        {% include "participantes/_campo.html" with campo=form.origem_encaminhamento obrigatorio=True %}
+        {% include "participantes/_campo.html" with campo=form.observacao_encaminhamento %}
+      </div>
+      <div class="col-lg-6">
+        <div class="row g-3">
+          <div class="col-sm-6">{% include "participantes/_campo.html" with campo=form.telefone_residencial %}</div>
+          <div class="col-sm-6">{% include "participantes/_campo.html" with campo=form.telefone_celular %}</div>
+          <div class="col-sm-6">{% include "participantes/_campo.html" with campo=form.data_nascimento obrigatorio=True %}</div>
+          <div class="col-sm-6">{% include "participantes/_campo.html" with campo=form.raca_cor obrigatorio=True %}</div>
+          <div class="col-sm-6">{% include "participantes/_campo.html" with campo=form.sexo obrigatorio=True %}</div>
+          <div class="col-sm-6">{% include "participantes/_campo.html" with campo=form.status obrigatorio=True %}</div>
+          <div class="col-12">
+            <fieldset>
+              <legend class="form-label fs-6 mb-1">{{ form.ensino_medio_completo.label }} <span class="text-danger" aria-hidden="true">*</span></legend>
+              {% for opcao in form.ensino_medio_completo %}<div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="{{ opcao.data.name }}" id="{{ opcao.id_for_label }}" value="{{ opcao.data.value }}" {% if opcao.data.selected %}checked{% endif %}>
+                <label class="form-check-label" for="{{ opcao.id_for_label }}">{{ opcao.choice_label }}</label>
+              </div>{% endfor %}
+              {% if form.ensino_medio_completo.errors %}<div class="text-danger small">{{ form.ensino_medio_completo.errors|join:" " }}</div>{% endif %}
+            </fieldset>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% if form.mostrar_confirmacao %}
+    <div class="alert alert-warning mt-3 mb-0">
+      <div class="form-check">{{ form.confirmar_duplicidade }} <label class="form-check-label" for="{{ form.confirmar_duplicidade.id_for_label }}">{{ form.confirmar_duplicidade.label }}</label></div>
+      <input type="hidden" name="confirmar_duplicidade_exibida" value="1">
+    </div>{% endif %}
+    <div class="d-flex justify-content-end gap-2 mt-4">
+      <a class="btn btn-nci-sec" href="{% if participante %}{% url 'participantes:detalhe' participante.pk %}{% else %}{% url 'participantes:lista' %}{% endif %}">{% if participante %}Descartar alterações{% else %}Cancelar{% endif %}</a>
+      <button type="submit" class="btn btn-nci">+ Salvar Cadastro</button>
+    </div>
+  </div>
+</form>
 {% endblock %}

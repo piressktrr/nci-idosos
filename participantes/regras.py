@@ -36,3 +36,26 @@ def chave_nome(nome):
 
 def data_minima_nascimento():
     return date(1900, 1, 1)
+
+
+def so_digitos(texto):
+    """Tira máscara, espaços e pontuação de um telefone digitado."""
+    return re.sub(r"\D", "", texto or "")
+
+
+def celular_valido(numero):
+    """RF-PAR-02: DDD + 9 dígitos começando por 9, só dígitos."""
+    return len(numero) == 11 and numero[0] != "0" and numero[1] != "0" and numero[2] == "9"
+
+
+def residencial_valido(numero):
+    """RF-PAR-02: DDD + 8 dígitos de telefone fixo (começa por 2 a 5), só dígitos."""
+    return len(numero) == 10 and numero[0] != "0" and numero[1] != "0" and numero[2] in "2345"
+
+
+def formatar_telefone(numero):
+    if len(numero) == 11:
+        return f"({numero[:2]}) {numero[2:7]}-{numero[7:]}"
+    if len(numero) == 10:
+        return f"({numero[:2]}) {numero[2:6]}-{numero[6:]}"
+    return numero

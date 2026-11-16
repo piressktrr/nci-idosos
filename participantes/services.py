@@ -6,10 +6,12 @@ from django.db import transaction
 from core.permissoes import autorizar
 
 from .auditoria import registrar
-from .models import Participante
+from .models import Participante, SituacaoSocial
 from .regras import chave_nome
 
-CAMPOS_CADASTRO = ("nome_completo", "data_nascimento", "sexo", "raca_cor", "identidade_genero")
+CAMPOS_CADASTRO = ("nome_completo", "data_nascimento", "sexo", "raca_cor", "identidade_genero",
+                   "telefone_celular", "telefone_residencial", "origem_encaminhamento",
+                   "endereco", "ensino_medio_completo", "observacao_encaminhamento", "status")
 
 
 def _dados(participante):
@@ -19,6 +21,13 @@ def _dados(participante):
         "sexo": participante.sexo,
         "raca_cor": participante.raca_cor,
         "identidade_genero": participante.identidade_genero,
+        "telefone_celular": participante.telefone_celular,
+        "telefone_residencial": participante.telefone_residencial,
+        "origem_encaminhamento": participante.origem_encaminhamento,
+        "endereco": participante.endereco,
+        "ensino_medio_completo": participante.ensino_medio_completo,
+        "observacao_encaminhamento": participante.observacao_encaminhamento,
+        "status": participante.status,
     }
 
 
@@ -32,6 +41,21 @@ def possiveis_duplicados(*, nome_completo, data_nascimento, excluir_id=None):
     chave = chave_nome(nome_completo)
     candidatos = Participante.objects.filter(data_nascimento=data_nascimento).exclude(pk=excluir_id)
     return [item for item in candidatos if chave_nome(item.nome_completo) == chave]
+
+
+def pesquisar_participantes(termo):
+    """RF-PAR-09: lista por nome, ignorando acentos, maiúsculas e espaços extras.
+
+    Cada palavra digitada precisa aparecer no nome, em qualquer ordem ("silva ana" acha "Ana Silva").
+    A comparação é feita em Python, sem depender da extensão unaccent do PostgreSQL.
+    """
+    participantes = Participante.objects.all()
+    palavras = chave_nome(termo or "")[:200].split()
+    if not palavras:
+        return participantes
+    encontrados = [pk for pk, nome in participantes.values_list("pk", "nome_completo")
+                   if all(palavra in chave_nome(nome) for palavra in palavras)]
+    return participantes.filter(pk__in=encontrados)
 
 
 def _verificar_duplicidade(participante, confirmar_duplicidade, excluir_id=None):
@@ -79,3 +103,38 @@ def corrigir_participante(*, usuario, participante_id, confirmar_duplicidade=Fal
     registrar(participante=participante, acao="correcao", usuario=autor,
               anteriores=anteriores, novos=_dados(participante))
     return participante
+
+
+CAMPOS_SITUACAO = ("mora_sozinho", "tem_apoio", "possui_deficiencia", "recebe_bpc", "imigrante_refugiado")
+
+
+def _dados_situacao(situacao):
+    return {"vigente_desde": situacao.vigente_desde.isoformat(),
+            **{campo: getattr(situacao, campo) for campo in CAMPOS_SITUACAO}}
+
+
+@transaction.atomic
+def registrar_situacao_social(*, usuario, participante_id, vigente_desde, **indicadores):
+    """RF-PAR-04/05: registra a situação a partir de uma data, sem apagar as anteriores.
+
+    Se já existe registro com a mesma data de início, é correção desse registro (antes e depois
+    na auditoria). Uma data nova cria uma nova vigência.
+    """
+    autor = autorizar(usuario, "participantes.change_participante",
+                      mensagem="Você não tem permissão para alterar participantes.")
+    if set(indicadores) != set(CAMPOS_SITUACAO) or not all(isinstance(v, bool) for v in indicadores.values()):
+        raise ValidationError("Dados da situação social incompletos ou inválidos.")
+    participante = Participante.objects.select_for_update().get(pk=participante_id)
+    situacao = SituacaoSocial.objects.filter(participante=participante, vigente_desde=vigente_desde).first()
+    anteriores = _dados_situacao(situacao) if situacao else None
+    if situacao is None:
+        situacao = SituacaoSocial(participante=participante, vigente_desde=vigente_desde)
+    for campo, valor in indicadores.items():
+        setattr(situacao, campo, valor)
+    situacao.full_clean(validate_unique=anteriores is None)
+    if anteriores is not None and _dados_situacao(situacao) == anteriores:
+        return situacao
+    situacao.save()
+    # A coluna acao da auditoria tem 10 caracteres; a correção se distingue por ter "anteriores".
+    registrar(participante=participante, acao="situacao", usuario=autor, anteriores=anteriores, novos=_dados_situacao(situacao))
+    return situacao

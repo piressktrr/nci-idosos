@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Participante
+from .models import Participante, SituacaoSocial
 
 
 @admin.register(Participante)
@@ -18,3 +18,11 @@ class ParticipanteAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+
+@admin.register(SituacaoSocial)
+class SituacaoSocialAdmin(ParticipanteAdmin):
+    list_display = ("participante", "vigente_desde", "mora_sozinho", "tem_apoio", "possui_deficiencia",
+                    "recebe_bpc", "imigrante_refugiado")
+    search_fields = ("participante__nome_completo",)

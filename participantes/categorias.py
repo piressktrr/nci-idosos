@@ -21,6 +21,7 @@ class RacaCor(models.TextChoices):
     PARDA = "parda", "Parda"
     AMARELA = "amarela", "Amarela"
     INDIGENA = "indigena", "Indígena"
+    NAO_INFORMADO = "nao_informado", "Não informado"  # D13: está no protótipo
 
 
 class IdentidadeGenero(models.TextChoices):
@@ -31,3 +32,20 @@ class IdentidadeGenero(models.TextChoices):
     TRAVESTI = "travesti", "Travesti"
     NAO_BINARIA = "nao_binaria", "Pessoa não binária"
     OUTRA = "outra", "Outra"
+
+
+class OrigemEncaminhamento(models.TextChoices):
+    """RF-PAR-06: categoria de origem. Provisória: são os exemplos do requisito até chegar a lista do FMR."""
+    CRAS = "cras", "CRAS"
+    CREAS = "creas", "CREAS"
+    REDE = "rede", "Outro serviço da rede"
+    OUTRA = "outra", "Outra origem"
+
+
+
+class StatusParticipante(models.TextChoices):
+    """D13: status do protótipo. Provisório até o NCI definir afastado/inativo/cancelado (RN-PAR-09, P02)
+    e até existir o desligamento com motivo (RF-PAR-07)."""
+    ATIVO = "ativo", "Ativo"
+    INATIVO = "inativo", "Inativo"
+    CANCELADO = "cancelado", "Cancelado"
