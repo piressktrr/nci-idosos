@@ -1,0 +1,22 @@
+# Configuração das ferramentas de qualidade (ruff e coverage). O projeto não é um pacote instalável.
+
+[tool.ruff]
+target-version = "py314"
+line-length = 120
+extend-exclude = ["prototipos", "staticfiles"]
+
+[tool.ruff.lint]
+# Começa só com regras que apontam erro real: pycodestyle (E/W), pyflakes (F), ordem de imports (I) e bugbear (B).
+select = ["E", "W", "F", "I", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+# Migrations são geradas pelo Django.
+"*/migrations/*" = ["E501", "I"]
+
+[tool.coverage.run]
+source = ["."]
+omit = [".venv/*", "*/migrations/*", "*/tests/*", "manage.py", "config/asgi.py", "config/wsgi.py", "prototipos/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true

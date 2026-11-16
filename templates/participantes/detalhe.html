@@ -1,0 +1,60 @@
+{% extends "nci/base.html" %}
+{% block title %}{{ participante.nome_completo }} · NCI Idade Dourada{% endblock %}
+{% block content %}
+<p class="mb-1"><a href="{% url 'participantes:lista' %}">← Voltar para participantes</a></p>
+<div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+  <h1 class="mb-0">{{ participante.nome_completo }}</h1>
+  <span class="badge rounded-pill border status-{{ participante.status }} bg-white fs-6 fw-normal">{{ participante.get_status_display }}</span>
+  {% if perms.participantes.change_participante %}<a class="btn btn-nci ms-auto" href="{% url 'participantes:corrigir' participante.pk %}">Editar cadastro</a>{% endif %}
+</div>
+
+<div class="nci-cartao">
+  <div class="nci-cartao-titulo">Dados do participante</div>
+  <div class="nci-cartao-corpo">
+    <dl class="row mb-0">
+      <dt class="col-sm-4">Data de nascimento</dt><dd class="col-sm-8">{{ participante.data_nascimento|date:"d/m/Y" }} ({{ participante.idade }} anos)</dd>
+      <dt class="col-sm-4">Faixa etária (FMR)</dt><dd class="col-sm-8">{{ participante.faixa_etaria|default:"Abaixo de 60 anos" }}</dd>
+      <dt class="col-sm-4">Data de entrada</dt><dd class="col-sm-8">{{ data_entrada|date:"d/m/Y"|default:"—" }}</dd>
+      <dt class="col-sm-4">Endereço</dt><dd class="col-sm-8">{{ participante.endereco|default:"—" }}</dd>
+      <dt class="col-sm-4">Telefone celular</dt><dd class="col-sm-8">{{ participante.celular_formatado|default:"—" }}</dd>
+      <dt class="col-sm-4">Telefone fixo</dt><dd class="col-sm-8">{{ participante.residencial_formatado|default:"—" }}</dd>
+      <dt class="col-sm-4">Sexo</dt><dd class="col-sm-8">{{ participante.get_sexo_display }}</dd>
+      <dt class="col-sm-4">Raça/cor autodeclarada</dt><dd class="col-sm-8">{{ participante.get_raca_cor_display }}</dd>
+      <dt class="col-sm-4">Identidade de gênero</dt><dd class="col-sm-8">{{ participante.get_identidade_genero_display }}</dd>
+      <dt class="col-sm-4">Ensino médio completo</dt><dd class="col-sm-8">{{ participante.ensino_medio_completo|yesno:"Sim,Não,—" }}</dd>
+      <dt class="col-sm-4">Origem do encaminhamento</dt><dd class="col-sm-8">{{ participante.get_origem_encaminhamento_display|default:"—" }}{% if participante.observacao_encaminhamento %}<br><span class="small">{{ participante.observacao_encaminhamento|linebreaksbr }}</span>{% endif %}</dd>
+    </dl>
+  </div>
+</div>
+
+<div class="nci-cartao">
+  <div class="nci-cartao-titulo">Situação social</div>
+  <div class="nci-cartao-corpo">
+    {% if situacoes %}<div class="table-responsive"><table class="table table-sm mb-2">
+      <thead><tr><th scope="col">Vigente desde</th><th scope="col">Mora sozinho</th><th scope="col">Apoio familiar/comunitário</th><th scope="col">Deficiência</th><th scope="col">BPC</th><th scope="col">Imigrante/refugiado</th></tr></thead>
+      <tbody>{% for s in situacoes %}<tr{% if s == situacao_atual %} class="table-success"{% endif %}>
+        <td>{{ s.vigente_desde|date:"d/m/Y" }}{% if s == situacao_atual %} (atual){% endif %}</td><td>{{ s.mora_sozinho|yesno:"Sim,Não" }}</td><td>{{ s.tem_apoio|yesno:"Sim,Não" }}</td>
+        <td>{{ s.possui_deficiencia|yesno:"Sim,Não" }}</td><td>{{ s.recebe_bpc|yesno:"Sim,Não" }}</td><td>{{ s.imigrante_refugiado|yesno:"Sim,Não" }}</td>
+      </tr>{% endfor %}</tbody>
+    </table></div>{% else %}<p>Situação social ainda não registrada.</p>{% endif %}
+    {% if perms.participantes.change_participante %}<a class="btn btn-nci btn-sm" href="{% url 'participantes:situacao_social' participante.pk %}">+ Registrar situação social</a>{% endif %}
+  </div>
+</div>
+
+{% if frequencias is not None %}{% include "participantes/_frequencia.html" %}{% endif %}
+
+{% if registros is not None %}
+<div x-data="{ aberto: false }" class="nci-cartao">
+  <button type="button" class="nci-cartao-titulo w-100 border-0" x-on:click="aberto = !aberto" x-bind:aria-expanded="aberto" aria-controls="historico">Histórico de alterações <span x-text="aberto ? '▲' : '▼'" aria-hidden="true">▼</span></button>
+  <div id="historico" class="nci-cartao-corpo" x-show="aberto" x-cloak>
+    <div class="table-responsive"><table class="table table-sm mb-0">
+      <thead><tr><th scope="col">Data</th><th scope="col">Ação</th><th scope="col">Usuário</th><th scope="col">Campo</th><th scope="col">Antes</th><th scope="col">Depois</th></tr></thead>
+      <tbody>{% for item in registros %}{% for campo, antes, depois in item.mudancas %}<tr>
+        <td>{{ item.registro.registrado_em|date:"d/m/Y H:i" }}</td><td>{{ item.registro.acao|capfirst }}</td>
+        <td>{{ item.registro.usuario.get_username }}</td><td>{{ campo }}</td><td>{{ antes|default_if_none:"—" }}</td><td>{{ depois }}</td>
+      </tr>{% endfor %}{% endfor %}</tbody>
+    </table></div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

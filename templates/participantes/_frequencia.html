@@ -1,0 +1,24 @@
+<div class="nci-cartao">
+  <div class="nci-cartao-titulo">Atividades e frequência</div>
+  <div class="nci-cartao-corpo">
+    {% if frequencias %}
+    <div class="nci-tabela table-responsive mb-2">
+      <table class="table table-sm mb-0">
+        <thead><tr><th scope="col">Atividade</th><th scope="col">Inscrição</th><th scope="col" class="text-end">Presenças</th><th scope="col" class="text-end">Ausências</th><th scope="col" class="text-end">Justificadas</th><th scope="col"><span class="visually-hidden">Histórico</span></th></tr></thead>
+        <tbody>{% for item in frequencias %}<tr>
+          <td>{{ item.atividade_nome }}</td>
+          <td>{{ item.situacao }}<br><span class="small">desde {{ item.inscrita_em|date:"d/m/Y" }}</span></td>
+          <td class="text-end">{{ item.presentes }}</td>
+          <td class="text-end">{{ item.ausentes }}</td>
+          <td class="text-end">{{ item.justificados }}</td>
+          <td class="text-end"><a href="{{ item.url_historico }}" aria-label="Ver histórico de frequência em {{ item.atividade_nome }}">Ver histórico</a></td>
+        </tr>{% endfor %}</tbody>
+      </table>
+    </div>
+    <p class="small mb-2">Totais consideram apenas aulas realizadas.</p>
+    {% else %}
+    <p>Nenhuma inscrição em atividades.</p>
+    {% endif %}
+    <p class="small mb-0">Desligamentos e reativações: aguardando definição (Q3 e Q4).</p>
+  </div>
+</div>

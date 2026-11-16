@@ -147,3 +147,19 @@ class CorrecaoFrequenciaForm(forms.Form):
         if dados.get("situacao") != Frequencia.Situacao.JUSTIFICADO and (motivo or dados.get("observacao")):
             raise forms.ValidationError("Motivo e observação só se aplicam à ausência justificada.")
         return dados
+
+
+class CategoriaForm(forms.ModelForm):
+    class Meta:
+        model = CategoriaFMR
+        fields = ("nome", "ativa")
+
+
+class ClassificacaoForm(forms.Form):
+    categoria = forms.ModelChoiceField(queryset=CategoriaFMR.objects.filter(ativa=True))
+    inicio = forms.DateField(label="Vigente a partir de", initial=timezone.localdate,
+        widget=forms.DateInput(format="%Y-%m-%d", attrs={"type": "date"}))
+
+
+class VagaForm(forms.Form):
+    vaga_confirmada = forms.BooleanField(label="Confirmo que existe uma vaga disponível")

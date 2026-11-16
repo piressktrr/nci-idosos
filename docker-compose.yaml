@@ -1,0 +1,30 @@
+# PostgreSQL de desenvolvimento. O Django roda fora do container, pela .venv.
+# Variáveis lidas do .env (modelo em .env.example).
+#   Subir:  docker compose up -d
+#   Parar:  docker compose stop        (mantém os dados)
+name: nci-idosos
+
+services:
+  db:
+    # Versão fixada (a mesma do container atual). Atualize de propósito, não por acidente.
+    image: postgres:17.11-alpine
+    container_name: nci-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?defina POSTGRES_DB no .env (veja .env.example)}
+      POSTGRES_USER: ${POSTGRES_USER:?defina POSTGRES_USER no .env (veja .env.example)}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env (veja .env.example)}
+      TZ: America/Sao_Paulo
+    ports:
+      # Exposto só para esta máquina, na porta usada pelo Django.
+      - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:

@@ -1,0 +1,59 @@
+{% load static %}<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}NCI Idade Dourada{% endblock %}</title>
+  {# PENDENTE (W2/LGPD): hospedar Poppins 700 e Questrial em static/vendor/fontes e remover o Google Fonts; o download depende de autorização do usuário. #}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&family=Questrial&display=swap">
+  <link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.min.css' %}">
+  <link rel="stylesheet" href="{% static 'css/base.css' %}">
+  <script src="{% static 'js/nci.js' %}"></script>
+  <script defer src="{% static 'vendor/alpine/alpine.min.js' %}"></script>
+  <script defer src="{% static 'vendor/bootstrap/bootstrap.bundle.min.js' %}"></script>
+</head>
+<body>
+{% block corpo %}
+{% with ns=request.resolver_match.namespace nome=request.resolver_match.url_name %}
+<div class="nci-layout">
+  <nav class="nci-menu" aria-label="Menu principal" x-data="{ aberto: false }" x-bind:class="{ 'menu-fechado': !aberto }">
+    <div class="d-flex justify-content-between align-items-start">
+      <a href="{% url 'inicio' %}" aria-label="Início"><img class="nci-logo" src="{% static 'img/logo-nci.png' %}" alt="Logo NCI Idade Dourada"></a>
+      {% if user.is_authenticated %}<button type="button" class="btn btn-sm nci-menu-botao d-md-none" x-cloak x-on:click="aberto = !aberto" x-bind:aria-expanded="aberto ? 'true' : 'false'" aria-expanded="false" aria-controls="menu-links">Menu</button>{% endif %}
+    </div>
+    {% if user.is_authenticated %}
+    <div id="menu-links" class="nci-menu-links">
+      {% if perms.participantes.view_participante %}<a href="{% url 'participantes:lista' %}"{% if ns == 'participantes' %} class="ativo" aria-current="page"{% endif %}>Gestão de Participantes</a>{% endif %}
+      {% if perms.atividades.view_atividade %}<a href="{% url 'atividades:lista' %}"{% if ns == 'atividades' and nome != 'frequencia_mensal' and nome != 'chamada' %} class="ativo" aria-current="page"{% endif %}>Gestão de Atividades</a>
+      <div x-data="{ grupo: {% if nome == 'frequencia_mensal' or nome == 'chamada' %}true{% else %}false{% endif %} }" x-bind:class="{ 'nci-grupo-fechado': !grupo }">
+        <button type="button" class="nci-menu-grupo {% if nome == 'frequencia_mensal' or nome == 'chamada' %}ativo{% endif %}" x-on:click="grupo = !grupo" x-bind:aria-expanded="grupo ? 'true' : 'false'" aria-expanded="true" aria-controls="submenu-frequencia">Frequência <span aria-hidden="true" x-text="grupo ? '⌃' : '⌄'">⌄</span></button>
+        <div class="nci-submenu" id="submenu-frequencia">
+          <a href="{% url 'atividades:lista' %}" title="Escolha a atividade e a aula para fazer a chamada"{% if nome == 'chamada' %} class="ativo" aria-current="page"{% endif %}>Registro Diário</a>
+          <a href="{% url 'atividades:frequencia_mensal' %}"{% if nome == 'frequencia_mensal' %} class="ativo" aria-current="page"{% endif %}>Frequência Mensal</a>
+        </div>
+      </div>{% endif %}
+      <span class="d-block py-1 nci-desativado">FMR <span class="nci-em-breve">(em breve)</span></span>
+      {% if user.is_staff and perms.auth.view_user %}<a href="{% url 'admin:auth_user_changelist' %}">Gestão de Colaboradores</a>{% endif %}
+    </div>
+    {% endif %}
+  </nav>
+  <div class="nci-conteudo">
+    <div class="nci-topo mb-2">
+      <div class="nci-data">{% now "l, j \d\e F" %}</div>
+      {% if user.is_authenticated %}<div class="nci-conta d-flex align-items-center gap-2">
+        <span>{{ user.get_full_name|default:user.get_username }}</span>
+        <form method="post" action="{% url 'sair' %}">{% csrf_token %}<button class="btn btn-sm btn-outline-secondary rounded-pill" type="submit">Sair</button></form>
+      </div>{% endif %}
+    </div>
+    <main>
+      {% include "nci/_mensagens.html" %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+{% endwith %}
+{% endblock %}
+</body>
+</html>

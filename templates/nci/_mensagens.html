@@ -1,0 +1,6 @@
+{# Mensagens do framework. A classe vem do nível (level_tag); "error" vira "danger" e "debug" vira "secondary" no Bootstrap. #}
+{% for message in messages %}
+{% with nivel=message.level_tag %}
+<div class="alert alert-{% if nivel == 'error' %}danger{% elif nivel == 'debug' %}secondary{% else %}{{ nivel|default:'info' }}{% endif %}" role="{% if nivel == 'error' or nivel == 'warning' %}alert{% else %}status{% endif %}">{{ message }}</div>
+{% endwith %}
+{% endfor %}

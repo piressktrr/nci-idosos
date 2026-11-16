@@ -4,9 +4,15 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 
+from core.models import EventoAuditoria, GerenciadorEvento, ProtegidoPorAuditoria  # noqa: F401 (re-export)
 
-class Atividade(models.Model):
+
+class Atividade(ProtegidoPorAuditoria, models.Model):
     """Contrato provisório para o cadastro inicial de atividades (RF-ATV-01)."""
+
+    @property
+    def registro_cadastro(self):
+        return RegistroCadastroAtividade.objects.get(atividade=self)
 
     nome = models.CharField("identificação", max_length=150)
     local = models.CharField("local", max_length=150)
@@ -21,23 +27,11 @@ class Atividade(models.Model):
         return self.nome
 
 
-class RegistroCadastroAtividade(models.Model):
-    """Evidência do cadastro, com os valores originais e seu responsável."""
+class HorarioAtividade(ProtegidoPorAuditoria, models.Model):
+    @property
+    def registros(self):
+        return RegistroGradeAtividade.objects.filter(horario=self)
 
-    atividade = models.OneToOneField(
-        Atividade, on_delete=models.PROTECT, related_name="registro_cadastro"
-    )
-    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
-    registrado_em = models.DateTimeField(auto_now_add=True)
-    dados = models.JSONField()
-
-    class Meta:
-        default_permissions = ()
-        verbose_name = "registro de cadastro de atividade"
-        verbose_name_plural = "registros de cadastro de atividades"
-
-
-class HorarioAtividade(models.Model):
     class DiaSemana(models.IntegerChoices):
         SEGUNDA = 0, "Segunda-feira"
         TERCA = 1, "Terça-feira"
@@ -71,22 +65,6 @@ class HorarioAtividade(models.Model):
             raise ValidationError({"fim": "O término deve ser posterior ao início, no mesmo dia."})
 
 
-class RegistroGradeAtividade(models.Model):
-    class Acao(models.TextChoices):
-        CADASTRO = "cadastro", "Cadastro"
-        ALTERACAO = "alteracao", "Alteração"
-
-    horario = models.ForeignKey(HorarioAtividade, on_delete=models.PROTECT, related_name="registros")
-    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
-    registrado_em = models.DateTimeField(auto_now_add=True)
-    acao = models.CharField(max_length=10, choices=Acao.choices)
-    dados_anteriores = models.JSONField(null=True)
-    dados_novos = models.JSONField()
-
-    class Meta:
-        default_permissions = ()
-
-
 class AulaQuerySet(models.QuerySet):
     def com_categoria_fmr(self):
         """Categoria pela vigência iniciada até a data da ocorrência."""
@@ -100,8 +78,16 @@ class AulaQuerySet(models.QuerySet):
         return self.filter(situacao="realizada")
 
 
-class Aula(models.Model):
+class Aula(ProtegidoPorAuditoria, models.Model):
     """Ocorrência realizada ou cancelada, independente da grade semanal."""
+
+    @property
+    def registro_realizacao(self):
+        return RegistroRealizacaoAula.objects.get(aula=self)
+
+    @property
+    def registro_cancelamento(self):
+        return RegistroCancelamentoAula.objects.get(aula=self)
 
     class Situacao(models.TextChoices):
         REALIZADA = "realizada", "Realizada"
@@ -145,29 +131,6 @@ class Aula(models.Model):
             raise ValidationError({"fim": "O término deve ser posterior ao início, no mesmo dia."})
 
 
-class RegistroRealizacaoAula(models.Model):
-    """Auditoria da inclusão de uma aula realizada, com seus dados originais."""
-
-    aula = models.OneToOneField(Aula, on_delete=models.PROTECT, related_name="registro_realizacao")
-    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
-    registrado_em = models.DateTimeField(auto_now_add=True)
-    dados = models.JSONField()
-
-    class Meta:
-        default_permissions = ()
-
-
-class RegistroCancelamentoAula(models.Model):
-    aula = models.OneToOneField(Aula, on_delete=models.PROTECT, related_name="registro_cancelamento")
-    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
-    registrado_em = models.DateTimeField(auto_now_add=True)
-    dados_anteriores = models.JSONField(null=True)
-    dados_novos = models.JSONField()
-
-    class Meta:
-        default_permissions = ()
-
-
 class Inscricao(models.Model):
     """Vínculo com identidade externa provisória, sem duplicar o cadastro da pessoa."""
 
@@ -186,7 +149,7 @@ class Inscricao(models.Model):
         ]
 
 
-class MotivoFalta(models.Model):
+class MotivoFalta(ProtegidoPorAuditoria, models.Model):
     descricao = models.CharField("descrição", max_length=150)
     ativo = models.BooleanField(default=True)
 
@@ -199,18 +162,15 @@ class MotivoFalta(models.Model):
         return self.descricao
 
 
-class RegistroMotivoFalta(models.Model):
-    motivo = models.ForeignKey(MotivoFalta, on_delete=models.PROTECT)
-    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
-    registrado_em = models.DateTimeField(auto_now_add=True)
-    anteriores = models.JSONField(null=True)
-    novos = models.JSONField()
+class Frequencia(ProtegidoPorAuditoria, models.Model):
+    @property
+    def registro_lancamento(self):
+        return RegistroLancamentoFrequencia.objects.filter(frequencia=self).first()
 
-    class Meta:
-        default_permissions = ()
+    @property
+    def correcoes(self):
+        return RegistroCorrecaoFrequencia.objects.filter(frequencia=self)
 
-
-class Frequencia(models.Model):
     class Situacao(models.TextChoices):
         PRESENTE = "presente", "Presente"
         AUSENTE = "ausente", "Ausente"
@@ -242,29 +202,7 @@ class Frequencia(models.Model):
             raise ValidationError({"inscricao": "A inscrição não pertence à atividade da aula."})
 
 
-class RegistroLancamentoFrequencia(models.Model):
-    frequencia = models.OneToOneField(Frequencia, on_delete=models.PROTECT, related_name="registro_lancamento")
-    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
-    registrado_em = models.DateTimeField(auto_now_add=True)
-    dados = models.JSONField()
-
-    class Meta:
-        default_permissions = ()
-
-
-class RegistroCorrecaoFrequencia(models.Model):
-    frequencia = models.ForeignKey(Frequencia, on_delete=models.PROTECT, related_name="correcoes")
-    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
-    registrado_em = models.DateTimeField(auto_now_add=True)
-    anteriores = models.JSONField()
-    novos = models.JSONField()
-
-    class Meta:
-        default_permissions = ()
-        ordering = ["registrado_em", "pk"]
-
-
-class CategoriaFMR(models.Model):
+class CategoriaFMR(ProtegidoPorAuditoria, models.Model):
     nome = models.CharField(max_length=150)
     ativa = models.BooleanField(default=True)
 
@@ -277,7 +215,11 @@ class CategoriaFMR(models.Model):
         return self.nome
 
 
-class EsperaAtividade(models.Model):
+class EsperaAtividade(ProtegidoPorAuditoria, models.Model):
+    @property
+    def registros(self):
+        return RegistroEsperaAtividade.objects.filter(espera=self)
+
     class Situacao(models.TextChoices):
         AGUARDANDO = "aguardando", "Aguardando"
         INSCRITO = "inscrito", "Inscrito"
@@ -302,18 +244,11 @@ class EsperaAtividade(models.Model):
         ]
 
 
-class RegistroEsperaAtividade(models.Model):
-    espera = models.ForeignKey(EsperaAtividade, on_delete=models.PROTECT, related_name="registros")
-    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
-    registrado_em = models.DateTimeField(auto_now_add=True)
-    anteriores = models.JSONField(null=True)
-    novos = models.JSONField()
+class ClassificacaoAtividade(ProtegidoPorAuditoria, models.Model):
+    @property
+    def registros(self):
+        return RegistroClassificacaoAtividade.objects.filter(classificacao=self)
 
-    class Meta:
-        default_permissions = ()
-
-
-class ClassificacaoAtividade(models.Model):
     atividade = models.ForeignKey(Atividade, on_delete=models.PROTECT, related_name="classificacoes")
     categoria = models.ForeignKey(CategoriaFMR, on_delete=models.PROTECT)
     categoria_nome = models.CharField(max_length=150, editable=False)
@@ -325,23 +260,89 @@ class ClassificacaoAtividade(models.Model):
         constraints = [models.UniqueConstraint(fields=["atividade", "inicio"], name="classificacao_atividade_inicio_unico")]
 
 
-class RegistroCategoriaFMR(models.Model):
-    categoria = models.ForeignKey(CategoriaFMR, on_delete=models.PROTECT)
-    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
-    registrado_em = models.DateTimeField(auto_now_add=True)
-    anteriores = models.JSONField(null=True)
-    novos = models.JSONField()
+# Auditoria: proxies de core.EventoAuditoria (tabela única, coluna `tipo` = nome da classe).
+# `alvo` é o nome usado nos serviços (create(atividade=...), filter(aula=...)) e vira alvo_id.
+
+
+class RegistroCadastroAtividade(EventoAuditoria):
+    alvo, modelo_alvo = "atividade", Atividade
 
     class Meta:
+        proxy = True
         default_permissions = ()
 
 
-class RegistroClassificacaoAtividade(models.Model):
-    classificacao = models.ForeignKey(ClassificacaoAtividade, on_delete=models.PROTECT, related_name="registros")
-    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
-    registrado_em = models.DateTimeField(auto_now_add=True)
-    anteriores = models.JSONField(null=True)
-    novos = models.JSONField()
+class RegistroGradeAtividade(EventoAuditoria):
+    class Acao(models.TextChoices):
+        CADASTRO = "cadastro", "Cadastro"
+        ALTERACAO = "alteracao", "Alteração"
+
+    alvo, modelo_alvo = "horario", HorarioAtividade
 
     class Meta:
+        proxy = True
+        default_permissions = ()
+
+
+class RegistroRealizacaoAula(EventoAuditoria):
+    alvo, modelo_alvo = "aula", Aula
+
+    class Meta:
+        proxy = True
+        default_permissions = ()
+
+
+class RegistroCancelamentoAula(EventoAuditoria):
+    alvo, modelo_alvo = "aula", Aula
+
+    class Meta:
+        proxy = True
+        default_permissions = ()
+
+
+class RegistroLancamentoFrequencia(EventoAuditoria):
+    alvo, modelo_alvo = "frequencia", Frequencia
+
+    class Meta:
+        proxy = True
+        default_permissions = ()
+
+
+class RegistroCorrecaoFrequencia(EventoAuditoria):
+    alvo, modelo_alvo = "frequencia", Frequencia
+
+    class Meta:
+        proxy = True
+        default_permissions = ()
+
+
+class RegistroMotivoFalta(EventoAuditoria):
+    alvo, modelo_alvo = "motivo", MotivoFalta
+
+    class Meta:
+        proxy = True
+        default_permissions = ()
+
+
+class RegistroCategoriaFMR(EventoAuditoria):
+    alvo, modelo_alvo = "categoria", CategoriaFMR
+
+    class Meta:
+        proxy = True
+        default_permissions = ()
+
+
+class RegistroClassificacaoAtividade(EventoAuditoria):
+    alvo, modelo_alvo = "classificacao", ClassificacaoAtividade
+
+    class Meta:
+        proxy = True
+        default_permissions = ()
+
+
+class RegistroEsperaAtividade(EventoAuditoria):
+    alvo, modelo_alvo = "espera", EsperaAtividade
+
+    class Meta:
+        proxy = True
         default_permissions = ()

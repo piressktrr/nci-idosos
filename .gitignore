@@ -25,6 +25,9 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+.idea/
+.claude
+
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -179,3 +182,5 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+# Django collectstatic
+staticfiles/
