@@ -5,8 +5,7 @@ from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
 
-from core.auditoria import diferencas, historico
-
+from .auditoria import diferencas, historico
 from .forms import ParticipanteForm
 from .models import Participante
 from .services import cadastrar_participante, corrigir_participante
@@ -66,7 +65,7 @@ def cadastrar(request):
 def detalhe(request, participante_id):
     participante = get_object_or_404(Participante, pk=participante_id)
     registros = None
-    if request.user.has_perm("core.view_registroauditoria"):
+    if request.user.has_perm("participantes.change_participante"):
         registros = [{"registro": item, "mudancas": diferencas(item)} for item in historico(participante)]
     return render(request, "participantes/detalhe.html", {"participante": participante, "registros": registros})
 

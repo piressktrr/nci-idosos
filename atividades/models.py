@@ -13,6 +13,7 @@ ALVOS_AUDITORIA = {
     "RegistroLancamentoFrequencia": "frequencia", "RegistroCorrecaoFrequencia": "frequencia",
     "RegistroMotivoFalta": "motivo", "RegistroCategoriaFMR": "categoria",
     "RegistroClassificacaoAtividade": "classificacao", "RegistroEsperaAtividade": "espera",
+    "RegistroParticipante": "participante",
 }
 
 
@@ -305,6 +306,7 @@ class EventoAuditoria(models.Model):
     espera = models.ForeignKey(EsperaAtividade, on_delete=models.PROTECT, null=True, related_name="eventos_auditoria")
     categoria = models.ForeignKey(CategoriaFMR, on_delete=models.PROTECT, null=True, related_name="eventos_auditoria")
     classificacao = models.ForeignKey(ClassificacaoAtividade, on_delete=models.PROTECT, null=True, related_name="eventos_auditoria")
+    participante = models.ForeignKey("participantes.Participante", on_delete=models.PROTECT, null=True, related_name="eventos_auditoria")
 
     class Meta:
         default_permissions = ()
@@ -408,6 +410,16 @@ class RegistroClassificacaoAtividade(EventoAuditoria):
 
 
 class RegistroEsperaAtividade(EventoAuditoria):
+    objects = GerenciadorEvento()
+
+    class Meta:
+        proxy = True
+        default_permissions = ()
+
+
+class RegistroParticipante(EventoAuditoria):
+    """Cadastro e correção de participantes (app participantes), na mesma tabela de auditoria."""
+
     objects = GerenciadorEvento()
 
     class Meta:

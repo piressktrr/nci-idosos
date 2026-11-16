@@ -3,9 +3,9 @@
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
-from core.auditoria import registrar
 from core.permissoes import autorizar
 
+from .auditoria import registrar
 from .models import Participante
 from .regras import chave_nome
 
@@ -56,7 +56,7 @@ def cadastrar_participante(*, usuario, confirmar_duplicidade=False, **dados):
     participante.full_clean()
     _verificar_duplicidade(participante, confirmar_duplicidade)
     participante.save()
-    registrar(objeto=participante, acao="cadastro", usuario=autor, novos=_dados(participante))
+    registrar(participante=participante, acao="cadastro", usuario=autor, novos=_dados(participante))
     return participante
 
 
@@ -76,6 +76,6 @@ def corrigir_participante(*, usuario, participante_id, confirmar_duplicidade=Fal
         return participante
     _verificar_duplicidade(participante, confirmar_duplicidade, excluir_id=participante.pk)
     participante.save(update_fields=list(CAMPOS_CADASTRO))
-    registrar(objeto=participante, acao="correcao", usuario=autor,
+    registrar(participante=participante, acao="correcao", usuario=autor,
               anteriores=anteriores, novos=_dados(participante))
     return participante
