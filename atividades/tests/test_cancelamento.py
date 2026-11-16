@@ -9,8 +9,7 @@ from django.db.migrations.executor import MigrationExecutor
 from django.test import Client, TestCase, TransactionTestCase
 from django.urls import reverse
 
-from atividades.tests.auditoria import registro_unico, registros
-from atividades.models import Atividade, Aula
+from atividades.models import Atividade, Aula, RegistroCancelamentoAula, RegistroRealizacaoAula
 from atividades.services import cancelar_aula, registrar_aula, registrar_aula_cancelada
 
 
@@ -47,25 +46,25 @@ class CancelamentoTests(TestCase):
 
     def test_cancela_preservando_dados_e_auditoria_de_realizacao(self):
         aula = self.realizada()
-        snapshot = registro_unico(aula, "realizacao").novos.copy()
+        snapshot = aula.registro_realizacao.dados.copy()
         self.cancelar(aula)
         aula.refresh_from_db()
         self.assertEqual(aula.situacao, Aula.Situacao.CANCELADA)
         for campo, valor in self.dados.items():
             self.assertEqual(getattr(aula, campo), valor)
-        self.assertEqual(registro_unico(aula, "realizacao").novos, snapshot)
-        registro = registro_unico(aula, "cancelamento")
+        self.assertEqual(aula.registro_realizacao.dados, snapshot)
+        registro = aula.registro_cancelamento
         self.assertEqual(registro.usuario_id, self.usuario.pk)
         self.assertIsNotNone(registro.registrado_em)
-        self.assertEqual(registro.anteriores["situacao"], "realizada")
-        self.assertEqual(registro.novos["situacao"], "cancelada")
+        self.assertEqual(registro.dados_anteriores["situacao"], "realizada")
+        self.assertEqual(registro.dados_novos["situacao"], "cancelada")
 
     def test_registra_cancelada_sem_lancar_realizacao(self):
         aula = self.cancelada()
         self.assertEqual(aula.situacao, "cancelada")
-        self.assertFalse(registros(Aula, "realizacao").exists())
-        self.assertIsNone(registro_unico(aula, "cancelamento").anteriores)
-        self.assertEqual(registro_unico(aula, "cancelamento").novos["data"], "2024-02-29")
+        self.assertFalse(RegistroRealizacaoAula.objects.exists())
+        self.assertIsNone(aula.registro_cancelamento.dados_anteriores)
+        self.assertEqual(aula.registro_cancelamento.dados_novos["data"], "2024-02-29")
         self.assertFalse(Aula.objects.realizadas().exists())
 
     def test_consulta_de_realizadas_exclui_canceladas_de_todos_os_tipos(self):
@@ -81,11 +80,11 @@ class CancelamentoTests(TestCase):
     def test_cancelamento_repetido_nao_duplica_ou_reescreve_auditoria(self):
         aula = self.realizada()
         self.cancelar(aula)
-        primeiro = registro_unico(aula, "cancelamento")
+        primeiro = aula.registro_cancelamento
         with self.assertRaises(ValidationError):
             self.cancelar(aula)
-        self.assertEqual(registros(Aula, "cancelamento").count(), 1)
-        self.assertEqual(registro_unico(aula, "cancelamento").registrado_em, primeiro.registrado_em)
+        self.assertEqual(RegistroCancelamentoAula.objects.count(), 1)
+        self.assertEqual(aula.registro_cancelamento.registrado_em, primeiro.registrado_em)
 
     def test_anonimo_usuario_nao_persistido_e_sem_permissao_nao_cancelam(self):
         aula = self.realizada()
@@ -98,7 +97,7 @@ class CancelamentoTests(TestCase):
                     registrar_aula_cancelada(usuario=usuario, atividade_id=self.atividade.pk, **self.dados)
         aula.refresh_from_db()
         self.assertEqual(aula.situacao, "realizada")
-        self.assertFalse(registros(Aula, "cancelamento").exists())
+        self.assertFalse(RegistroCancelamentoAula.objects.exists())
 
     def test_cancelamento_consulta_permissao_revogada_e_conta_desativada(self):
         aula = self.realizada()
@@ -111,7 +110,7 @@ class CancelamentoTests(TestCase):
         get_user_model().objects.filter(pk=self.usuario.pk).update(is_active=False)
         with self.assertRaises(PermissionDenied):
             self.cancelada()
-        self.assertFalse(registros(Aula, "cancelamento").exists())
+        self.assertFalse(RegistroCancelamentoAula.objects.exists())
 
     def test_registro_direto_exige_tambem_permissao_de_cadastro(self):
         aula = self.realizada()
@@ -121,17 +120,17 @@ class CancelamentoTests(TestCase):
         with self.assertRaises(PermissionDenied):
             self.cancelada()
         self.cancelar(aula)
-        self.assertEqual(registros(Aula, "cancelamento").count(), 1)
+        self.assertEqual(RegistroCancelamentoAula.objects.count(), 1)
 
     def test_nao_cancela_aula_de_outra_atividade(self):
         aula = self.realizada()
         with self.assertRaises(Aula.DoesNotExist):
             cancelar_aula(usuario=self.usuario, atividade_id=self.outra.pk, aula_id=aula.pk)
-        self.assertFalse(registros(Aula, "cancelamento").exists())
+        self.assertFalse(RegistroCancelamentoAula.objects.exists())
 
     def test_falha_na_auditoria_reverte_status_ou_cadastro(self):
         aula = self.realizada()
-        with patch("atividades.services.registrar", side_effect=RuntimeError):
+        with patch("atividades.services.RegistroCancelamentoAula.objects.create", side_effect=RuntimeError):
             with self.assertRaises(RuntimeError):
                 self.cancelar(aula)
             with self.assertRaises(RuntimeError):
@@ -139,7 +138,7 @@ class CancelamentoTests(TestCase):
         aula.refresh_from_db()
         self.assertEqual(aula.situacao, "realizada")
         self.assertEqual(Aula.objects.count(), 1)
-        self.assertFalse(registros(Aula, "cancelamento").exists())
+        self.assertFalse(RegistroCancelamentoAula.objects.exists())
 
     def test_registro_direto_valida_dados_sem_gravar(self):
         for dados in ({"data": None}, {"fim": time(8)}, {"tipo": "invalido"}):
@@ -148,7 +147,7 @@ class CancelamentoTests(TestCase):
         with self.assertRaises(Atividade.DoesNotExist):
             registrar_aula_cancelada(usuario=self.usuario, atividade_id=999999, **self.dados)
         self.assertFalse(Aula.objects.exists())
-        self.assertFalse(registros(Aula, "cancelamento").exists())
+        self.assertFalse(RegistroCancelamentoAula.objects.exists())
 
     def test_banco_rejeita_situacao_invalida(self):
         aula = self.realizada()
@@ -167,7 +166,7 @@ class CancelamentoTests(TestCase):
         self.assertNotContains(resposta, ">Cancelar aula</a>")
         self.assertFalse(Aula.objects.realizadas().exists())
         self.assertEqual(self.client.post(self.url(aula)).status_code, 200)
-        self.assertEqual(registros(Aula, "cancelamento").count(), 1)
+        self.assertEqual(RegistroCancelamentoAula.objects.count(), 1)
 
     def test_interface_registra_cancelada_diretamente(self):
         self.client.force_login(self.usuario)
@@ -176,7 +175,7 @@ class CancelamentoTests(TestCase):
         resposta = self.client.post(self.url(), self.post, follow=True)
         self.assertContains(resposta, "Aula cancelada registrada com sucesso")
         self.assertEqual(Aula.objects.get().situacao, "cancelada")
-        self.assertFalse(registros(Aula, "realizacao").exists())
+        self.assertFalse(RegistroRealizacaoAula.objects.exists())
 
     def test_interface_sem_permissao_ou_anonima_nao_expoe_acoes(self):
         aula = self.realizada()
@@ -200,7 +199,7 @@ class CancelamentoTests(TestCase):
         for url in (self.url(aula, self.outra), reverse("atividades:cancelar_aula", args=[self.atividade.pk, 999999])):
             self.assertEqual(self.client.get(url).status_code, 404)
             self.assertEqual(self.client.post(url).status_code, 404)
-        self.assertFalse(registros(Aula, "cancelamento").exists())
+        self.assertFalse(RegistroCancelamentoAula.objects.exists())
 
     def test_csrf_no_cancelamento_e_registro_direto(self):
         aula = self.realizada()
@@ -211,7 +210,7 @@ class CancelamentoTests(TestCase):
             client.get(url)
             token = client.cookies["csrftoken"].value
             self.assertEqual(client.post(url, self.post | {"csrfmiddlewaretoken": token}).status_code, 302)
-        self.assertEqual(registros(Aula, "cancelamento").count(), 2)
+        self.assertEqual(RegistroCancelamentoAula.objects.count(), 2)
         self.assertEqual(Aula.objects.realizadas().count(), 0)
 
 

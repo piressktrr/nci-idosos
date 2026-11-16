@@ -6,7 +6,6 @@ from django.contrib.auth.models import Permission
 from django.test import TestCase
 from django.urls import reverse
 
-from atividades.tests.auditoria import registro_unico
 from atividades.models import Atividade, Aula, HorarioAtividade
 
 
@@ -75,7 +74,7 @@ class SugestoesAulaTests(TestCase):
         self.assertEqual(aula.data, date(2024, 2, 29))
         self.assertEqual(aula.inicio, time(10, 12))
         self.assertEqual(aula.fim, time(11, 34))
-        self.assertEqual(registro_unico(aula, "realizacao").novos["fim"], "11:34:00")
+        self.assertEqual(aula.registro_realizacao.dados["fim"], "11:34:00")
 
     def test_post_invalido_preserva_campos_digitados_inclusive_campos_vazios(self):
         self.horario()

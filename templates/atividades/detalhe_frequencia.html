@@ -20,7 +20,7 @@
 </section><script src="{% static 'atividades/frequencia.js' %}" defer></script>{% endif %}
 <section><h2>Histórico</h2>
   {% if inicial %}<h3>Lançamento inicial</h3><p>{{ inicial.usuario.get_username }} · {{ inicial.registrado_em|date:"d/m/Y H:i" }}</p>
-  <p>Situação: {{ inicial.novos.situacao }} · Motivo: {{ inicial.novos.motivo_descricao|default:"Não informado" }}</p><p>{{ inicial.novos.observacao|linebreaksbr }}</p>
+  <p>Situação: {{ inicial.dados.situacao }} · Motivo: {{ inicial.dados.motivo_descricao|default:"Não informado" }}</p><p>{{ inicial.dados.observacao|linebreaksbr }}</p>
   {% else %}<p>Sem auditoria de lançamento inicial disponível.</p>{% endif %}
   {% for item in correcoes %}<h3>Correção {{ forloop.counter }}</h3><p>{{ item.usuario.get_username }} · {{ item.registrado_em|date:"d/m/Y H:i" }}</p>
   <p>Antes: {{ item.anteriores.situacao }} · {{ item.anteriores.motivo_descricao|default:"Sem motivo" }}</p><p>{{ item.anteriores.observacao|linebreaksbr }}</p>

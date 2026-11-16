@@ -10,9 +10,8 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.db.models import OuterRef, Subquery
 
-from core.auditoria import registrar
-
-from .models import Atividade, CategoriaFMR, ClassificacaoAtividade
+from .models import (Atividade, CategoriaFMR, ClassificacaoAtividade,
+                     RegistroCategoriaFMR, RegistroClassificacaoAtividade)
 
 
 def com_categoria_vigente(atividades, data):
@@ -44,8 +43,7 @@ def salvar_categoria(*, usuario, nome, ativa=True, categoria_id=None):
     categoria.nome, categoria.ativa = novos["nome"], ativa
     categoria.full_clean()
     categoria.save()
-    registrar(objeto=categoria, acao="cadastro" if anteriores is None else "alteracao", usuario=autor,
-              anteriores=anteriores, novos=novos)
+    RegistroCategoriaFMR.objects.create(categoria=categoria, usuario=autor, anteriores=anteriores, novos=novos)
     return categoria
 
 
@@ -71,7 +69,6 @@ def classificar_atividade(*, usuario, atividade_id, categoria_id, inicio):
     classificacao.categoria, classificacao.categoria_nome = categoria, categoria.nome
     classificacao.full_clean()
     classificacao.save()
-    registrar(objeto=classificacao, acao="cadastro" if anteriores is None else "alteracao", usuario=autor,
-        anteriores=anteriores,
+    RegistroClassificacaoAtividade.objects.create(classificacao=classificacao, usuario=autor, anteriores=anteriores,
         novos={"categoria_id": categoria.pk, "categoria_nome": categoria.nome, "inicio": inicio.isoformat()})
     return classificacao

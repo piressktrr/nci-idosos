@@ -58,5 +58,11 @@ class ClassificacaoAtividadeAdmin(SomenteLeituraAdmin):
     list_display = ("atividade", "categoria_nome", "inicio")
 
 
-for modelo in (models.MotivoFalta, models.CategoriaFMR):
+for modelo in (
+    models.MotivoFalta, models.CategoriaFMR,
+    models.RegistroCadastroAtividade, models.RegistroGradeAtividade, models.RegistroRealizacaoAula,
+    models.RegistroCancelamentoAula, models.RegistroMotivoFalta, models.RegistroLancamentoFrequencia,
+    models.RegistroCorrecaoFrequencia, models.RegistroEsperaAtividade, models.RegistroCategoriaFMR,
+    models.RegistroClassificacaoAtividade,
+):
     admin.site.register(modelo, SomenteLeituraAdmin)

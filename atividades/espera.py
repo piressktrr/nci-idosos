@@ -3,10 +3,8 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 
-from core.auditoria import registrar
-
 from .integracoes.participantes import obter_provedor
-from .models import Atividade, Inscricao, EsperaAtividade
+from .models import Atividade, Inscricao, EsperaAtividade, RegistroEsperaAtividade
 
 
 def autorizar(usuario, permissao):
@@ -37,7 +35,7 @@ def adicionar_espera(*, usuario, atividade_id, participante_referencia):
     espera = EsperaAtividade(**identidade)
     espera.full_clean()
     espera.save()
-    registrar(objeto=espera, acao="entrada", usuario=autor,
+    RegistroEsperaAtividade.objects.create(espera=espera, usuario=autor, anteriores=None,
         novos={"situacao": "aguardando", "origem": provedor.origem, "referencia": participante.referencia})
     return espera
 
@@ -64,7 +62,7 @@ def validar_atendimento(*, usuario, atividade, provedor, participante, espera_id
 def registrar_atendimento(*, espera, inscricao, usuario):
     espera.situacao, espera.inscricao = "inscrito", inscricao
     espera.save(update_fields=["situacao", "inscricao"])
-    registrar(objeto=espera, acao="atendimento", usuario=usuario, anteriores={"situacao": "aguardando"},
+    RegistroEsperaAtividade.objects.create(espera=espera, usuario=usuario, anteriores={"situacao": "aguardando"},
         novos={"situacao": "inscrito", "inscricao_id": inscricao.pk, "vaga_confirmada": True})
 
 
@@ -78,6 +76,6 @@ def retirar_espera(*, usuario, atividade_id, espera_id):
         raise ValidationError("Este registro não está mais aguardando.")
     espera.situacao = "retirado"
     espera.save(update_fields=["situacao"])
-    registrar(objeto=espera, acao="retirada", usuario=autor,
+    RegistroEsperaAtividade.objects.create(espera=espera, usuario=autor,
         anteriores={"situacao": "aguardando"}, novos={"situacao": "retirado"})
     return espera

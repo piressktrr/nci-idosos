@@ -8,7 +8,6 @@ from unittest.mock import patch
 
 from atividades.espera import adicionar_espera, retirar_espera
 from atividades.services import inscrever_participante
-from atividades.tests.auditoria import registros_de
 from atividades.models import Atividade, Inscricao, EsperaAtividade
 
 
@@ -44,7 +43,7 @@ class EsperaTests(TestCase):
         primeiro.refresh_from_db()
         self.assertEqual(primeiro.inscricao, inscricao)
         self.assertEqual(primeiro.situacao, "inscrito")
-        self.assertTrue(registros_de(primeiro).latest("pk").novos["vaga_confirmada"])
+        self.assertTrue(primeiro.registros.latest("pk").novos["vaga_confirmada"])
         self.atender(segundo)
         self.assertEqual(Inscricao.objects.count(), 2)
         with self.assertRaises(ValidationError):
@@ -60,7 +59,7 @@ class EsperaTests(TestCase):
             self.atender(novo)
         primeiro.refresh_from_db()
         self.assertEqual(primeiro.situacao, "retirado")
-        self.assertEqual(registros_de(primeiro).count(), 2)
+        self.assertEqual(primeiro.registros.count(), 2)
         self.atender(segundo)
 
     def test_atendimento_e_retirada_exigem_permissoes_atuais(self):
@@ -73,7 +72,7 @@ class EsperaTests(TestCase):
 
     def test_falha_auditoria_reverte_atendimento_e_retirada(self):
         espera = self.adicionar()
-        with patch("atividades.espera.registrar", side_effect=RuntimeError):
+        with patch("atividades.espera.RegistroEsperaAtividade.objects.create", side_effect=RuntimeError):
             with self.assertRaises(RuntimeError):
                 self.atender(espera)
             with self.assertRaises(RuntimeError):
@@ -138,7 +137,7 @@ class EsperaTests(TestCase):
         espera = self.adicionar()
         self.assertEqual(espera.situacao, "aguardando")
         self.assertFalse(Inscricao.objects.exists())
-        evento = registros_de(espera).get()
+        evento = espera.registros.get()
         self.assertEqual(evento.usuario, self.usuario)
         self.assertIsNone(evento.anteriores)
         self.assertIsNotNone(evento.registrado_em)

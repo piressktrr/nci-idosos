@@ -7,8 +7,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from atividades.tests.auditoria import registros
-from atividades.models import Atividade, Aula, Frequencia, Inscricao
+from atividades.models import Atividade, Aula, Frequencia, Inscricao, RegistroCorrecaoFrequencia
 from atividades.services import consultar_frequencia_mensal, registrar_frequencias, corrigir_frequencia
 
 
@@ -90,7 +89,7 @@ class FrequenciaMensalTests(TestCase):
             frequencia_id=self.freq.pk, versao_esperada=1, situacao="ausente")
         resultado = self.consultar()["totais"]
         self.assertEqual((resultado["presentes"], resultado["ausentes"]), (0, 1))
-        self.assertEqual(registros(Frequencia, "correcao").count(), 1)
+        self.assertEqual(RegistroCorrecaoFrequencia.objects.count(), 1)
 
     def test_origens_nao_misturam_mesmo_com_referencia_igual(self):
         real = Inscricao.objects.create(atividade=self.atividade, origem_participante="participantes",
@@ -128,12 +127,12 @@ class FrequenciaMensalTests(TestCase):
     def test_interface_filtros_totais_escape_e_sem_escrita(self):
         self.client.force_login(self.usuario)
         Atividade.objects.filter(pk=self.atividade.pk).update(nome="<script>fictício</script>")
-        antes = (Frequencia.objects.count(), Aula.objects.count(), registros(Frequencia, "correcao").count())
+        antes = (Frequencia.objects.count(), Aula.objects.count(), RegistroCorrecaoFrequencia.objects.count())
         resposta = self.client.get(self.url, {"mes": "2024-02", "atividade": self.atividade.pk})
         self.assertContains(resposta, "&lt;script&gt;fictício&lt;/script&gt;")
         self.assertContains(resposta, "participantes fictícios")
         self.assertEqual(resposta.context["totais"]["presentes"], 1)
-        self.assertEqual(antes, (Frequencia.objects.count(), Aula.objects.count(), registros(Frequencia, "correcao").count()))
+        self.assertEqual(antes, (Frequencia.objects.count(), Aula.objects.count(), RegistroCorrecaoFrequencia.objects.count()))
 
     def test_mes_padrao_local_filtros_invalidos_e_vazio(self):
         self.client.force_login(self.usuario)

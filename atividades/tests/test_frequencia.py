@@ -10,9 +10,7 @@ from django.http import QueryDict
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
-from core.auditoria import registrar as registrar_original
-from atividades.tests.auditoria import registro_unico, registros
-from atividades.models import Atividade, Aula, Inscricao, Frequencia
+from atividades.models import Atividade, Aula, Inscricao, Frequencia, RegistroLancamentoFrequencia
 from atividades.services import registrar_frequencias
 
 
@@ -65,11 +63,11 @@ class FrequenciaTests(TestCase):
             frequencia.refresh_from_db()
             self.assertEqual(frequencia.aula.data, date(2024, 2, 29))
             self.assertEqual(frequencia.situacao, registros[frequencia.inscricao_id])
-            audit = registro_unico(frequencia, "lancamento")
+            audit = frequencia.registro_lancamento
             self.assertEqual(audit.usuario_id, self.usuario.pk)
             self.assertIsNotNone(audit.registrado_em)
-            self.assertEqual(audit.novos["data"], "2024-02-29")
-            self.assertEqual(audit.novos["situacao"], frequencia.situacao)
+            self.assertEqual(audit.dados["data"], "2024-02-29")
+            self.assertEqual(audit.dados["situacao"], frequencia.situacao)
 
     def test_lancamento_parcial_nao_cria_ausencias_implicitas(self):
         self.lancar()
@@ -105,12 +103,12 @@ class FrequenciaTests(TestCase):
 
     def test_reenvio_nao_sobrescreve_registro_e_reverte_lote_inteiro(self):
         frequencia = self.lancar()[0]
-        snapshot = registro_unico(frequencia, "lancamento").novos.copy()
+        snapshot = frequencia.registro_lancamento.dados.copy()
         with self.assertRaises(ValidationError):
             self.lancar({frequencia.inscricao_id: "ausente", self.inscricoes[1].pk: "presente"})
         frequencia.refresh_from_db()
         self.assertEqual(frequencia.situacao, "presente")
-        self.assertEqual(registro_unico(frequencia, "lancamento").novos, snapshot)
+        self.assertEqual(frequencia.registro_lancamento.dados, snapshot)
         self.assertEqual(Frequencia.objects.count(), 1)
 
     def test_cancelada_e_vinculo_de_aula_incorreto_nao_aceitam_lancamento(self):
@@ -123,7 +121,7 @@ class FrequenciaTests(TestCase):
         self.assertFalse(Frequencia.objects.exists())
 
     def test_falha_na_segunda_auditoria_desfaz_todo_lote(self):
-        original = registrar_original
+        original = RegistroLancamentoFrequencia.objects.create
         chamadas = []
 
         def gravar(**kwargs):
@@ -132,11 +130,11 @@ class FrequenciaTests(TestCase):
                 raise RuntimeError("Falha de teste")
             return original(**kwargs)
 
-        with patch("atividades.services.registrar", side_effect=gravar):
+        with patch("atividades.services.RegistroLancamentoFrequencia.objects.create", side_effect=gravar):
             with self.assertRaises(RuntimeError):
                 self.lancar({self.inscricoes[0].pk: "presente", self.inscricoes[1].pk: "ausente"})
         self.assertFalse(Frequencia.objects.exists())
-        self.assertFalse(registros(Frequencia, "lancamento").exists())
+        self.assertFalse(RegistroLancamentoFrequencia.objects.exists())
 
     def test_anonimo_nao_persistido_sem_permissao_e_conta_desativada(self):
         sem_acesso = get_user_model().objects.create_user(username="sem_frequencia")

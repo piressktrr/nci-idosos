@@ -6,8 +6,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from atividades.tests.auditoria import registro_unico, registros
-from atividades.models import Atividade
+from atividades.models import Atividade, RegistroCadastroAtividade
 from atividades.services import cadastrar_atividade
 
 
@@ -25,16 +24,16 @@ class CadastroAtividadeTests(TestCase):
 
     def assert_sem_cadastros(self):
         self.assertFalse(Atividade.objects.exists())
-        self.assertFalse(registros(Atividade, "cadastro").exists())
+        self.assertFalse(RegistroCadastroAtividade.objects.exists())
 
     def test_cadastro_persiste_dados_e_registra_autor_data_e_valores_originais(self):
         atividade = self.cadastrar(nome="  Dança sênior  ", local=" Sala fictícia ")
         atividade.refresh_from_db()
         self.assertEqual(str(atividade), self.dados["nome"])
-        registro = registro_unico(atividade, "cadastro")
+        registro = atividade.registro_cadastro
         self.assertEqual(registro.usuario_id, self.autor.pk)
         self.assertIsNotNone(registro.registrado_em)
-        self.assertEqual(registro.novos, self.dados)
+        self.assertEqual(registro.dados, self.dados)
         self.assertEqual(atividade.local, self.dados["local"])
         self.assertEqual(atividade.monitor, self.dados["monitor"])
 
@@ -81,7 +80,7 @@ class CadastroAtividadeTests(TestCase):
         self.assertEqual(len(Atividade.objects.get(pk=atividade.pk).nome), 150)
 
     def test_falha_na_auditoria_desfaz_o_cadastro(self):
-        with patch("atividades.services.registrar", side_effect=RuntimeError):
+        with patch("atividades.services.RegistroCadastroAtividade.objects.create", side_effect=RuntimeError):
             with self.assertRaises(RuntimeError):
                 self.cadastrar()
         self.assert_sem_cadastros()
@@ -135,10 +134,10 @@ class InterfaceAtividadeTests(TestCase):
         resposta = self.client.post(self.url, self.dados, follow=True)
         self.assertContains(resposta, "Atividade cadastrada com sucesso")
         self.assertContains(resposta, self.dados["nome"])
-        registro = registros(Atividade, "cadastro").get()
-        self.assertEqual(registro.novos, self.dados)
+        registro = RegistroCadastroAtividade.objects.get()
+        self.assertEqual(registro.dados, self.dados)
         self.assertEqual(registro.usuario_id, self.usuario.pk)
-        self.assertEqual(Atividade.objects.get(pk=registro.object_id).nome, self.dados["nome"])
+        self.assertEqual(registro.atividade.nome, self.dados["nome"])
         # Atualizar a listagem após POST/redirect/GET não repete o cadastro.
         self.client.get(self.url)
         self.assertEqual(Atividade.objects.count(), 1)
@@ -152,7 +151,7 @@ class InterfaceAtividadeTests(TestCase):
         self.assertIn("nome", resposta.context["form"].errors)
         self.assertContains(resposta, self.dados["local"])
         self.assertFalse(Atividade.objects.exists())
-        self.assertFalse(registros(Atividade, "cadastro").exists())
+        self.assertFalse(RegistroCadastroAtividade.objects.exists())
 
     def test_cadastro_exige_csrf_e_aceita_token_do_formulario(self):
         client = Client(enforce_csrf_checks=True)
@@ -162,7 +161,7 @@ class InterfaceAtividadeTests(TestCase):
         client.get(self.url)
         token = client.cookies["csrftoken"].value
         self.assertEqual(client.post(self.url, self.dados | {"csrfmiddlewaretoken": token}).status_code, 302)
-        self.assertEqual(registros(Atividade, "cadastro").count(), 1)
+        self.assertEqual(RegistroCadastroAtividade.objects.count(), 1)
 
     def test_listagem_escapa_html_dos_dados_cadastrados(self):
         cadastrar_atividade(usuario=self.usuario, **(self.dados | {"nome": "<script>alert(1)</script>"}))

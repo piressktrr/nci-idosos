@@ -7,8 +7,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
-from atividades.tests.auditoria import registro_unico, registros, registros_de
-from atividades.models import Atividade, Aula, Inscricao, Frequencia, MotivoFalta
+from atividades.models import Atividade, Aula, Inscricao, Frequencia, MotivoFalta, RegistroCorrecaoFrequencia
 from atividades.services import registrar_frequencias, corrigir_frequencia, consultar_frequencia
 
 
@@ -36,23 +35,23 @@ class CorrecaoTests(TestCase):
             frequencia_id=self.freq.pk, **({"versao_esperada": 1, "situacao": "ausente"} | dados))
 
     def test_preserva_lancamento_original_e_grava_antes_depois_autor_data(self):
-        original = registro_unico(self.freq, "lancamento").novos.copy()
+        original = self.freq.registro_lancamento.dados.copy()
         frequencia = self.corrigir()
         self.assertEqual(frequencia.situacao, "ausente")
         self.assertEqual(frequencia.versao, 2)
-        evento = registros_de(frequencia, "correcao").get()
+        evento = frequencia.correcoes.get()
         self.assertEqual(evento.anteriores["situacao"], "presente")
         self.assertEqual(evento.novos["situacao"], "ausente")
         self.assertEqual(evento.usuario_id, self.usuario.pk)
         self.assertIsNotNone(evento.registrado_em)
-        self.assertEqual(registro_unico(frequencia, "lancamento").novos, original)
+        self.assertEqual(frequencia.registro_lancamento.dados, original)
         self.assertEqual(frequencia.aula.data, date(2024, 2, 29))
 
     def test_varias_correcoes_formam_cadeia_e_sem_alteracao_nao_cria_evento(self):
         self.corrigir()
         self.corrigir(versao_esperada=2, situacao="presente")
         self.corrigir(versao_esperada=3, situacao="presente")
-        eventos = list(registros_de(self.freq, "correcao").all())
+        eventos = list(self.freq.correcoes.all())
         self.assertEqual(len(eventos), 2)
         self.assertEqual(eventos[1].anteriores, eventos[0].novos)
 
@@ -62,7 +61,7 @@ class CorrecaoTests(TestCase):
             self.corrigir(situacao="presente")
         self.freq.refresh_from_db()
         self.assertEqual(self.freq.situacao, "ausente")
-        self.assertEqual(registros_de(self.freq, "correcao").count(), 1)
+        self.assertEqual(self.freq.correcoes.count(), 1)
 
     def test_justificativa_e_remocao_sao_auditadas(self):
         self.corrigir(situacao="ausente_justificado", motivo_id=self.motivo.pk, observacao="Nota fictícia")
@@ -70,7 +69,7 @@ class CorrecaoTests(TestCase):
         self.freq.refresh_from_db()
         self.assertIsNone(self.freq.motivo_id)
         self.assertEqual(self.freq.observacao, "")
-        ultimo = registros_de(self.freq, "correcao").last()
+        ultimo = self.freq.correcoes.last()
         self.assertEqual(ultimo.anteriores["observacao"], "Nota fictícia")
         self.assertEqual(ultimo.novos["motivo_descricao"], "")
 
@@ -87,10 +86,10 @@ class CorrecaoTests(TestCase):
                       {"versao_esperada": True}):
             with self.subTest(dados=dados), self.assertRaises(ValidationError):
                 self.corrigir(**dados)
-        self.assertFalse(registros(Frequencia, "correcao").exists())
+        self.assertFalse(RegistroCorrecaoFrequencia.objects.exists())
 
     def test_falha_na_auditoria_reverte_frequencia_e_versao(self):
-        with patch("atividades.services.registrar", side_effect=RuntimeError):
+        with patch("atividades.services.RegistroCorrecaoFrequencia.objects.create", side_effect=RuntimeError):
             with self.assertRaises(RuntimeError):
                 self.corrigir()
         self.freq.refresh_from_db()
@@ -100,7 +99,7 @@ class CorrecaoTests(TestCase):
     def test_permissao_de_correcao_e_separada_da_de_lancamento(self):
         self.usuario.user_permissions.remove(Permission.objects.get(content_type__app_label="atividades", codename="add_frequencia"))
         self.corrigir()
-        self.assertEqual(registros_de(self.freq, "correcao").count(), 1)
+        self.assertEqual(self.freq.correcoes.count(), 1)
 
     def test_permissao_revogada_e_usuario_inativo_nao_corrigem(self):
         self.assertTrue(self.usuario.has_perm("atividades.change_frequencia"))
@@ -139,7 +138,7 @@ class CorrecaoTests(TestCase):
         self.assertContains(resposta, self.usuario.username)
         resposta = self.client.post(self.url, dados)
         self.assertContains(resposta, "Este registro foi alterado")
-        self.assertEqual(registros_de(self.freq, "correcao").count(), 1)
+        self.assertEqual(self.freq.correcoes.count(), 1)
 
     def test_somente_leitura_ve_historico_mas_nao_pode_corrigir(self):
         self.usuario.user_permissions.remove(Permission.objects.get(content_type__app_label="atividades", codename="change_frequencia"))
@@ -170,7 +169,7 @@ class CorrecaoTests(TestCase):
         self.assertContains(resposta, self.url)
         self.assertContains(resposta, "Desativar modo de correção")
         self.assertNotContains(self.client.get(chamada), self.url)
-        self.assertFalse(registros(Frequencia, "correcao").exists())
+        self.assertFalse(RegistroCorrecaoFrequencia.objects.exists())
 
     def test_modo_nao_concede_permissao_de_correcao_por_parametro(self):
         self.usuario.user_permissions.remove(Permission.objects.get(content_type__app_label="atividades", codename="change_frequencia"))

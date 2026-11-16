@@ -9,8 +9,8 @@ from django.test import Client, TestCase
 from django.urls import reverse
 
 from atividades.classificacao import salvar_categoria, classificar_atividade
-from atividades.tests.auditoria import registros, registros_de
-from atividades.models import (Atividade, Aula, CategoriaFMR, ClassificacaoAtividade)
+from atividades.models import (Atividade, Aula, CategoriaFMR, ClassificacaoAtividade,
+                     RegistroCategoriaFMR, RegistroClassificacaoAtividade)
 
 
 class ClassificacaoTests(TestCase):
@@ -34,7 +34,7 @@ class ClassificacaoTests(TestCase):
 
     def test_catalogo_auditado_renomeacao_desativacao_e_sem_exclusao(self):
         salvar_categoria(usuario=self.admin, categoria_id=self.cat.pk, nome="Renomeada", ativa=False)
-        evento = registros_de(self.cat).all().latest("pk")
+        evento = RegistroCategoriaFMR.objects.filter(categoria=self.cat).latest("pk")
         self.assertEqual(evento.anteriores, {"nome": "Categoria fictícia", "ativa": True})
         self.assertEqual(evento.novos, {"nome": "Renomeada", "ativa": False})
         self.assertEqual(evento.usuario, self.admin)
@@ -110,14 +110,14 @@ class ClassificacaoTests(TestCase):
         with self.assertRaises(ValidationError):
             self.classificar(inicio=date(2024, 2, 1))
         self.classificar()  # Manter o vínculo não reescreve o snapshot.
-        self.assertEqual(registros(ClassificacaoAtividade).count(), 1)
+        self.assertEqual(RegistroClassificacaoAtividade.objects.count(), 1)
 
     def test_correcao_de_vigencia_auditada_sem_alterar_outros_periodos(self):
         vinculo = self.classificar()
         self.classificar(inicio=date(2024, 3, 1))
         self.classificar(categoria_id=self.outra.pk)
         self.assertEqual(ClassificacaoAtividade.objects.count(), 2)
-        evento = registros_de(vinculo).latest("pk")
+        evento = vinculo.registros.latest("pk")
         self.assertEqual(evento.anteriores["categoria_id"], self.cat.pk)
         self.assertEqual(evento.novos["categoria_id"], self.outra.pk)
         self.assertEqual(evento.usuario, self.equipe)
@@ -135,11 +135,11 @@ class ClassificacaoTests(TestCase):
         self.assertIsNone(Aula.objects.com_categoria_fmr().get(pk=aula.pk).categoria_fmr_id)
 
     def test_rollback_se_auditoria_falhar(self):
-        with patch("atividades.classificacao.registrar", side_effect=RuntimeError):
+        with patch("atividades.classificacao.RegistroCategoriaFMR.objects.create", side_effect=RuntimeError):
             with self.assertRaises(RuntimeError):
                 salvar_categoria(usuario=self.admin, nome="Reverter")
         self.assertFalse(CategoriaFMR.objects.filter(nome="Reverter").exists())
-        with patch("atividades.classificacao.registrar", side_effect=RuntimeError):
+        with patch("atividades.classificacao.RegistroClassificacaoAtividade.objects.create", side_effect=RuntimeError):
             with self.assertRaises(RuntimeError):
                 self.classificar()
         self.assertFalse(ClassificacaoAtividade.objects.exists())
@@ -190,7 +190,7 @@ class ClassificacaoTests(TestCase):
         self.assertContains(self.client.get(reverse("atividades:aulas", args=[self.atividade.pk])), "Categoria fictícia")
         ClassificacaoAtividade.objects.update(categoria_nome="<script>fictício</script>")
         self.assertContains(self.client.get(self.url), "&lt;script&gt;fictício&lt;/script&gt;")
-        self.assertEqual(registros(ClassificacaoAtividade).count(), 1)
+        self.assertEqual(RegistroClassificacaoAtividade.objects.count(), 1)
 
     def test_leitura_sem_escrita_filtros_inativos_404_e_sem_permissao_post(self):
         salvar_categoria(usuario=self.admin, categoria_id=self.cat.pk, nome=self.cat.nome, ativa=False)

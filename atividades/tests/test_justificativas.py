@@ -7,8 +7,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
-from atividades.tests.auditoria import registro_unico, registros, registros_de
-from atividades.models import Atividade, Aula, Inscricao, Frequencia, MotivoFalta
+from atividades.models import Atividade, Aula, Inscricao, Frequencia, MotivoFalta, RegistroMotivoFalta, RegistroLancamentoFrequencia
 from atividades.services import registrar_frequencias, salvar_motivo_falta
 
 
@@ -46,8 +45,8 @@ class JustificativaTests(TestCase):
         self.assertEqual(freq.motivo_id, self.motivo.pk)
         self.assertEqual(freq.motivo_descricao, self.motivo.descricao)
         self.assertEqual(freq.observacao, "Observação fictícia")
-        self.assertEqual(registro_unico(freq, "lancamento").novos["motivo_id"], self.motivo.pk)
-        self.assertEqual(registro_unico(freq, "lancamento").novos["observacao"], freq.observacao)
+        self.assertEqual(freq.registro_lancamento.dados["motivo_id"], self.motivo.pk)
+        self.assertEqual(freq.registro_lancamento.dados["observacao"], freq.observacao)
 
     def test_justificada_sem_detalhes_mantem_contrato_opcional(self):
         freq = self.lancar()[0]
@@ -71,13 +70,13 @@ class JustificativaTests(TestCase):
     def test_catalogo_editavel_auditado_preserva_descricao_original_da_frequencia(self):
         motivo = salvar_motivo_falta(usuario=self.usuario, descricao="  Outro motivo fictício  ")
         self.assertEqual(motivo.descricao, "Outro motivo fictício")
-        self.assertIsNone(registros_de(motivo).get().anteriores)
+        self.assertIsNone(RegistroMotivoFalta.objects.get(motivo=motivo).anteriores)
         freq = self.lancar({"motivo_id": self.motivo.pk})[0]
         salvar_motivo_falta(usuario=self.usuario, motivo_id=self.motivo.pk, descricao="Motivo renomeado", ativo=False)
         freq.refresh_from_db()
         self.assertEqual(freq.motivo_descricao, "Motivo fictício para teste")
-        self.assertEqual(registro_unico(freq, "lancamento").novos["motivo_descricao"], freq.motivo_descricao)
-        evento = registros_de(self.motivo).get()
+        self.assertEqual(freq.registro_lancamento.dados["motivo_descricao"], freq.motivo_descricao)
+        evento = RegistroMotivoFalta.objects.get(motivo=self.motivo)
         self.assertTrue(evento.anteriores["ativo"])
         self.assertFalse(evento.novos["ativo"])
 
@@ -85,7 +84,7 @@ class JustificativaTests(TestCase):
         for descricao in (" ", "x" * 151, None):
             with self.subTest(descricao=descricao), self.assertRaises(ValidationError):
                 salvar_motivo_falta(usuario=self.usuario, descricao=descricao)
-        self.assertFalse(registros(MotivoFalta).exists())
+        self.assertFalse(RegistroMotivoFalta.objects.exists())
 
     def test_catalogo_exige_permissao_atual_e_conta_ativa(self):
         self.assertTrue(self.usuario.has_perm("atividades.change_motivofalta"))
@@ -97,12 +96,12 @@ class JustificativaTests(TestCase):
             salvar_motivo_falta(usuario=self.usuario, descricao="Tentativa")
 
     def test_falha_na_auditoria_reverte_catalogo_e_frequencia(self):
-        with patch("atividades.services.registrar", side_effect=RuntimeError):
+        with patch("atividades.services.RegistroMotivoFalta.objects.create", side_effect=RuntimeError):
             with self.assertRaises(RuntimeError):
                 salvar_motivo_falta(usuario=self.usuario, motivo_id=self.motivo.pk, descricao="Alteração temporária")
         self.motivo.refresh_from_db()
         self.assertEqual(self.motivo.descricao, "Motivo fictício para teste")
-        with patch("atividades.services.registrar", side_effect=RuntimeError):
+        with patch("atividades.services.RegistroLancamentoFrequencia.objects.create", side_effect=RuntimeError):
             with self.assertRaises(RuntimeError):
                 self.lancar({"motivo_id": self.motivo.pk})
         self.assertFalse(Frequencia.objects.exists())
@@ -143,7 +142,7 @@ class JustificativaTests(TestCase):
         self.assertEqual(self.client.post(url, {"descricao": "Motivo alterado"}).status_code, 302)
         motivo.refresh_from_db()
         self.assertFalse(motivo.ativo)
-        self.assertEqual(registros_de(motivo).all().count(), 2)
+        self.assertEqual(RegistroMotivoFalta.objects.filter(motivo=motivo).count(), 2)
 
     def test_catalogo_somente_leitura_nao_altera_e_csrf_e_obrigatorio(self):
         client = Client(enforce_csrf_checks=True)

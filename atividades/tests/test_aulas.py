@@ -8,8 +8,7 @@ from django.db import IntegrityError, transaction
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from atividades.tests.auditoria import registro_unico, registros
-from atividades.models import Atividade, Aula
+from atividades.models import Atividade, Aula, RegistroRealizacaoAula
 from atividades.services import registrar_aula, cadastrar_horario, alterar_horario
 
 
@@ -35,7 +34,7 @@ class AulaTests(TestCase):
 
     def assert_sem_aulas(self):
         self.assertFalse(Aula.objects.exists())
-        self.assertFalse(registros(Aula, "realizacao").exists())
+        self.assertFalse(RegistroRealizacaoAula.objects.exists())
 
     def test_registra_data_e_horarios_efetivos_com_autor_e_data_de_digitacao_separados(self):
         aula = self.registrar()
@@ -43,10 +42,10 @@ class AulaTests(TestCase):
         self.assertEqual(aula.data, self.dados["data"])
         self.assertEqual(aula.inicio, self.dados["inicio"])
         self.assertEqual(aula.fim, self.dados["fim"])
-        registro = registro_unico(aula, "realizacao")
+        registro = aula.registro_realizacao
         self.assertEqual(registro.usuario_id, self.usuario.pk)
         self.assertNotEqual(registro.registrado_em.date(), aula.data)
-        self.assertEqual(registro.novos, {
+        self.assertEqual(registro.dados, {
             "atividade_id": self.atividade.pk, "data": "2024-02-29", "inicio": "09:15:00", "fim": "10:10:00",
             "tipo": "nao_informado",
         })
@@ -118,7 +117,7 @@ class AulaTests(TestCase):
         self.assertEqual(aula.fim, self.dados["fim"])
 
     def test_falha_na_auditoria_desfaz_registro(self):
-        with patch("atividades.services.registrar", side_effect=RuntimeError):
+        with patch("atividades.services.RegistroRealizacaoAula.objects.create", side_effect=RuntimeError):
             with self.assertRaises(RuntimeError):
                 self.registrar()
         self.assert_sem_aulas()
@@ -137,7 +136,7 @@ class AulaTests(TestCase):
         self.assertContains(resposta, "<td>09:15</td>", html=True)
         self.assertNotContains(resposta, "09:15:00")
         self.assertEqual(Aula.objects.get().atividade_id, self.atividade.pk)
-        self.assertEqual(registros(Aula, "realizacao").get().usuario_id, self.usuario.pk)
+        self.assertEqual(RegistroRealizacaoAula.objects.get().usuario_id, self.usuario.pk)
         self.client.get(self.url())
         self.assertEqual(Aula.objects.count(), 1)
 
@@ -185,7 +184,7 @@ class AulaTests(TestCase):
         client.get(self.url())
         token = client.cookies["csrftoken"].value
         self.assertEqual(client.post(self.url(), self.post | {"csrfmiddlewaretoken": token}).status_code, 302)
-        self.assertEqual(registros(Aula, "realizacao").count(), 1)
+        self.assertEqual(RegistroRealizacaoAula.objects.count(), 1)
 
     def test_listagem_paginada_por_data_de_ocorrencia(self):
         for dia in range(1, 22):
