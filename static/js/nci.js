@@ -1,4 +1,4 @@
-// Funções pequenas usadas pelo Alpine.js nos templates. Carregar antes do alpine.min.js.
+// Funções pequenas usadas nos templates. Carregar antes do alpine.min.js.
 
 // Máscara de telefone durante a digitação. O servidor guarda só os dígitos e valida de novo.
 window.mascaraTelefone = function (campo) {
@@ -11,3 +11,11 @@ window.mascaraTelefone = function (campo) {
   }
   campo.value = v;
 };
+
+// Delegação: qualquer campo com data-mascara="telefone", inclusive os inseridos depois do carregamento.
+document.addEventListener("input", function (evento) {
+  const campo = evento.target;
+  if (campo instanceof HTMLInputElement && campo.dataset.mascara === "telefone") {
+    window.mascaraTelefone(campo);
+  }
+});

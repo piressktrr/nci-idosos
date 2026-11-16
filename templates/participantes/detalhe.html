@@ -14,6 +14,7 @@
     <dl class="row mb-0">
       <dt class="col-sm-4">Data de nascimento</dt><dd class="col-sm-8">{{ participante.data_nascimento|date:"d/m/Y" }} ({{ participante.idade }} anos)</dd>
       <dt class="col-sm-4">Faixa etária (FMR)</dt><dd class="col-sm-8">{{ participante.faixa_etaria|default:"Abaixo de 60 anos" }}</dd>
+      <dt class="col-sm-4">Data de entrada</dt><dd class="col-sm-8">{{ data_entrada|date:"d/m/Y"|default:"—" }}</dd>
       <dt class="col-sm-4">Endereço</dt><dd class="col-sm-8">{{ participante.endereco|default:"—" }}</dd>
       <dt class="col-sm-4">Telefone celular</dt><dd class="col-sm-8">{{ participante.celular_formatado|default:"—" }}</dd>
       <dt class="col-sm-4">Telefone fixo</dt><dd class="col-sm-8">{{ participante.residencial_formatado|default:"—" }}</dd>
@@ -39,6 +40,8 @@
     {% if perms.participantes.change_participante %}<a class="btn btn-nci btn-sm" href="{% url 'participantes:situacao_social' participante.pk %}">+ Registrar situação social</a>{% endif %}
   </div>
 </div>
+
+{% if frequencias is not None %}{% include "participantes/_frequencia.html" %}{% endif %}
 
 {% if registros is not None %}
 <div x-data="{ aberto: false }" class="nci-cartao">

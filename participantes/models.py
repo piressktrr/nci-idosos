@@ -1,13 +1,24 @@
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
-from .categorias import IdentidadeGenero, OrigemEncaminhamento, RacaCor, Sexo, StatusParticipante
-from .regras import (celular_valido, data_minima_nascimento, faixa_etaria_fmr, formatar_telefone, idade_em,
-                     normalizar_espacos, residencial_valido, so_digitos)
+from core.models import EventoAuditoria, ProtegidoPorAuditoria
+
+from .categorias import (IdentidadeGenero, OrigemEncaminhamento, RacaCor, Sexo, StatusParticipante,
+                         TipoMovimentacao)
+from .regras import (celular_valido, chave_nome, data_minima_nascimento, faixa_etaria_fmr, formatar_telefone,
+                     idade_em, normalizar_espacos, residencial_valido, so_digitos)
+
+TAMANHO_NOME_BUSCA = 255
 
 
-class Participante(models.Model):
+def chave_busca(nome):
+    """Valor de `Participante.nome_busca` para um nome (ou termo de pesquisa): sem acentos, caixa e espaços extras."""
+    return chave_nome(nome or "")[:TAMANHO_NOME_BUSCA]
+
+
+class Participante(ProtegidoPorAuditoria, models.Model):
     """Identidade estável da pessoa (RF-PAR-01, RN-PAR-01): um cadastro por pessoa.
 
     Dados dos RF-PAR-01, 02 e 06 e os campos do protótipo aprovados na D13 (RNF-SEG-08). Raça/cor e identidade de gênero
@@ -15,12 +26,16 @@ class Participante(models.Model):
     """
 
     nome_completo = models.CharField("nome completo", max_length=200)
+    # RF-PAR-09 e RN-PAR-01: chave_nome(nome_completo), mantida pelo save, para pesquisa e duplicidade no banco
+    # sem depender da extensão unaccent. Atualizações em massa (update/bulk_update) precisam preenchê-la.
+    nome_busca = models.CharField("nome para busca", max_length=TAMANHO_NOME_BUSCA, blank=True, editable=False,
+                                  db_index=True)
     data_nascimento = models.DateField("data de nascimento")
     sexo = models.CharField("sexo", max_length=1, choices=Sexo.choices)
     raca_cor = models.CharField("raça/cor autodeclarada", max_length=20, choices=RacaCor.choices)
     identidade_genero = models.CharField("identidade de gênero", max_length=20, choices=IdentidadeGenero.choices)
     # D13: campos do protótipo.
-    endereco = models.CharField("endereço", max_length=255, default="")
+    endereco = models.CharField("endereço", max_length=255)
     ensino_medio_completo = models.BooleanField("ensino médio completo", null=True)
     # RF-PAR-02: contato do próprio participante; pelo menos um dos dois é obrigatório (validado no clean).
     telefone_celular = models.CharField("telefone celular", max_length=11, blank=True)
@@ -30,6 +45,8 @@ class Participante(models.Model):
                                              choices=OrigemEncaminhamento.choices)
     observacao_encaminhamento = models.TextField("observação sobre o encaminhamento", max_length=1000,
                                                  blank=True, default="")
+    # D13: provisório e só leitura nas telas; todo cadastro nasce ativo e não há como mudar o status enquanto o NCI
+    # não definir afastado/inativo/cancelado (RN-PAR-09, P02) nem os motivos do desligamento (RF-PAR-07, Q3).
     status = models.CharField("status", max_length=10, choices=StatusParticipante.choices,
                               default=StatusParticipante.ATIVO)
     cadastrado_em = models.DateTimeField("cadastrado em", auto_now_add=True)
@@ -54,12 +71,25 @@ class Participante(models.Model):
     def __str__(self):
         return self.nome_completo
 
+    def save(self, *args, **kwargs):
+        self.nome_busca = chave_busca(self.nome_completo)
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None and "nome_completo" in update_fields:
+            kwargs["update_fields"] = {*update_fields, "nome_busca"}
+        super().save(*args, **kwargs)
+
+    def clean_fields(self, exclude=None):
+        # Telefones chegam com máscara do formulário; o limite de 10/11 caracteres vale para os dígitos.
+        self._normalizar_telefones()
+        super().clean_fields(exclude=exclude)
+
     def clean(self):
         super().clean()
         if isinstance(self.nome_completo, str):
             self.nome_completo = normalizar_espacos(self.nome_completo)
             if not self.nome_completo:
                 raise ValidationError({"nome_completo": "Informe o nome completo."})
+            self.nome_busca = chave_busca(self.nome_completo)
         if self.data_nascimento:
             if self.data_nascimento > timezone.localdate():
                 raise ValidationError({"data_nascimento": "A data de nascimento não pode estar no futuro."})
@@ -72,10 +102,14 @@ class Participante(models.Model):
             self.observacao_encaminhamento = self.observacao_encaminhamento.strip()
         self._validar_telefones()
 
-    def _validar_telefones(self):
-        """RF-PAR-02: só dígitos, com DDD; exige pelo menos um telefone."""
+    def _normalizar_telefones(self):
+        """RF-PAR-02: guarda só os dígitos (único lugar onde a máscara é retirada)."""
         self.telefone_celular = so_digitos(self.telefone_celular)
         self.telefone_residencial = so_digitos(self.telefone_residencial)
+
+    def _validar_telefones(self):
+        """RF-PAR-02: só dígitos, com DDD; exige pelo menos um telefone."""
+        self._normalizar_telefones()
         erros = {}
         if self.telefone_celular and not celular_valido(self.telefone_celular):
             erros["telefone_celular"] = "Informe o celular com DDD e 9 dígitos, por exemplo (61) 91234-5678."
@@ -103,6 +137,18 @@ class Participante(models.Model):
         """RN-PAR-06: sempre calculada a partir da data de nascimento."""
         return faixa_etaria_fmr(self.data_nascimento, referencia or timezone.localdate())
 
+    @property
+    def entrada(self):
+        """Movimentação de entrada (Q5), ou None em cadastros sem ela (ex. criados fora dos serviços)."""
+        if self.pk is None:
+            return None
+        return self.movimentacoes.filter(tipo=TipoMovimentacao.ENTRADA).order_by("-data", "-pk").first()
+
+    @property
+    def data_entrada(self):
+        entrada = self.entrada
+        return entrada.data if entrada else None
+
 
 class SituacaoSocial(models.Model):
     """RF-PAR-04 e RF-PAR-05: situação social com vigência por data de início (D2).
@@ -121,7 +167,8 @@ class SituacaoSocial(models.Model):
     registrado_em = models.DateTimeField("registrado em", auto_now_add=True)
 
     class Meta:
-        ordering = ["participante", "-vigente_desde"]
+        # Pelo id, sem JOIN com Participante (a ordenação "participante" herdaria a do nome).
+        ordering = ["participante_id", "-vigente_desde"]
         verbose_name = "situação social"
         verbose_name_plural = "situações sociais"
         constraints = [models.UniqueConstraint(fields=["participante", "vigente_desde"],
@@ -143,3 +190,55 @@ class SituacaoSocial(models.Model):
     def vigente_em(cls, participante, data):
         """Situação que valia na data (RN-PAR-05). None se ainda não havia registro."""
         return cls.objects.filter(participante=participante, vigente_desde__lte=data).order_by("-vigente_desde").first()
+
+
+class Movimentacao(models.Model):
+    """Entradas e saídas do participante no serviço (RF-PAR-10); o cadastro registra a entrada (Q5).
+
+    Só a entrada por enquanto: desligamento (RF-PAR-07) depende da Q3 e reativação (RF-PAR-08) da Q4.
+    Não é alvo de auditoria: a data de entrada é auditada no evento do participante (cadastro e correção).
+    """
+
+    participante = models.ForeignKey(Participante, on_delete=models.PROTECT, related_name="movimentacoes")
+    tipo = models.CharField("tipo", max_length=20, choices=TipoMovimentacao.choices)
+    data = models.DateField("data")
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+",
+                                verbose_name="registrado por")
+    registrado_em = models.DateTimeField("registrado em", auto_now_add=True)
+
+    class Meta:
+        ordering = ["participante_id", "data", "pk"]
+        verbose_name = "movimentação"
+        verbose_name_plural = "movimentações"
+        constraints = [
+            models.CheckConstraint(condition=models.Q(tipo__in=TipoMovimentacao.values),
+                                   name="movimentacao_tipo_valido"),
+            # Sem desligamento e reativação, cada pessoa entra uma única vez. Rever com a Q3/Q4: reingresso após
+            # desligamento pode ser nova entrada; reativação não conta como entrada (RN-PAR-08).
+            models.UniqueConstraint(fields=["participante"], condition=models.Q(tipo=TipoMovimentacao.ENTRADA),
+                                    name="movimentacao_uma_entrada"),
+        ]
+
+    def __str__(self):
+        return f"{self.get_tipo_display()} de {self.participante} em {self.data:%d/%m/%Y}"
+
+    def clean(self):
+        super().clean()
+        if self.data:
+            if self.data > timezone.localdate():
+                raise ValidationError({"data": "A data não pode estar no futuro."})
+            # O participante pode ainda não estar salvo (validação do cadastro antes de gravar).
+            participante = getattr(self, "participante", None)
+            nascimento = participante.data_nascimento if participante else None
+            if nascimento and self.data < nascimento:
+                raise ValidationError({"data": "A data não pode ser anterior ao nascimento."})
+
+
+class RegistroParticipante(EventoAuditoria):
+    """Cadastro, correção e situação social do participante (RNF-SEG-07), na tabela única core.EventoAuditoria."""
+
+    alvo, modelo_alvo = "participante", Participante
+
+    class Meta:
+        proxy = True
+        default_permissions = ()

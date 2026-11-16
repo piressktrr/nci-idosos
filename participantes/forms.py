@@ -1,7 +1,7 @@
 from django import forms
+from django.utils import timezone
 
 from .models import Participante, SituacaoSocial
-from .regras import so_digitos
 
 SIM_NAO = ((True, "Sim"), (False, "Não"))
 
@@ -28,26 +28,48 @@ def aplicar_bootstrap(form):
             widget.attrs.setdefault("class", "form-control")
 
 
+class TelefoneField(forms.CharField):
+    """Aceita o telefone com máscara; o campo do navegador limita a 20 caracteres digitados.
+
+    Não normaliza nem valida o tamanho: o modelo tira a máscara e confere os dígitos (RF-PAR-02).
+    """
+
+    TAMANHO_DIGITADO = 20
+
+    def __init__(self, *, max_length=None, **kwargs):
+        # O max_length do modelo (10/11) vale para os dígitos, não para o texto com máscara.
+        super().__init__(**kwargs)
+
+    def widget_attrs(self, widget):
+        return {**super().widget_attrs(widget), "maxlength": str(self.TAMANHO_DIGITADO)}
+
+
+def _widget_telefone(exemplo):
+    return forms.TextInput(attrs={"type": "tel", "inputmode": "numeric", "autocomplete": "off",
+                                  "placeholder": exemplo, "data-mascara": "telefone"})
+
+
 class ParticipanteForm(forms.ModelForm):
     confirmar_duplicidade = forms.BooleanField(
         label="Confirmo que é outra pessoa, com o mesmo nome e data de nascimento", required=False)
     ensino_medio_completo = forms.TypedChoiceField(
         label="Ensino médio completo?", choices=SIM_NAO, coerce=_sim_nao, widget=forms.RadioSelect)
+    # Q5: o cadastro registra a data de entrada (Movimentacao); o serviço valida (não futura, não antes do nascimento).
+    data_entrada = forms.DateField(label="Data de entrada",
+                                   widget=forms.DateInput(format="%Y-%m-%d", attrs={"type": "date"}))
 
     class Meta:
         model = Participante
         fields = ("nome_completo", "endereco", "identidade_genero", "origem_encaminhamento",
                   "observacao_encaminhamento", "telefone_residencial", "telefone_celular", "data_nascimento",
-                  "raca_cor", "sexo", "ensino_medio_completo", "status")
+                  "raca_cor", "sexo", "ensino_medio_completo")
+        # Sem "status": só leitura até RN-PAR-09/P02 e o desligamento com motivo (RF-PAR-07, Q3).
         labels = {"telefone_residencial": "Telefone fixo", "raca_cor": "Raça/cor"}
+        field_classes = {"telefone_celular": TelefoneField, "telefone_residencial": TelefoneField}
         widgets = {
             "data_nascimento": forms.DateInput(format="%Y-%m-%d", attrs={"type": "date"}),
-            "telefone_celular": forms.TextInput(attrs={"type": "tel", "inputmode": "numeric", "autocomplete": "off",
-                                                       "placeholder": "(11) 91234-5678", "x-data": "",
-                                                       "x-on:input": "mascaraTelefone($el)"}),
-            "telefone_residencial": forms.TextInput(attrs={"type": "tel", "inputmode": "numeric",
-                                                           "autocomplete": "off", "placeholder": "(11) 3123-4567",
-                                                           "x-data": "", "x-on:input": "mascaraTelefone($el)"}),
+            "telefone_celular": _widget_telefone("(11) 91234-5678"),
+            "telefone_residencial": _widget_telefone("(11) 3123-4567"),
             "observacao_encaminhamento": forms.Textarea(attrs={"rows": 4}),
         }
         help_texts = {"telefone_celular": "Informe pelo menos um dos dois telefones do próprio participante."}
@@ -55,29 +77,23 @@ class ParticipanteForm(forms.ModelForm):
     def __init__(self, *args, mostrar_confirmacao=False, **kwargs):
         super().__init__(*args, **kwargs)
         self.mostrar_confirmacao = mostrar_confirmacao
-        # Aceita máscara na digitação; o modelo guarda só os dígitos. O limite fica no clean do modelo.
-        for campo in ("telefone_celular", "telefone_residencial"):
-            self.fields[campo].max_length = 20
-            self.fields[campo].widget.attrs["maxlength"] = 20
-            self.fields[campo].validators = []
+        entrada = self.instance.data_entrada if self.instance.pk else None
+        self.fields["data_entrada"].initial = entrada or timezone.localdate()
         if not mostrar_confirmacao:
             # Só existe depois do alerta de duplicidade; antes disso, nunca confirma.
             del self.fields["confirmar_duplicidade"]
         aplicar_bootstrap(self)
 
-    def clean_telefone_celular(self):
-        return so_digitos(self.cleaned_data.get("telefone_celular"))
-
-    def clean_telefone_residencial(self):
-        return so_digitos(self.cleaned_data.get("telefone_residencial"))
-
     def dados_servico(self):
-        dados = {campo: self.cleaned_data[campo] for campo in self._meta.fields}
+        # Telefones podem ir com máscara: o full_clean do serviço os normaliza no modelo.
+        dados = {campo: self.cleaned_data[campo] for campo in (*self._meta.fields, "data_entrada")}
         return dados, self.cleaned_data.get("confirmar_duplicidade") is True
 
 
 class SituacaoSocialForm(forms.ModelForm):
     """RF-PAR-04: cada indicador é sim ou não; não marcado significa "não"."""
+
+    INDICADORES = ("mora_sozinho", "tem_apoio", "possui_deficiencia", "recebe_bpc", "imigrante_refugiado")
 
     class Meta:
         model = SituacaoSocial
@@ -90,6 +106,14 @@ class SituacaoSocialForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         aplicar_bootstrap(self)
+
+    @classmethod
+    def inicial_de(cls, situacao, hoje=None):
+        """Valores iniciais de um novo registro: começa hoje e repete os indicadores da situação atual, se houver."""
+        inicial = {"vigente_desde": hoje or timezone.localdate()}
+        if situacao is not None:
+            inicial.update({campo: getattr(situacao, campo) for campo in cls.INDICADORES})
+        return inicial
 
     def validate_unique(self):
         # Mesma data = correção do registro existente; quem decide é o serviço.

@@ -1,10 +1,10 @@
-"""Provedor real do contrato de participantes usado por atividades (atividades.integracoes.participantes).
+"""Provedor real do contrato de participantes (core.integracoes.ProvedorParticipantes), consumido pelo app de atividades.
 
 Atividades guarda a inscrição como (origem="participantes", referencia=str(pk)) e só consulta
 nome e identificador por aqui, sem acessar o modelo Participante diretamente.
 """
 
-from atividades.integracoes.participantes import ParticipanteResumo
+from core.integracoes import ParticipanteResumo
 
 from .models import Participante
 

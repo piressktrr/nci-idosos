@@ -58,11 +58,24 @@ class ClassificacaoAtividadeAdmin(SomenteLeituraAdmin):
     list_display = ("atividade", "categoria_nome", "inicio")
 
 
+admin.site.register(models.MotivoFalta, SomenteLeituraAdmin)
+admin.site.register(models.CategoriaFMR, SomenteLeituraAdmin)
+
+
+class EventoAuditoriaAdmin(SomenteLeituraAdmin):
+    """Proxies de core.EventoAuditoria: o manager já filtra pelo tipo; o alvo é exibido pelo id."""
+
+    list_display = ("registrado_em", "alvo_id", "acao", "usuario")
+    list_select_related = ("usuario",)
+    date_hierarchy = "registrado_em"
+    fields = ("tipo", "alvo_id", "acao", "usuario", "registrado_em", "anteriores", "novos", "origem_id")
+    readonly_fields = fields
+
+
 for modelo in (
-    models.MotivoFalta, models.CategoriaFMR,
     models.RegistroCadastroAtividade, models.RegistroGradeAtividade, models.RegistroRealizacaoAula,
     models.RegistroCancelamentoAula, models.RegistroMotivoFalta, models.RegistroLancamentoFrequencia,
     models.RegistroCorrecaoFrequencia, models.RegistroEsperaAtividade, models.RegistroCategoriaFMR,
     models.RegistroClassificacaoAtividade,
 ):
-    admin.site.register(modelo, SomenteLeituraAdmin)
+    admin.site.register(modelo, EventoAuditoriaAdmin)

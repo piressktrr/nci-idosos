@@ -1,38 +1,13 @@
 from datetime import time
-from functools import reduce
-from operator import or_
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.utils import timezone
 
-ALVOS_AUDITORIA = {
-    "RegistroCadastroAtividade": "atividade", "RegistroGradeAtividade": "horario",
-    "RegistroRealizacaoAula": "aula", "RegistroCancelamentoAula": "aula",
-    "RegistroLancamentoFrequencia": "frequencia", "RegistroCorrecaoFrequencia": "frequencia",
-    "RegistroMotivoFalta": "motivo", "RegistroCategoriaFMR": "categoria",
-    "RegistroClassificacaoAtividade": "classificacao", "RegistroEsperaAtividade": "espera",
-    "RegistroParticipante": "participante",
-}
+from core.models import EventoAuditoria, GerenciadorEvento, ProtegidoPorAuditoria  # noqa: F401 (re-export)
 
 
-def condicao_alvo_auditoria():
-    return reduce(or_, (models.Q(tipo=tipo, **{
-        campo + "__isnull": campo != alvo for campo in set(ALVOS_AUDITORIA.values())
-    }) for tipo, alvo in ALVOS_AUDITORIA.items()))
-
-
-class GerenciadorEvento(models.Manager):
-    def get_queryset(self):
-        return super().get_queryset().filter(tipo=self.model.__name__)
-
-    def create(self, **kwargs):
-        kwargs["tipo"] = self.model.__name__
-        return super().create(**kwargs)
-
-
-class Atividade(models.Model):
+class Atividade(ProtegidoPorAuditoria, models.Model):
     """Contrato provisório para o cadastro inicial de atividades (RF-ATV-01)."""
 
     @property
@@ -52,7 +27,7 @@ class Atividade(models.Model):
         return self.nome
 
 
-class HorarioAtividade(models.Model):
+class HorarioAtividade(ProtegidoPorAuditoria, models.Model):
     @property
     def registros(self):
         return RegistroGradeAtividade.objects.filter(horario=self)
@@ -103,7 +78,7 @@ class AulaQuerySet(models.QuerySet):
         return self.filter(situacao="realizada")
 
 
-class Aula(models.Model):
+class Aula(ProtegidoPorAuditoria, models.Model):
     """Ocorrência realizada ou cancelada, independente da grade semanal."""
 
     @property
@@ -174,7 +149,7 @@ class Inscricao(models.Model):
         ]
 
 
-class MotivoFalta(models.Model):
+class MotivoFalta(ProtegidoPorAuditoria, models.Model):
     descricao = models.CharField("descrição", max_length=150)
     ativo = models.BooleanField(default=True)
 
@@ -187,7 +162,7 @@ class MotivoFalta(models.Model):
         return self.descricao
 
 
-class Frequencia(models.Model):
+class Frequencia(ProtegidoPorAuditoria, models.Model):
     @property
     def registro_lancamento(self):
         return RegistroLancamentoFrequencia.objects.filter(frequencia=self).first()
@@ -227,7 +202,7 @@ class Frequencia(models.Model):
             raise ValidationError({"inscricao": "A inscrição não pertence à atividade da aula."})
 
 
-class CategoriaFMR(models.Model):
+class CategoriaFMR(ProtegidoPorAuditoria, models.Model):
     nome = models.CharField(max_length=150)
     ativa = models.BooleanField(default=True)
 
@@ -240,7 +215,7 @@ class CategoriaFMR(models.Model):
         return self.nome
 
 
-class EsperaAtividade(models.Model):
+class EsperaAtividade(ProtegidoPorAuditoria, models.Model):
     @property
     def registros(self):
         return RegistroEsperaAtividade.objects.filter(espera=self)
@@ -269,7 +244,7 @@ class EsperaAtividade(models.Model):
         ]
 
 
-class ClassificacaoAtividade(models.Model):
+class ClassificacaoAtividade(ProtegidoPorAuditoria, models.Model):
     @property
     def registros(self):
         return RegistroClassificacaoAtividade.objects.filter(classificacao=self)
@@ -285,56 +260,12 @@ class ClassificacaoAtividade(models.Model):
         constraints = [models.UniqueConstraint(fields=["atividade", "inicio"], name="classificacao_atividade_inicio_unico")]
 
 
-class EventoAuditoria(models.Model):
-    """Tabela única de eventos. Proxies abaixo preservam o contrato dos serviços.
-
-    FKs opcionais preservam integridade e PROTECT; uma constraint exige exatamente
-    o alvo correspondente ao tipo. Não usar este modelo como cadastro editável.
-    """
-    tipo = models.CharField(max_length=50)
-    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
-    registrado_em = models.DateTimeField(default=timezone.now, editable=False)
-    anteriores = models.JSONField(null=True)
-    novos = models.JSONField()
-    acao = models.CharField(max_length=10, blank=True, default="")
-    origem_id = models.PositiveBigIntegerField(null=True, editable=False)
-    atividade = models.ForeignKey(Atividade, on_delete=models.PROTECT, null=True, related_name="eventos_auditoria")
-    horario = models.ForeignKey(HorarioAtividade, on_delete=models.PROTECT, null=True, related_name="eventos_auditoria")
-    aula = models.ForeignKey(Aula, on_delete=models.PROTECT, null=True, related_name="eventos_auditoria")
-    frequencia = models.ForeignKey(Frequencia, on_delete=models.PROTECT, null=True, related_name="eventos_auditoria")
-    motivo = models.ForeignKey(MotivoFalta, on_delete=models.PROTECT, null=True, related_name="eventos_auditoria")
-    espera = models.ForeignKey(EsperaAtividade, on_delete=models.PROTECT, null=True, related_name="eventos_auditoria")
-    categoria = models.ForeignKey(CategoriaFMR, on_delete=models.PROTECT, null=True, related_name="eventos_auditoria")
-    classificacao = models.ForeignKey(ClassificacaoAtividade, on_delete=models.PROTECT, null=True, related_name="eventos_auditoria")
-    participante = models.ForeignKey("participantes.Participante", on_delete=models.PROTECT, null=True, related_name="eventos_auditoria")
-
-    class Meta:
-        default_permissions = ()
-        ordering = ["registrado_em", "pk"]
-        indexes = [models.Index(fields=["tipo", "registrado_em"], name="auditoria_tipo_data")]
-        constraints = [
-            models.CheckConstraint(condition=condicao_alvo_auditoria(), name="auditoria_alvo_coerente"),
-            models.UniqueConstraint(fields=["atividade"], condition=models.Q(tipo="RegistroCadastroAtividade"), name="audit_cadastro_unico"),
-            models.UniqueConstraint(fields=["aula"], condition=models.Q(tipo="RegistroRealizacaoAula"), name="audit_realizacao_unica"),
-            models.UniqueConstraint(fields=["aula"], condition=models.Q(tipo="RegistroCancelamentoAula"), name="audit_cancelamento_unico"),
-            models.UniqueConstraint(fields=["frequencia"], condition=models.Q(tipo="RegistroLancamentoFrequencia"), name="audit_lancamento_unico"),
-        ]
-
-    def __init__(self, *args, **kwargs):
-        for antigo, novo in (("dados", "novos"), ("dados_novos", "novos"), ("dados_anteriores", "anteriores")):
-            if antigo in kwargs:
-                kwargs[novo] = kwargs.pop(antigo)
-        if not args and type(self) is not EventoAuditoria:
-            kwargs.setdefault("tipo", type(self).__name__)
-        super().__init__(*args, **kwargs)
-
-    dados = property(lambda self: self.novos)
-    dados_novos = property(lambda self: self.novos)
-    dados_anteriores = property(lambda self: self.anteriores)
+# Auditoria: proxies de core.EventoAuditoria (tabela única, coluna `tipo` = nome da classe).
+# `alvo` é o nome usado nos serviços (create(atividade=...), filter(aula=...)) e vira alvo_id.
 
 
 class RegistroCadastroAtividade(EventoAuditoria):
-    objects = GerenciadorEvento()
+    alvo, modelo_alvo = "atividade", Atividade
 
     class Meta:
         proxy = True
@@ -346,7 +277,7 @@ class RegistroGradeAtividade(EventoAuditoria):
         CADASTRO = "cadastro", "Cadastro"
         ALTERACAO = "alteracao", "Alteração"
 
-    objects = GerenciadorEvento()
+    alvo, modelo_alvo = "horario", HorarioAtividade
 
     class Meta:
         proxy = True
@@ -354,7 +285,7 @@ class RegistroGradeAtividade(EventoAuditoria):
 
 
 class RegistroRealizacaoAula(EventoAuditoria):
-    objects = GerenciadorEvento()
+    alvo, modelo_alvo = "aula", Aula
 
     class Meta:
         proxy = True
@@ -362,7 +293,7 @@ class RegistroRealizacaoAula(EventoAuditoria):
 
 
 class RegistroCancelamentoAula(EventoAuditoria):
-    objects = GerenciadorEvento()
+    alvo, modelo_alvo = "aula", Aula
 
     class Meta:
         proxy = True
@@ -370,7 +301,7 @@ class RegistroCancelamentoAula(EventoAuditoria):
 
 
 class RegistroLancamentoFrequencia(EventoAuditoria):
-    objects = GerenciadorEvento()
+    alvo, modelo_alvo = "frequencia", Frequencia
 
     class Meta:
         proxy = True
@@ -378,7 +309,7 @@ class RegistroLancamentoFrequencia(EventoAuditoria):
 
 
 class RegistroCorrecaoFrequencia(EventoAuditoria):
-    objects = GerenciadorEvento()
+    alvo, modelo_alvo = "frequencia", Frequencia
 
     class Meta:
         proxy = True
@@ -386,7 +317,7 @@ class RegistroCorrecaoFrequencia(EventoAuditoria):
 
 
 class RegistroMotivoFalta(EventoAuditoria):
-    objects = GerenciadorEvento()
+    alvo, modelo_alvo = "motivo", MotivoFalta
 
     class Meta:
         proxy = True
@@ -394,7 +325,7 @@ class RegistroMotivoFalta(EventoAuditoria):
 
 
 class RegistroCategoriaFMR(EventoAuditoria):
-    objects = GerenciadorEvento()
+    alvo, modelo_alvo = "categoria", CategoriaFMR
 
     class Meta:
         proxy = True
@@ -402,7 +333,7 @@ class RegistroCategoriaFMR(EventoAuditoria):
 
 
 class RegistroClassificacaoAtividade(EventoAuditoria):
-    objects = GerenciadorEvento()
+    alvo, modelo_alvo = "classificacao", ClassificacaoAtividade
 
     class Meta:
         proxy = True
@@ -410,17 +341,7 @@ class RegistroClassificacaoAtividade(EventoAuditoria):
 
 
 class RegistroEsperaAtividade(EventoAuditoria):
-    objects = GerenciadorEvento()
-
-    class Meta:
-        proxy = True
-        default_permissions = ()
-
-
-class RegistroParticipante(EventoAuditoria):
-    """Cadastro e correção de participantes (app participantes), na mesma tabela de auditoria."""
-
-    objects = GerenciadorEvento()
+    alvo, modelo_alvo = "espera", EsperaAtividade
 
     class Meta:
         proxy = True

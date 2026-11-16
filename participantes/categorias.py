@@ -49,3 +49,12 @@ class StatusParticipante(models.TextChoices):
     ATIVO = "ativo", "Ativo"
     INATIVO = "inativo", "Inativo"
     CANCELADO = "cancelado", "Cancelado"
+
+
+class TipoMovimentacao(models.TextChoices):
+    """Eventos de entrada e saída do participante no serviço (RF-PAR-07, 08 e 10).
+
+    Por enquanto só a entrada (Q5: o cadastro registra a data de entrada). O desligamento depende da lista de
+    motivos do FMR (Q3, RF-PAR-07) e a reativação de como ela entra na equação do FMR (Q4, RF-PAR-08, RN-PAR-08).
+    """
+    ENTRADA = "entrada", "Entrada"

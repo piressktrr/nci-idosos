@@ -1,14 +1,17 @@
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
-from django.utils import timezone
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+from django.utils.module_loading import import_string
 from django.views.decorators.http import require_http_methods
 
 from .auditoria import diferencas, historico
 from .forms import ParticipanteForm, SituacaoSocialForm
 from .models import Participante, SituacaoSocial
+from .provedor import ProvedorParticipantes
 from .services import (cadastrar_participante, corrigir_participante, pesquisar_participantes,
                        registrar_situacao_social)
 
@@ -19,6 +22,22 @@ def _aplicar_erro(form, erro):
             form.add_error(campo if campo in form.fields else None, erros)
     else:
         form.add_error(None, erro)
+
+
+def _frequencias(usuario, participante):
+    """RF-PAR-10: frequência em atividades, pela consulta configurada (sem importar o app de atividades).
+
+    None quando não há consulta configurada ou o usuário não tem as permissões de atividades: o cartão não aparece.
+    """
+    caminho = getattr(settings, "NCI_CONSULTA_FREQUENCIA_PARTICIPANTE", "")
+    if not caminho:
+        return None
+    consulta = import_string(caminho)
+    try:
+        # Atividades identifica a pessoa pelo par (origem, referência) do provedor de participantes.
+        return consulta(usuario=usuario, origem=ProvedorParticipantes.origem, referencia=str(participante.pk))
+    except PermissionDenied:
+        return None
 
 
 def _formulario(request, participante=None):
@@ -69,9 +88,11 @@ def detalhe(request, participante_id):
     participante = get_object_or_404(Participante, pk=participante_id)
     registros = None
     if request.user.has_perm("participantes.change_participante"):
-        registros = [{"registro": item, "mudancas": diferencas(item)} for item in historico(participante)]
+        registros = [{"registro": item, "mudancas": diferencas(item)}
+                     for item in historico(participante, usuario=request.user)]
     return render(request, "participantes/detalhe.html", {
-        "participante": participante, "registros": registros,
+        "participante": participante, "registros": registros, "data_entrada": participante.data_entrada,
+        "frequencias": _frequencias(request.user, participante),
         "situacoes": participante.situacoes_sociais.all(),
         "situacao_atual": SituacaoSocial.vigente_em(participante, timezone.localdate())})
 
@@ -90,8 +111,7 @@ def situacao_social(request, participante_id):
     """RF-PAR-04/05: nova vigência da situação social, ou correção de uma existente (mesma data)."""
     participante = get_object_or_404(Participante, pk=participante_id)
     atual = SituacaoSocial.vigente_em(participante, timezone.localdate())
-    inicial = {campo: getattr(atual, campo) for campo in SituacaoSocialForm._meta.fields[1:]} if atual else {}
-    form = SituacaoSocialForm(request.POST or None, initial={**inicial, "vigente_desde": timezone.localdate()},
+    form = SituacaoSocialForm(request.POST or None, initial=SituacaoSocialForm.inicial_de(atual),
                               instance=SituacaoSocial(participante=participante))
     if request.method == "POST" and form.is_valid():
         try:

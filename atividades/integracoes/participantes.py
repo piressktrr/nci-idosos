@@ -10,26 +10,13 @@ Uma FK definitiva exige alinhar o modelo/PK e criar uma migration incremental.
 Nunca mapear referências de demonstração para pessoas reais automaticamente.
 """
 
-from dataclasses import dataclass
-from typing import Protocol
-
 from django.conf import settings
 from django.utils.module_loading import import_string
 
+# Contrato movido para core (participantes não depende de atividades); re-exportado por compatibilidade.
+from core.integracoes import ParticipanteResumo, ProvedorParticipantes
 
-@dataclass(frozen=True)
-class ParticipanteResumo:
-    referencia: str
-    nome: str
-
-
-class ProvedorParticipantes(Protocol):
-    origem: str
-    demonstracao: bool
-
-    def listar(self) -> tuple[ParticipanteResumo, ...]: ...
-
-    def obter(self, referencia: str) -> ParticipanteResumo | None: ...
+__all__ = ["ParticipanteResumo", "ProvedorParticipantes", "obter_provedor"]
 
 
 def obter_provedor() -> ProvedorParticipantes:
