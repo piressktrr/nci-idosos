@@ -1,0 +1,169 @@
+"""Gestão de colaboradores (RF-USR-03, RN-USR-01): cadastro, correção e nova senha, com auditoria (RNF-SEG-07).
+
+Só administradores (`core.perfis.e_administrador`) usam estes serviços. Cada gravação acontece numa transação
+junto com o seu evento `RegistroConta`. A senha nunca vai para a auditoria (nem o hash): o evento "senha" só
+registra que ela foi redefinida.
+
+Fora do escopo por estarem pendentes: desativar/reativar conta (RF-USR-04) e recuperação de acesso (RF-USR-05).
+"""
+
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import transaction
+from django.db.models import Q
+
+from core.perfis import GRUPO_ADMINISTRADOR, PERFIS, e_administrador
+
+from .models import RegistroConta
+
+# Grupos que são perfis de acesso; uma conta tem no máximo um (outros grupos dados à mão são mantidos).
+NOMES_PERFIS = tuple(PERFIS)
+CAMPOS_CORRECAO = ("first_name", "last_name", "email", "perfil")
+
+
+def autorizar_administrador(usuario):
+    """RN-USR-01: devolve o autor reconsultado no banco se for administrador ativo."""
+    if not e_administrador(usuario):
+        raise PermissionDenied("Somente administradores podem gerenciar contas de acesso.")
+    return get_user_model().objects.get(pk=usuario.pk)
+
+
+def perfil_de(conta):
+    """Nome do perfil (grupo) da conta, ou "" se não tiver. Com os dois grupos, vale Administrador."""
+    grupos = {grupo.name for grupo in conta.groups.all()}  # aproveita prefetch_related("groups")
+    for nome in (GRUPO_ADMINISTRADOR, *NOMES_PERFIS):
+        if nome in grupos:
+            return nome
+    return ""
+
+
+def _dados(conta, perfil):
+    """Dados auditados da conta (sem senha)."""
+    return {"username": conta.username, "first_name": conta.first_name, "last_name": conta.last_name,
+            "email": conta.email, "perfil": perfil}
+
+
+def _registrar(*, conta, acao, autor, novos, anteriores=None):
+    return RegistroConta.objects.create(alvo_id=conta.pk, acao=acao, usuario=autor, anteriores=anteriores,
+                                        novos=novos)
+
+
+def _erros_dados(conta, **opcoes):
+    """Erros do full_clean da conta; o nome é obrigatório aqui, embora o modelo do Django o aceite vazio."""
+    erros = {}
+    try:
+        conta.full_clean(**opcoes)
+    except ValidationError as erro:
+        erros.update(erro.message_dict)
+    if not conta.first_name:
+        erros.setdefault("first_name", []).append("Informe o nome.")
+    return erros
+
+
+def _validar_perfil(perfil):
+    if perfil not in NOMES_PERFIS:
+        raise ValidationError({"perfil": "Escolha um perfil válido."})
+
+
+def _definir_perfil(conta, perfil):
+    conta.groups.remove(*Group.objects.filter(name__in=NOMES_PERFIS).exclude(name=perfil))
+    conta.groups.add(Group.objects.get(name=perfil))
+
+
+def _validar_senha(senha, conta):
+    try:
+        validate_password(senha, conta)
+    except ValidationError as erro:
+        raise ValidationError({"senha": erro.messages}) from None
+
+
+def garantir_administrador_restante(conta, novo_perfil):
+    """Recusa a mudança se, depois dela, nenhuma conta ativa for administradora.
+
+    Trava a linha do grupo Administrador para serializar mudanças de perfil concorrentes.
+    """
+    Group.objects.select_for_update().filter(name=GRUPO_ADMINISTRADOR).first()
+    continua = conta.is_active and (conta.is_superuser or novo_perfil == GRUPO_ADMINISTRADOR)
+    outros = (get_user_model().objects.filter(is_active=True).exclude(pk=conta.pk)
+              .filter(Q(is_superuser=True) | Q(groups__name=GRUPO_ADMINISTRADOR)).exists())
+    if not (continua or outros):
+        raise ValidationError({"perfil": "O sistema precisa ter pelo menos um administrador ativo."})
+
+
+@transaction.atomic
+def cadastrar_colaborador(*, usuario, username, first_name, last_name, email, perfil, senha):
+    """Cria a conta ativa, com um perfil e a senha inicial validada pelos AUTH_PASSWORD_VALIDATORS."""
+    autor = autorizar_administrador(usuario)
+    Usuario = get_user_model()
+    conta = Usuario(username=Usuario.normalize_username((username or "").strip()), first_name=first_name.strip(),
+                    last_name=last_name.strip(), email=Usuario.objects.normalize_email(email.strip()),
+                    is_active=True)
+    # A senha é validada à parte; o hash só é calculado depois de tudo validado.
+    erros = _erros_dados(conta, exclude=["password"])
+    if conta.username and Usuario.objects.filter(username__iexact=conta.username).exists():
+        erros.setdefault("username", []).append("Já existe uma conta com este usuário.")
+    if perfil not in NOMES_PERFIS:
+        erros["perfil"] = ["Escolha um perfil válido."]
+    try:
+        _validar_senha(senha, conta)
+    except ValidationError as erro:
+        erros.update(erro.message_dict)
+    if erros:
+        raise ValidationError(erros)
+    conta.set_password(senha)
+    conta.save()
+    _definir_perfil(conta, perfil)
+    _registrar(conta=conta, acao="cadastro", autor=autor, novos=_dados(conta, perfil))
+    return conta
+
+
+@transaction.atomic
+def corrigir_colaborador(*, usuario, conta_id, first_name, last_name, email, perfil):
+    """Corrige nome, sobrenome, e-mail e perfil. Audita só os campos que mudaram (nada muda, nada grava).
+
+    O administrador não altera o próprio perfil, e nenhuma mudança pode deixar o sistema sem administrador ativo.
+    """
+    autor = autorizar_administrador(usuario)
+    Usuario = get_user_model()
+    conta = Usuario.objects.select_for_update().get(pk=conta_id)
+    perfil_atual = perfil_de(conta)
+    anteriores = _dados(conta, perfil_atual)
+    conta.first_name, conta.last_name = first_name.strip(), last_name.strip()
+    conta.email = Usuario.objects.normalize_email(email.strip())
+    erros = _erros_dados(conta, exclude=["password", "username"], validate_unique=False)
+    if erros:
+        raise ValidationError(erros)
+    if perfil != perfil_atual:
+        if conta.pk == autor.pk:
+            raise ValidationError({"perfil": "Você não pode alterar o seu próprio perfil."})
+        _validar_perfil(perfil)
+        garantir_administrador_restante(conta, perfil)
+    novos = _dados(conta, perfil)
+    mudou = [campo for campo in CAMPOS_CORRECAO if novos[campo] != anteriores[campo]]
+    if not mudou:
+        return conta
+    campos_conta = [campo for campo in mudou if campo != "perfil"]
+    if campos_conta:
+        conta.save(update_fields=campos_conta)
+    if "perfil" in mudou:
+        _definir_perfil(conta, perfil)
+    _registrar(conta=conta, acao="correcao", autor=autor, anteriores={campo: anteriores[campo] for campo in mudou},
+               novos={campo: novos[campo] for campo in mudou})
+    return conta
+
+
+@transaction.atomic
+def definir_senha(*, usuario, conta_id, senha):
+    """O administrador define uma nova senha para a conta (validada). A auditoria não guarda senha nem hash.
+
+    Trocar a senha encerra as outras sessões da conta (o Django invalida o hash de sessão antigo).
+    """
+    autor = autorizar_administrador(usuario)
+    conta = get_user_model().objects.select_for_update().get(pk=conta_id)
+    _validar_senha(senha, conta)
+    conta.set_password(senha)
+    conta.save(update_fields=["password"])
+    _registrar(conta=conta, acao="senha", autor=autor, novos={"senha": "redefinida"})
+    return conta

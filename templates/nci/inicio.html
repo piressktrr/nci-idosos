@@ -24,8 +24,8 @@
     <svg viewBox="0 0 64 64" aria-hidden="true"><text x="32" y="40" text-anchor="middle" font-size="20" fill="currentColor" font-family="Questrial, sans-serif">FMR</text></svg>
     <span>Formulário Mensal<br><small class="nci-em-breve">(em breve)</small></span>
   </div>
-  {% if user.is_staff and perms.auth.view_user %}
-  <a class="nci-modulo" href="{% url 'admin:auth_user_changelist' %}">
+  {% if e_administrador %}
+  <a class="nci-modulo" href="{% url 'usuarios:lista' %}">
     <svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><circle cx="32" cy="20" r="11"/><path d="M12 56c0-12 9-21 20-21s20 9 20 21z"/></svg>
     <span>Gestão de Colaboradores</span>
   </a>{% endif %}

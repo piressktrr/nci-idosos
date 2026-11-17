@@ -69,8 +69,11 @@ Há dois grupos, criados automaticamente a cada `migrate`:
 - **Administrador**: tudo de participantes e a administração de contas e grupos (ver, criar e alterar;
   contas são desativadas, não excluídas).
 
-Para conceder um perfil, inclua a pessoa no grupo (pelo admin do Django, por enquanto; para abrir o admin
-a conta também precisa de "membro da equipe"/`is_staff`). Conta sem grupo não acessa nenhum módulo.
+As contas são cadastradas e administradas em **Gestão de Colaboradores** (`/colaboradores/`), visível só para
+administradores (membros de "Administrador" ou superusuários): cadastro com perfil e senha inicial, edição de nome,
+e-mail e perfil, e definição de nova senha. Tudo fica no histórico da conta (a senha nunca é gravada na auditoria).
+Ninguém altera o próprio perfil e o sistema não fica sem administrador ativo. Contas não são excluídas; desativação
+e recuperação de acesso ainda estão pendentes de definição. Conta sem grupo não acessa nenhum módulo.
 Para recriar os grupos ou repor permissões mínimas removidas (por exemplo, em produção), rode:
 
 ```powershell
