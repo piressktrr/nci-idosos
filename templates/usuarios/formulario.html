@@ -1,0 +1,52 @@
+{% extends "nci/base.html" %}
+{% block title %}{% if conta %}Editar colaborador{% else %}Novo colaborador{% endif %} · NCI Idade Dourada{% endblock %}
+{% block content %}
+<h1>Gestão de Colaboradores - {% if conta %}Edição{% else %}Cadastro{% endif %}</h1>
+<form method="post" class="nci-cartao mt-3" novalidate>
+  <div class="nci-cartao-titulo">{% if conta %}Editar colaborador: {{ conta.get_username }}{% else %}Novo colaborador{% endif %}</div>
+  <div class="nci-cartao-corpo">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert alert-warning">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+    <div class="row g-3">
+      <div class="col-lg-6">
+        {% if conta %}<div class="mb-3"><span class="form-label d-block mb-1">Usuário</span><strong>{{ conta.get_username }}</strong></div>
+        {% else %}{% include "usuarios/_campo.html" with campo=form.username %}{% endif %}
+        {% include "usuarios/_campo.html" with campo=form.first_name %}
+        {% include "usuarios/_campo.html" with campo=form.last_name %}
+        {% include "usuarios/_campo.html" with campo=form.email %}
+      </div>
+      <div class="col-lg-6">
+        {% if proprio %}<div class="mb-3"><span class="form-label d-block mb-1">Perfil</span><strong>{{ perfil|default:"Sem perfil" }}</strong>{% if conta.is_superuser %} (superusuário){% endif %}
+          <div class="form-text">Você não pode alterar o seu próprio perfil; peça a outro administrador.</div></div>
+        {% else %}{% include "usuarios/_campo.html" with campo=form.perfil %}{% if conta.is_superuser %}<p class="form-text">Superusuário: continua administrador qualquer que seja o perfil.</p>{% endif %}{% endif %}
+        {% if conta %}
+        <div class="mb-3"><span class="form-label d-block mb-1">Situação</span><strong class="{% if conta.is_active %}status-ativo{% else %}status-inativo{% endif %}">{% if conta.is_active %}Ativo{% else %}Inativo{% endif %}</strong></div>
+        <a class="btn btn-nci btn-sm" href="{% url 'usuarios:senha' conta.pk %}">Definir nova senha</a>
+        {% else %}
+        {% include "usuarios/_campo.html" with campo=form.senha %}
+        {% include "usuarios/_campo.html" with campo=form.confirmacao_senha %}
+        {% endif %}
+      </div>
+    </div>
+    <div class="d-flex justify-content-end gap-2 mt-4">
+      <a class="btn btn-nci-sec" href="{% url 'usuarios:lista' %}">{% if conta %}Voltar{% else %}Cancelar{% endif %}</a>
+      <button type="submit" class="btn btn-nci">+ Salvar Colaborador</button>
+    </div>
+  </div>
+</form>
+
+{% if conta %}
+<div x-data="{ aberto: false }" class="nci-cartao">
+  <button type="button" class="nci-cartao-titulo w-100 border-0" x-on:click="aberto = !aberto" x-bind:aria-expanded="aberto" aria-controls="historico">Histórico da conta <span x-text="aberto ? '▲' : '▼'" aria-hidden="true">▼</span></button>
+  <div id="historico" class="nci-cartao-corpo" x-show="aberto" x-cloak>
+    {% if registros %}<div class="table-responsive"><table class="table table-sm mb-0">
+      <thead><tr><th scope="col">Data</th><th scope="col">Ação</th><th scope="col">Feita por</th><th scope="col">Campo</th><th scope="col">Antes</th><th scope="col">Depois</th></tr></thead>
+      <tbody>{% for item in registros %}{% for campo, antes, depois in item.mudancas %}<tr>
+        <td>{{ item.registro.registrado_em|date:"d/m/Y H:i" }}</td><td>{{ item.acao }}</td>
+        <td>{{ item.registro.usuario.get_username }}</td><td>{{ campo }}</td><td>{{ antes|default_if_none:"—" }}</td><td>{{ depois|default:"—" }}</td>
+      </tr>{% endfor %}{% endfor %}</tbody>
+    </table></div>{% else %}<p class="mb-0">Nenhuma alteração registrada nesta tela. Contas criadas antes dela ou pelo admin do Django não têm histórico aqui.</p>{% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

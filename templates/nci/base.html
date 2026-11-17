@@ -31,7 +31,7 @@
         </div>
       </div>{% endif %}
       <span class="d-block py-1 nci-desativado">FMR <span class="nci-em-breve">(em breve)</span></span>
-      {% if user.is_staff and perms.auth.view_user %}<a href="{% url 'admin:auth_user_changelist' %}">Gestão de Colaboradores</a>{% endif %}
+      {% if e_administrador %}<a href="{% url 'usuarios:lista' %}"{% if ns == 'usuarios' %} class="ativo" aria-current="page"{% endif %}>Gestão de Colaboradores</a>{% endif %}
     </div>
     {% endif %}
   </nav>

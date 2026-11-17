@@ -235,7 +235,15 @@ class AdministradorTests(TestCase):
         get_user_model().objects.filter(pk=self.administrador.pk).update(is_staff=True)
         self.client.force_login(self.administrador)
         self.assertEqual(self.client.get(reverse("admin:auth_user_changelist")).status_code, 200)
-        self.assertContains(self.client.get(reverse("inicio")), "Gestão de Colaboradores")
+
+    def test_administrador_ve_gestao_de_colaboradores_sem_is_staff(self):
+        """RF-USR-03: o menu e o cartão apontam para as telas próprias, não para o admin do Django."""
+        self.client.force_login(self.administrador)
+        resposta = self.client.get(reverse("inicio"))
+        self.assertContains(resposta, "Gestão de Colaboradores")
+        self.assertContains(resposta, reverse("usuarios:lista"))
+        self.assertNotContains(resposta, reverse("admin:auth_user_changelist"))
+        self.assertEqual(self.client.get(reverse("usuarios:lista")).status_code, 200)
 
     def test_administrador_cadastra_participante(self):
         participante = cadastrar_participante(usuario=self.administrador, data_entrada=ENTRADA, **DADOS)

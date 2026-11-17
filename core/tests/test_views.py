@@ -44,11 +44,13 @@ class CoreTests(TestCase):
         self.assertContains(resposta, f'<a class="nci-modulo" href="{reverse("atividades:lista")}">')
         self.assertNotContains(resposta, reverse("participantes:lista"))
 
-    def test_colaboradores_exige_staff_e_view_user(self):
+    def test_colaboradores_so_para_administrador(self):
+        """RN-USR-01: o critério é core.perfis.e_administrador, não is_staff nem permissões avulsas de contas."""
         casos = {
             "staff_sem_perm": ({"is_staff": True}, False, False),
             "perm_sem_staff": ({}, True, False),
-            "staff_com_perm": ({"is_staff": True}, True, True),
+            "staff_com_perm": ({"is_staff": True}, True, False),
+            "superusuario": ({"is_superuser": True}, False, True),
         }
         for nome, (extra, com_perm, aparece) in casos.items():
             with self.subTest(caso=nome):
@@ -58,12 +60,13 @@ class CoreTests(TestCase):
                                                                         codename="view_user"))
                 self.client.force_login(usuario)
                 resposta = self.client.get(reverse("inicio"))
+                self.assertNotContains(resposta, reverse("admin:auth_user_changelist"))
                 if aparece:
                     self.assertContains(resposta, "Gestão de Colaboradores")
-                    self.assertContains(resposta, reverse("admin:auth_user_changelist"))
+                    self.assertContains(resposta, reverse("usuarios:lista"))
                 else:
                     self.assertNotContains(resposta, "Gestão de Colaboradores")
-                    self.assertNotContains(resposta, reverse("admin:auth_user_changelist"))
+                    self.assertNotContains(resposta, reverse("usuarios:lista"))
 
     def test_logado_em_entrar_vai_para_inicio(self):
         self.client.force_login(_usuario("ja_logado_ficticio"))
