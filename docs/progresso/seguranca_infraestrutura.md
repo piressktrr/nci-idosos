@@ -13,9 +13,9 @@
 | [ ] | RNF-SEG-07 | Confirmado | Parcial, sem commit | core/tests/test_auditoria.py, participantes/tests/test_services.py | — | Cadastros e frequências auditados e imutáveis; contas só pelo LogEntry do admin |
 | [ ] | RNF-SEG-08 | Confirmado | Em análise | — | — | Finalidade de endereço, ensino médio e observação a confirmar com o NCI |
 | [ ] | RNF-SEG-09 | Confirmado | Não iniciado | — | — | Retenção/anonimização (Q9), inclusive dos dados na auditoria |
-| [ ] | RNF-SEG-10 | Confirmado | Não iniciado | — | — | — |
+| [ ] | RNF-SEG-10 | Confirmado | Documentado, sem teste de restauração real | docs/operacao/backup.md; pg_dump, `pg_restore --list` e restauração num banco de teste validados no container de desenvolvimento (17/11/2026) | — | Falta executar uma restauração de verdade no ambiente de produção para marcar [x]; frequência/retenção dependem de RNF-SEG-09 (Q9) |
 | [ ] | RNF-SEG-11 | Confirmado | Não iniciado | — | — | — |
-| [ ] | RNF-SEG-12 | Confirmado | Não iniciado | — | — | — |
+| [ ] | RNF-SEG-12 | Confirmado | Documentado, sem teste de restauração real | docs/operacao/manutencao.md | — | Falta a equipe do NCI executar uma restauração de verdade e a transferência (checklist) para marcar [x]; forma de hospedagem ainda indefinida |
 | [x] | RNF-SEG-13 | Confirmado | Implementado, sem commit | Todos os testes usam dados fictícios | — | — |
 | [ ] | RNF-SEG-14 | Confirmado | Parcial, sem commit | — | — | Configuração por .env e CI com banco próprio; produção ainda não existe |
 | [ ] | RNF-SEG-15 | Confirmado | Não iniciado | — | — | — |
