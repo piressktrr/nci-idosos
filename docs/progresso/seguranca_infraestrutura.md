@@ -21,7 +21,7 @@
 | [ ] | RNF-SEG-15 | Confirmado | Não iniciado | — | — | — |
 | [ ] | RNF-SEG-16 | Confirmado | Não iniciado | — | — | — |
 | [ ] | RNF-SEG-17 | Confirmado | Não iniciado | — | — | — |
-| [ ] | RNF-SEG-18 | Confirmado | Parcial | — | — | Fontes ainda carregadas do Google Fonts (hospedar localmente) |
+| [ ] | RNF-SEG-18 | Confirmado | Parcial | core/tests/test_fontes.py | — | Fontes externas removidas: Poppins 700 e Questrial 400 servidas de static/vendor/fonts (@fontsource 5.3.0, OFL 1.1), sem Google Fonts; falta documentar a política de local de armazenamento/hospedagem dos dados na implantação |
 | [ ] | RN-SEG-01 | Confirmado | Não iniciado | — | — | — |
 | [x] | RN-SEG-02 | Confirmado | Implementado, sem commit | Todos os testes usam dados fictícios | — | — |
 

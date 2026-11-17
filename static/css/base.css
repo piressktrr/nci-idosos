@@ -1,4 +1,23 @@
 /* Identidade visual do protótipo NCI (Figma), sobre o Bootstrap 5. */
+
+/* Fontes servidas localmente (RNF-SEG-18): nenhuma requisição a terceiros.
+   Arquivos de @fontsource/poppins@5.3.0 e @fontsource/questrial@5.3.0, subconjunto latin,
+   licença SIL Open Font License 1.1 (static/vendor/fonts/LICENSE-*.txt). */
+@font-face {
+  font-family: "Poppins";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("../vendor/fonts/poppins-latin-700-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Questrial";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../vendor/fonts/questrial-latin-400-normal.woff2") format("woff2");
+}
+
 :root {
   --nci-verde: #5d9451;
   --nci-verde-escuro: #3f7535;
