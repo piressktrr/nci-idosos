@@ -165,6 +165,25 @@ Os mesmos testes rodam localmente (com o container no ar): veja "Testes e verifi
 
 Logs podem conter dados pessoais (ex.: endereços de páginas): trate-os com o mesmo cuidado dos backups.
 
+## Exportação de dados
+
+Os participantes podem ser exportados em CSV (abre direto no Excel: UTF-8 com BOM e separador `;`), com uma
+linha por pessoa: dados do cadastro, data de entrada e a situação social vigente no dia (RNF-SEG-11). Só
+contas com a permissão **"Pode exportar participantes"** exportam; o grupo Administrador já a tem, a Equipe
+não. Pela tela: botão **Exportar CSV** na lista de participantes. Pelo terminal, sem depender da interface:
+
+```powershell
+.\.venv\Scripts\python.exe manage.py exportar_participantes --usuario nome_do_administrador --saida participantes.csv
+```
+
+O comando recusa substituir um arquivo existente (use `--sobrescrever` para isso). Cada exportação, pela tela
+ou pelo terminal, fica registrada na auditoria (quem, quando e quantos participantes). Atividades e
+frequência ainda não têm exportação própria; para recuperar tudo, use o backup ([backup.md](backup.md)).
+
+> **LGPD:** o arquivo contém dados pessoais sensíveis (raça/cor, identidade de gênero, deficiência, endereço,
+> telefones). Guarde-o só em local com acesso restrito, não envie por e-mail ou aplicativo de mensagens sem
+> necessidade e **apague-o (inclusive da lixeira e da pasta Downloads) assim que terminar de usar**.
+
 ## Restaurar os dados
 
 Procedimento completo, com os comandos de backup, conferência e restauração: [backup.md](backup.md).

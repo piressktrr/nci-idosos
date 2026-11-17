@@ -14,7 +14,7 @@
 | [ ] | RNF-SEG-08 | Confirmado | Em análise | — | — | Finalidade de endereço, ensino médio e observação a confirmar com o NCI |
 | [ ] | RNF-SEG-09 | Confirmado | Não iniciado | — | — | Retenção/anonimização (Q9), inclusive dos dados na auditoria |
 | [ ] | RNF-SEG-10 | Confirmado | Documentado, sem teste de restauração real | docs/operacao/backup.md; pg_dump, `pg_restore --list` e restauração num banco de teste validados no container de desenvolvimento (17/11/2026) | — | Falta executar uma restauração de verdade no ambiente de produção para marcar [x]; frequência/retenção dependem de RNF-SEG-09 (Q9) |
-| [ ] | RNF-SEG-11 | Confirmado | Não iniciado | — | — | — |
+| [ ] | RNF-SEG-11 | Confirmado | Parcial: participantes exportáveis em CSV (UTF-8 com BOM, ";") pela lista (botão "Exportar CSV") e por `manage.py exportar_participantes`; permissão própria `participantes.exportar_participante` (só Administrador); cada exportação auditada (`RegistroExportacao`, só quantidade e formato) | participantes/tests/test_exportacao.py; docs/operacao/manutencao.md#exportação-de-dados | feature/seguranca-RNF-SEG-11 | Exportação de atividades/frequência fica com o dono do módulo de atividades; backup completo do banco em docs/operacao/backup.md (RNF-SEG-10) |
 | [ ] | RNF-SEG-12 | Confirmado | Documentado, sem teste de restauração real | docs/operacao/manutencao.md | — | Falta a equipe do NCI executar uma restauração de verdade e a transferência (checklist) para marcar [x]; forma de hospedagem ainda indefinida |
 | [x] | RNF-SEG-13 | Confirmado | Implementado, sem commit | Todos os testes usam dados fictícios | — | — |
 | [ ] | RNF-SEG-14 | Confirmado | Parcial, sem commit | — | — | Configuração por .env e CI com banco próprio; produção ainda não existe |

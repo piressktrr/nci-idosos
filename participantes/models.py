@@ -55,6 +55,9 @@ class Participante(ProtegidoPorAuditoria, models.Model):
         ordering = ["nome_completo", "pk"]
         verbose_name = "participante"
         verbose_name_plural = "participantes"
+        # RNF-SEG-11: exportação de todos os cadastros (dados sensíveis); o Administrador a recebe pelo
+        # core.perfis (todas as permissões do app), a Equipe não.
+        permissions = [("exportar_participante", "Pode exportar participantes")]
         indexes = [models.Index(fields=["data_nascimento"], name="participante_nascimento_idx")]
         constraints = [
             models.CheckConstraint(condition=models.Q(sexo__in=Sexo.values), name="participante_sexo_valido"),
@@ -241,6 +244,19 @@ class RegistroParticipante(EventoAuditoria):
     """Cadastro, correção e situação social do participante (RNF-SEG-07), na tabela única core.EventoAuditoria."""
 
     alvo, modelo_alvo = "participante", Participante
+
+    class Meta:
+        proxy = True
+        default_permissions = ()
+
+
+class RegistroExportacao(EventoAuditoria):
+    """Exportação dos participantes (RNF-SEG-11): o alvo é a conta que exportou.
+
+    Guarda só quantidade e formato; nenhum dado pessoal dos participantes vai para o evento.
+    """
+
+    alvo, modelo_alvo = "exportador", settings.AUTH_USER_MODEL
 
     class Meta:
         proxy = True

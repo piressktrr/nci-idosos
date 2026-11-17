@@ -3,12 +3,14 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.module_loading import import_string
 from django.views.decorators.http import require_http_methods
 
 from .auditoria import diferencas, historico
+from .exportacao import PERMISSAO_EXPORTAR, exportar_participantes_csv
 from .forms import ParticipanteForm, SituacaoSocialForm
 from .models import Participante, SituacaoSocial
 from .provedor import ProvedorParticipantes
@@ -72,6 +74,19 @@ def lista(request):
     termo = request.GET.get("q", "").strip()[:200]
     pagina = Paginator(pesquisar_participantes(termo), 20).get_page(request.GET.get("page"))
     return render(request, "participantes/lista.html", {"pagina": pagina, "termo": termo})
+
+
+@login_required
+@permission_required(PERMISSAO_EXPORTAR, raise_exception=True)
+@require_http_methods(["GET"])
+def exportar(request):
+    """RNF-SEG-11: todos os participantes em CSV, como download; o serviço autoriza de novo e audita."""
+    nome = f"participantes_{timezone.localdate():%Y-%m-%d}.csv"
+    # Dados sensíveis: nada de cache no navegador ou em proxies.
+    resposta = HttpResponse(content_type="text/csv; charset=utf-8", headers={
+        "Content-Disposition": f'attachment; filename="{nome}"', "Cache-Control": "no-store"})
+    exportar_participantes_csv(usuario=request.user, destino=resposta)
+    return resposta
 
 
 @login_required

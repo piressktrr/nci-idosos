@@ -13,7 +13,10 @@
     </div>
   </form>
   {% if termo %}<a href="{% url 'participantes:lista' %}">Limpar pesquisa</a>{% endif %}
-  {% if perms.participantes.add_participante %}<a class="btn btn-nci ms-auto" href="{% url 'participantes:cadastrar' %}">+ Novo Cadastro</a>{% endif %}
+  <div class="d-flex flex-wrap gap-2 ms-auto">
+    {% if perms.participantes.exportar_participante %}<a class="btn btn-nci-sec" href="{% url 'participantes:exportar' %}" download>Exportar CSV</a>{% endif %}
+    {% if perms.participantes.add_participante %}<a class="btn btn-nci" href="{% url 'participantes:cadastrar' %}">+ Novo Cadastro</a>{% endif %}
+  </div>
 </div>
 <p class="small mb-2" aria-live="polite">{% if termo %}{{ pagina.paginator.count }} encontrado{{ pagina.paginator.count|pluralize }} para “{{ termo }}”{% else %}{{ pagina.paginator.count }} participante{{ pagina.paginator.count|pluralize }} cadastrado{{ pagina.paginator.count|pluralize }}{% endif %}</p>
 {% if pagina %}
