@@ -184,3 +184,7 @@ cython_debug/
 .cursorindexingignore
 # Django collectstatic
 staticfiles/
+
+# Backups do banco (contêm dados pessoais; guardar fora do repositório)
+*.dump
+*.backup
