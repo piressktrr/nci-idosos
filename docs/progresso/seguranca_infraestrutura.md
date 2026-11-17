@@ -7,7 +7,7 @@
 | [ ] | RNF-SEG-01 | Confirmado | Não iniciado | — | — | — |
 | [ ] | RNF-SEG-02 | Confirmado | Não iniciado | — | — | — |
 | [x] | RNF-SEG-03 | Confirmado | Implementado, sem commit | participantes/tests/test_views.py (AcessoTests, CoreTests) | — | login_required em todas as telas |
-| [ ] | RNF-SEG-04 | Confirmado | Parcial, sem commit | core/tests/test_permissoes.py, participantes/tests/test_views.py | — | Permissões por ação testadas; faltam os grupos/perfis (RF-USR-02) |
+| [x] | RNF-SEG-04 | Confirmado | Implementado: permissões por ação + perfis Equipe e Administrador (core/perfis.py); só Administrador tem permissões de contas (auth.user/group) | core/tests/test_permissoes.py, core/tests/test_perfis.py, participantes/tests/test_views.py | feature/usuarios-RF-USR-02 | Telas próprias de administração de contas: RF-USR-03. Permissões de atividades nos grupos: migration do app atividades |
 | [ ] | RNF-SEG-05 | Confirmado | Implementado (padrão Django), sem teste específico | — | — | Hash PBKDF2 padrão; senha mínima de 10 caracteres |
 | [ ] | RNF-SEG-06 | Confirmado | Configurado, sem commit | `check --deploy` no CI | — | HTTPS/HSTS/proxy via .env; validar no ambiente de produção |
 | [ ] | RNF-SEG-07 | Confirmado | Parcial, sem commit | core/tests/test_auditoria.py, participantes/tests/test_services.py | — | Cadastros e frequências auditados e imutáveis; contas só pelo LogEntry do admin |

@@ -61,6 +61,24 @@ só o banco roda no Docker.
 
 O projeto usa o usuário padrão do Django (`auth.User`). Senhas precisam ter pelo menos 10 caracteres.
 
+## Perfis de acesso
+
+Há dois grupos, criados automaticamente a cada `migrate`:
+
+- **Equipe** (usuário comum): consulta, cadastra e corrige participantes.
+- **Administrador**: tudo de participantes e a administração de contas e grupos (ver, criar e alterar;
+  contas são desativadas, não excluídas).
+
+Para conceder um perfil, inclua a pessoa no grupo (pelo admin do Django, por enquanto; para abrir o admin
+a conta também precisa de "membro da equipe"/`is_staff`). Conta sem grupo não acessa nenhum módulo.
+Para recriar os grupos ou repor permissões mínimas removidas (por exemplo, em produção), rode:
+
+```powershell
+.\.venv\Scripts\python.exe manage.py garantir_perfis
+```
+
+O comando é idempotente e não remove permissões acrescentadas à mão aos grupos.
+
 ## Testes e verificações
 
 Os testes rodam no PostgreSQL do Docker (o Django cria e apaga um banco de teste), então o container
