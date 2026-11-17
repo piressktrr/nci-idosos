@@ -82,3 +82,12 @@ preencha no `.env` `DJANGO_ALLOWED_HOSTS`, `DJANGO_CSRF_TRUSTED_ORIGINS`, as var
 ```powershell
 .\.venv\Scripts\python.exe manage.py check --deploy
 ```
+
+## Operação
+
+Documentação para manter o sistema depois do projeto acadêmico, em [`docs/operacao/`](docs/operacao/):
+
+- [Backup e restauração](docs/operacao/backup.md) (RNF-SEG-10): o que copiar, `pg_dump`/`pg_restore`,
+  teste de restauração periódico e cuidados com a LGPD.
+- [Operação, manutenção e transferência](docs/operacao/manutencao.md) (RNF-SEG-12): arquitetura,
+  atualização do código, variáveis do `.env`, CI, logs e checklist de entrega ao NCI.
