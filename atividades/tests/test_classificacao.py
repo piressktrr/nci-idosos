@@ -241,12 +241,13 @@ class ClassificacaoTests(TestCase):
         self.assertEqual(ClassificacaoAtividade.objects.count(), 2)
 
     def test_painel_rejeita_invalido_e_nao_altera_catalogo_ao_atribuir(self):
+        quantidade_inicial = CategoriaFMR.objects.count()
         self.client.force_login(self.admin)
         url = reverse("atividades:categorias_fmr")
         dados = {"acao": "classificar", "atividade": self.atividade.pk, "categoria": 99999, "inicio": "2024-01-01"}
         resposta = self.client.post(url, dados)
         self.assertTrue(resposta.context["form_classificacao"].errors)
         self.assertFalse(ClassificacaoAtividade.objects.exists())
-        self.assertEqual(CategoriaFMR.objects.count(), 2)
+        self.assertEqual(CategoriaFMR.objects.count(), quantidade_inicial)
         self.client.force_login(self.equipe)
         self.assertEqual(self.client.post(url, dados).status_code, 403)
