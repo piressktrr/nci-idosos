@@ -91,7 +91,7 @@ class ReferenciaFMRTests(TestCase):
         self.assertContains(resposta, 'value="2024-02"')
         self.assertContains(resposta, "29/02/2024")
         self.assertContains(resposta, "Mês de referência: 02/2024")
-        self.assertContains(resposta, "indicadores do FMR serão disponibilizados")
+        self.assertContains(resposta, "Indicadores disponíveis")
 
     def test_mes_invalido_nao_vira_mes_atual_e_texto_escapado(self):
         resposta = self.client.get(self.url, {"mes": "<script>"})
@@ -100,14 +100,20 @@ class ReferenciaFMRTests(TestCase):
         self.assertContains(resposta, "&lt;script&gt;")
         self.assertNotContains(resposta, 'id="periodo-selecionado"')
 
-    def test_menu_cartao_e_consulta_sem_escrita_ou_dados_de_outros_modulos(self):
+    def test_menu_cartao_e_consulta_sem_escrita(self):
         with CaptureQueriesContext(connection) as consultas:
             resposta = self.client.get(self.url, {"mes": "2024-02"})
         self.assertEqual(resposta.status_code, 200)
         for consulta in consultas:
             sql = consulta["sql"].upper()
             self.assertTrue(sql.startswith("SELECT"), sql)
-            self.assertNotIn('"PARTICIPANTES_', sql)
-            self.assertNotIn('"ATIVIDADES_', sql)
         self.assertContains(resposta, 'href="' + self.url + '"')
         self.assertContains(self.client.get(reverse("inicio")), 'href="' + self.url + '"')
+
+    def test_selecao_do_periodo_isolada_nao_consulta_outros_modulos(self):
+        with CaptureQueriesContext(connection) as consultas:
+            self.consultar()
+        for consulta in consultas:
+            sql = consulta["sql"].upper()
+            self.assertNotIn('"PARTICIPANTES_', sql)
+            self.assertNotIn('"ATIVIDADES_', sql)

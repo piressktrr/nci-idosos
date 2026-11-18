@@ -4,6 +4,7 @@
 <h1>FMR de convivência</h1>
 <section aria-labelledby="selecionar-mes">
   <h2 id="selecionar-mes">Selecionar mês de referência</h2>
+  {{ form.non_field_errors }}
   <form method="get" class="row g-3 align-items-end">
     <div class="col-sm-auto"><div class="field mb-0">
       {{ form.mes.label_tag }}{{ form.mes }}{{ form.mes.errors }}
@@ -16,6 +17,22 @@
   <h2 id="periodo-selecionado">Mês de referência: {{ periodo.inicio|date:"m/Y" }}</h2>
   <p class="mb-0">Período: {{ periodo.inicio|date:"d/m/Y" }} a {{ periodo.fim|date:"d/m/Y" }}.</p>
 </section>
-<p>O mês está selecionado. Os indicadores do FMR serão disponibilizados nos próximos requisitos.</p>
+<section aria-labelledby="indicadores-disponiveis">
+  <h2 id="indicadores-disponiveis">Indicadores disponíveis</h2>
+  <p>Esta consulta reúne os indicadores de convivência disponíveis no sistema para o mês selecionado.</p>
+  {% if indicadores %}
+  <div class="nci-tabela verde table-responsive">
+    <table class="table table-hover">
+      <thead><tr><th scope="col">Indicador</th><th scope="col">Total no mês</th><th scope="col">Como é contado</th></tr></thead>
+      <tbody>{% for indicador in indicadores %}
+        <tr><th scope="row">{{ indicador.nome }}</th><td>{{ indicador.valor }}</td><td>{{ indicador.descricao }}</td></tr>
+      {% endfor %}</tbody>
+    </table>
+  </div>
+  <p class="mb-0">Os totais refletem os registros lançados até o momento. O FMR de convivência será ampliado nos próximos requisitos.</p>
+  {% else %}
+  <p class="mb-0" role="status">{{ aviso }}</p>
+  {% endif %}
+</section>
 {% endif %}
 {% endblock %}
