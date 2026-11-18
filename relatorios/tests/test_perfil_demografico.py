@@ -12,8 +12,8 @@ from django.urls import reverse
 from participantes.models import Movimentacao, MotivoDesligamento
 from participantes.movimentacoes import movimentar_participante
 from participantes.relatorios import imigrantes_refugiados_mensal
-from participantes.services import registrar_situacao_social
-from participantes.tests.test_models import novo_participante
+from participantes.services import cadastrar_participante, corrigir_participante, registrar_situacao_social
+from participantes.tests.test_models import dados_participante, novo_participante
 from relatorios.services import consultar_perfil_demografico_fmr
 
 
@@ -124,6 +124,7 @@ class PerfilDemograficoFMRTests(TestCase):
         self.assertIsNone(blocos["REGIAO"]["linhas"])
 
     def test_interface_exibe_tabelas_oficiais_pendencias_tooltips_e_referencia(self):
+        self.pessoa()
         resposta = self.client.get(self.url, {"mes": "2024-02"})
         self.assertContains(resposta, "Perfil demográfico dos participantes")
         self.assertContains(resposta, "em 29/02/2024")
@@ -137,6 +138,22 @@ class PerfilDemograficoFMRTests(TestCase):
         self.assertContains(resposta, 'title="Precisamos da lista de regiões')
         self.assertContains(resposta, 'aria-describedby="demografico-pendencia-REGIAO"')
         self.assertContains(resposta, 'tabindex="0"')
+
+    def test_fechamento_le_vigencia_e_preserva_mes_anterior(self):
+        entrada = date(2024, 1, 1)
+        cadastro = dados_participante(telefone_residencial="", observacao_encaminhamento="")
+        pessoa = cadastrar_participante(usuario=self.usuario, data_entrada=entrada, **cadastro)
+        corrigir_participante(usuario=self.usuario, participante_id=pessoa.pk, data_entrada=entrada,
+            perfil_vigente_desde=date(2024, 3, 1), **(cadastro | {"raca_cor": "preta", "identidade_genero": "agenero"}))
+        fevereiro = self.consultar()
+        marco = self.consultar(mes=3)
+        self.assertEqual(fevereiro["blocos"][0]["linhas"][0]["valores"], [0, 0, 1, 0, 0, 0, 1])
+        self.assertEqual(marco["blocos"][0]["linhas"][0]["valores"], [0, 1, 0, 0, 0, 0, 1])
+        self.assertEqual(fevereiro["blocos"][1]["linhas"][0]["valores"], [1])
+        self.assertEqual(marco["blocos"][1]["linhas"][2]["valores"], [1])
+        self.assertEqual([bloco["codigo"] for bloco in marco["blocos_pendentes"]], ["REGIAO"])
+        self.mover(pessoa, "desligamento", date(2024, 4, 30))
+        self.assertEqual(self.consultar(mes=4)["blocos"][1]["total"], 0)
 
     def test_origem_retorna_apenas_agregados_e_nenhuma_escrita(self):
         self.situacao(self.pessoa())

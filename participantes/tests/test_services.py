@@ -198,13 +198,13 @@ class CorrecaoTests(TestCase):
         self.assertEqual(correcao.novos["raca_cor"], "preta")
         self.assertEqual(correcao.anteriores["identidade_genero"], "cisgenero")
         self.assertEqual(correcao.novos["identidade_genero"], "agenero")
-        self.assertEqual(correcao.anteriores, cadastro.novos)
+        self.assertEqual(correcao.anteriores, cadastro.novos | {"perfil_vigente_desde": ENTRADA.isoformat()})
         alterados = {campo for campo in correcao.novos if correcao.novos[campo] != correcao.anteriores[campo]}
-        self.assertEqual(alterados, {"raca_cor", "identidade_genero"})
+        self.assertEqual(alterados, {"raca_cor", "identidade_genero", "perfil_vigente_desde"})
         self.participante.refresh_from_db()
         self.assertEqual(self.participante.raca_cor, "preta")
         rotulos = {rotulo for rotulo, _, _ in auditoria.diferencas(correcao)}
-        self.assertEqual(rotulos, {"Raça/cor autodeclarada", "Identidade de gênero"})
+        self.assertEqual(rotulos, {"Raça/cor autodeclarada", "Identidade de gênero", "Vigência do perfil no FMR"})
 
     def test_sem_mudanca_nao_grava_evento(self):
         # Valores equivalentes após a normalização (espaços e máscara) não são mudança.

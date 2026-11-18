@@ -1,5 +1,6 @@
 """Consultas agregadas do cadastro para o FMR; sem expor dados pessoais."""
 from calendar import monthrange
+from collections import Counter
 from datetime import date
 
 from django.core.exceptions import ValidationError
@@ -8,7 +9,7 @@ from django.db.models import Count, OuterRef, Q, Subquery
 from core.permissoes import autorizar
 from .categorias import OrigemEncaminhamento
 from .consultas import permanentes_em, situacoes_vigentes_em
-from .models import MotivoDesligamento, Movimentacao, Participante
+from .models import MotivoDesligamento, Movimentacao, Participante, PerfilDemografico
 from .regras import idade_em
 
 
@@ -74,6 +75,23 @@ def indicadores_sociais_mensal(*, usuario, ano, mes):
             "recebem_bpc": sum(s.recebe_bpc for s in valores),
         }
     return {"total_permanentes": len(permanentes), "sem_situacao": sem_situacao, "totais": totais}
+
+
+def perfil_demografico_em(*, usuario, data):
+    """Conta os perfis vigentes no fechamento, preservando meses com histórico incompleto."""
+    permanentes = permanentes_em(usuario=usuario, data_referencia=data)
+    if permanentes is None:
+        return None
+    perfis = list(PerfilDemografico.objects.filter(
+        participante_id__in=[int(pessoa.referencia) for pessoa in permanentes], vigente_desde__lte=data)
+        .order_by("participante_id", "-vigente_desde").distinct("participante_id")
+        .values_list("sexo", "raca_cor", "identidade_genero"))
+    if len(perfis) != len(permanentes):
+        return None
+    return {
+        "sexo_raca": Counter((sexo, raca) for sexo, raca, _ in perfis),
+        "genero": Counter(genero for _, _, genero in perfis),
+    }
 
 
 def imigrantes_refugiados_mensal(*, usuario, ano, mes):

@@ -156,34 +156,46 @@ def consultar_perfil_demografico_fmr(*, usuario, ano, mes):
     periodo = consultar_periodo_fmr(usuario=usuario, ano=ano, mes=mes)
     resultado = {"periodo": periodo, "aviso": "", "total_permanentes": None,
                  "imigrantes_refugiados": None, "sem_situacao": None,
-                 "pendencia_imigrantes": None, "blocos_pendentes": []}
+                 "pendencia_imigrantes": None, "blocos_pendentes": [], "blocos": []}
     try:
         autorizar(usuario, "participantes.view_participante")
     except PermissionDenied:
         resultado["aviso"] = "Seu perfil não possui permissão para consultar o perfil demográfico dos participantes."
         return resultado
-    resultado["blocos_pendentes"] = [
+    resultado["blocos"] = [
         {"codigo": "RACA-COR", "titulo": "Sexo por raça/cor", "total": None,
          "primeira_coluna": "Sexo", "colunas": ["Branca", "Preta", "Pardo", "Amarela", "Indígena", "Não informada", "Total"],
          "linhas": [{"rotulo": sexo, "valores": [None] * 7} for sexo in ("Feminino", "Masculino", "Total")],
          "aviso": "Falta histórico de sexo e raça/cor para calcular esta tabela.",
-         "explicacao": "As categorias do formulário FMR foram fornecidas pelo responsável. Precisamos disponibilizar "
-             "sexo e raça/cor vigentes no mês. O cadastro permite correções sem vigência própria. "
-             "O cadastro atual e a data da auditoria não substituem esse histórico; nenhum valor foi presumido."},
+         "explicacao": "Confirme a permanência e registre no cadastro de cada participante a data a partir da qual "
+             "sexo e raça/cor valiam, até o fechamento do mês."},
         {"codigo": "GENERO", "titulo": "Identidade de gênero", "total": None,
          "primeira_coluna": "Identidade de gênero", "colunas": ["Quantidade"],
          "linhas": [{"rotulo": genero, "valores": [None]} for genero in ("Cisgênero", "Transgênero", "Agênero", "Não declarado", "Total")],
          "aviso": "Falta histórico de identidade de gênero para calcular esta tabela.",
-         "explicacao": "As categorias oficiais são Cisgênero, Transgênero, Agênero e Não declarado. Precisamos que "
-             "o contrato de consulta represente essa autodeclaração com vigência no mês. "
-             "O cadastro já oferece as quatro opções oficiais, mas suas correções ainda não possuem vigência própria. "
-             "Não inferimos identidade de gênero pelo sexo nem reclassificamos meses anteriores pelo cadastro atual."},
+         "explicacao": "Confirme a permanência e registre no cadastro de cada participante a data a partir da qual "
+             "a identidade de gênero autodeclarada valia, até o fechamento do mês."},
         {"codigo": "REGIAO", "titulo": "Região de moradia", "linhas": None, "total": None,
          "aviso": "Faltam as regiões oficiais e o registro histórico da região de moradia.",
          "explicacao": "Precisamos da lista de regiões exigidas no FMR e de uma informação estruturada no cadastro, "
              "com data de vigência. O endereço livre não determina automaticamente a região; sem essa informação, "
              "as quantidades não são calculadas nem preenchidas com zero."},
     ]
+    perfil = integracao_participantes.consultar_sexo_raca_genero(usuario=usuario, data=periodo["fim"])
+    if perfil is not None:
+        por_sexo_raca, por_genero = perfil["sexo_raca"], perfil["genero"]
+        raca, genero, _ = resultado["blocos"]
+        codigos_raca = ("branca", "preta", "parda", "amarela", "indigena", "nao_informado")
+        feminino, masculino = ([por_sexo_raca[sexo, codigo] for codigo in codigos_raca] for sexo in ("F", "M"))
+        totais = [f + m for f, m in zip(feminino, masculino, strict=True)]
+        for linha, valores in zip(raca["linhas"], (feminino, masculino, totais), strict=True):
+            linha["valores"] = [*valores, sum(valores)]
+        raca.update(total=sum(totais), aviso="")
+        valores_genero = [por_genero[codigo] for codigo in ("cisgenero", "transgenero", "agenero", "nao_declarado")]
+        for linha, quantidade in zip(genero["linhas"], (*valores_genero, sum(valores_genero)), strict=True):
+            linha["valores"] = [quantidade]
+        genero.update(total=sum(valores_genero), aviso="")
+    resultado["blocos_pendentes"] = [bloco for bloco in resultado["blocos"] if bloco["aviso"]]
     dados = integracao_participantes.consultar_imigrantes_refugiados(usuario=usuario, ano=ano, mes=mes)
     if dados is None:
         resultado["pendencia_imigrantes"] = {

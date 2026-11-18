@@ -72,8 +72,8 @@ class CoberturaFMRTests(TestCase):
             dados = consultar_indicadores_fmr(usuario=self.usuario, ano=2024, mes=2)
         self.assertTrue(all(q["sql"].upper().startswith("SELECT") for q in consultas))
         campos = {c["campo"]: c for c in dados["campos_indisponiveis"]}
-        self.assertIn("Sexo por raça/cor", campos)
-        self.assertIn("Identidade de gênero", campos)
+        self.assertNotIn("Sexo por raça/cor", campos)
+        self.assertNotIn("Identidade de gênero", campos)
         self.assertIn("Região de moradia", campos)
         self.assertIn("Atendimento domiciliar e indicadores do segundo bloco do FMR", campos)
         self.assertNotIn("Situação social dos participantes", campos)

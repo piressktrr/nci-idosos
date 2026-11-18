@@ -4,14 +4,14 @@
   <p class="mb-0" role="status">{{ perfil_demografico.aviso }}</p>
   {% else %}
   <p>Referência: participantes que permanecem no serviço em {{ perfil_demografico.periodo.fim|date:"d/m/Y" }}. Afastados permanecem; desligados ficam fora dessa contagem.</p>
-  {% for bloco in perfil_demografico.blocos_pendentes %}
+  {% for bloco in perfil_demografico.blocos %}
   <div class="mb-4" aria-labelledby="demografico-{{ bloco.codigo }}">
     <h3 id="demografico-{{ bloco.codigo }}">{{ bloco.titulo }}</h3>
-    {% include "relatorios/_pendencia_demografica.html" with pendencia=bloco only %}
+    {% if bloco.aviso %}{% include "relatorios/_pendencia_demografica.html" with pendencia=bloco only %}{% endif %}
     {% if bloco.linhas %}
-    <p id="demografico-legenda-{{ bloco.codigo }}">— significa informação ainda não calculada, diferente de zero.</p>
+    {% if bloco.aviso %}<p id="demografico-legenda-{{ bloco.codigo }}">— significa informação ainda não calculada, diferente de zero.</p>{% endif %}
     <div class="nci-tabela verde table-responsive">
-      <table class="table table-hover" id="demografico-tabela-{{ bloco.codigo }}" aria-describedby="demografico-legenda-{{ bloco.codigo }}">
+      <table class="table table-hover" id="demografico-tabela-{{ bloco.codigo }}"{% if bloco.aviso %} aria-describedby="demografico-legenda-{{ bloco.codigo }}"{% endif %}>
         <caption>{{ bloco.titulo }} dos participantes que permanecem no mês.</caption>
         <thead><tr><th scope="col">{{ bloco.primeira_coluna }}</th>{% for coluna in bloco.colunas %}<th scope="col">{{ coluna }}</th>{% endfor %}</tr></thead>
         <tbody>{% for linha in bloco.linhas %}

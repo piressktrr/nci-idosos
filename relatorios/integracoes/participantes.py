@@ -20,6 +20,11 @@ def consultar_imigrantes_refugiados(*, usuario, ano, mes):
     return imigrantes_refugiados_mensal(usuario=usuario, ano=ano, mes=mes)
 
 
+def consultar_sexo_raca_genero(*, usuario, data):
+    from participantes.relatorios import perfil_demografico_em
+    return perfil_demografico_em(usuario=usuario, data=data)
+
+
 def consultar_ingressantes_encaminhamento(*, usuario, ano, mes):
     from participantes.relatorios import ingressantes_por_encaminhamento_mensal
     return ingressantes_por_encaminhamento_mensal(usuario=usuario, ano=ano, mes=mes)

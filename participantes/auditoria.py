@@ -6,7 +6,7 @@ from .models import RegistroParticipante
 
 PERMISSAO_HISTORICO = "participantes.change_participante"
 # Campos auditados que não são do Participante nem da SituacaoSocial (a entrada fica na Movimentacao).
-ROTULOS_EXTRAS = {"data_entrada": "Data de entrada"}
+ROTULOS_EXTRAS = {"data_entrada": "Data de entrada", "perfil_vigente_desde": "Vigência do perfil no FMR"}
 
 
 def registrar(*, participante, acao, usuario, novos, anteriores=None):
