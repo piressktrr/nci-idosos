@@ -5,6 +5,11 @@ from datetime import date
 from core.integracoes import ParticipanteResumo
 
 
+def consultar_desligamentos_por_motivo(*, usuario, ano, mes):
+    from participantes.relatorios import desligamentos_por_motivo_mensal
+    return desligamentos_por_motivo_mensal(usuario=usuario, ano=ano, mes=mes)
+
+
 def consultar_movimentacao_etaria(*, usuario, ano, mes):
     from participantes.relatorios import movimentacao_etaria_mensal
     return movimentacao_etaria_mensal(usuario=usuario, ano=ano, mes=mes)

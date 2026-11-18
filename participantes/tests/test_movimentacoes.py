@@ -35,6 +35,7 @@ class CicloParticipanteTests(TestCase):
         return {p.referencia for p in permanentes_em(usuario=self.equipe, data_referencia=data)}
 
     def test_catalogo_vazio_impede_desligamento_e_somente_admin_cadastra(self):
+        MotivoDesligamento.objects.all().delete()
         self.assertFalse(MotivoDesligamento.objects.exists())
         with self.assertRaises(ValidationError):
             self.mover("desligamento", (2, 1))
@@ -129,6 +130,7 @@ class CicloParticipanteTests(TestCase):
         self.assertEqual(RegistroCorrecaoFrequencia.objects.filter(frequencia=frequencia).count(), 2)
 
     def test_interface_motivos_movimentacao_permissoes_e_sem_escrita_get(self):
+        MotivoDesligamento.objects.all().delete()
         self.client.force_login(self.equipe)
         url = reverse("participantes:movimentar", args=[self.pessoa.pk])
         self.assertContains(self.client.get(url), "Não há motivos ativos cadastrados")

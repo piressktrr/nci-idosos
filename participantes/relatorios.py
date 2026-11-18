@@ -3,11 +3,30 @@ from calendar import monthrange
 from datetime import date
 
 from django.core.exceptions import ValidationError
-from django.db.models import OuterRef, Subquery
+from django.db.models import Count, OuterRef, Subquery
 
 from core.permissoes import autorizar
-from .models import Movimentacao, Participante
+from .models import MotivoDesligamento, Movimentacao, Participante
 from .regras import idade_em
+
+
+def desligamentos_por_motivo_mensal(*, usuario, ano, mes):
+    """Conta eventos pela data efetiva e descrição histórica, inclusive motivos inativos."""
+    autorizar(usuario, "participantes.view_participante")
+    if type(ano) is not int or type(mes) is not int or not 1 <= ano <= 9999 or not 1 <= mes <= 12:
+        raise ValidationError("Informe ano e mês válidos.")
+    inicio, fim = date(ano, mes, 1), date(ano, mes, monthrange(ano, mes)[1])
+    grupos = (Movimentacao.objects.filter(tipo="desligamento", data__range=(inicio, fim))
+              .values("motivo_id", "motivo_descricao").annotate(quantidade=Count("pk"))
+              .order_by("motivo_descricao", "motivo_id"))
+    linhas = [{"motivo_id": grupo["motivo_id"], "descricao": grupo["motivo_descricao"],
+               "quantidade": grupo["quantidade"]} for grupo in grupos]
+    registrados = {(linha["motivo_id"], linha["descricao"]) for linha in linhas}
+    for motivo in MotivoDesligamento.objects.filter(ativo=True).values("pk", "descricao"):
+        if (motivo["pk"], motivo["descricao"]) not in registrados:
+            linhas.append({"motivo_id": motivo["pk"], "descricao": motivo["descricao"], "quantidade": 0})
+    linhas.sort(key=lambda linha: (linha["descricao"], linha["motivo_id"]))
+    return {"linhas": linhas, "total": sum(linha["quantidade"] for linha in linhas)}
 
 
 def movimentacao_etaria_mensal(*, usuario, ano, mes):

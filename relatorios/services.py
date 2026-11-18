@@ -32,6 +32,7 @@ def consultar_indicadores_fmr(*, usuario, ano, mes):
     resultado = {"periodo": periodo, "indicadores": [], "aviso": ""}
     resultado["permanentes"] = consultar_permanentes_fmr(usuario=usuario, ano=ano, mes=mes)
     resultado["movimentacao_etaria"] = consultar_movimentacao_etaria_fmr(usuario=usuario, ano=ano, mes=mes)
+    resultado["desligamentos_motivo"] = consultar_desligamentos_motivo_fmr(usuario=usuario, ano=ano, mes=mes)
     try:
         frequencia = consultar_frequencia_mensal(usuario=usuario, ano=ano, mes=mes)
     except PermissionDenied:
@@ -82,6 +83,24 @@ def consultar_permanentes_fmr(*, usuario, ano, mes):
         }
     else:
         resultado.update(participantes=participantes, total=len(participantes))
+    return resultado
+
+
+def consultar_desligamentos_motivo_fmr(*, usuario, ano, mes):
+    """RF-FMR-06: saídas por motivo registrado no evento, sem reclassificação retroativa."""
+    periodo = consultar_periodo_fmr(usuario=usuario, ano=ano, mes=mes)
+    resultado = {"periodo": periodo, "linhas": [], "total": None, "pendencias": [], "aviso": ""}
+    try:
+        autorizar(usuario, "participantes.view_participante")
+    except PermissionDenied:
+        resultado["aviso"] = "Seu perfil não possui permissão para consultar os desligamentos por motivo."
+        return resultado
+    resultado.update(integracao_participantes.consultar_desligamentos_por_motivo(usuario=usuario, ano=ano, mes=mes))
+    if any(not linha["descricao"].strip() for linha in resultado["linhas"]):
+        resultado["pendencias"] = [{"codigo": "MOTIVO-HISTORICO",
+            "aviso": "Há desligamentos sem descrição histórica do motivo.",
+            "explicacao": "É necessário conferir a descrição do motivo na época desses desligamentos. "
+                "Eles estão incluídos no total, mas não foram reclassificados usando o nome atual do catálogo."}]
     return resultado
 
 
