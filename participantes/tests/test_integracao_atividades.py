@@ -37,7 +37,7 @@ PERMISSOES_ATIVIDADES = ("view_atividade", "view_aula", "view_inscricao", "view_
 
 def dados_participante(nome, nascimento=date(1952, 6, 20)):
     return dict(nome_completo=nome, data_nascimento=nascimento, sexo="M", raca_cor="branca",
-                identidade_genero="homem_cis", telefone_celular="(61) 91234-5678", telefone_residencial="",
+                identidade_genero="cisgenero", telefone_celular="(61) 91234-5678", telefone_residencial="",
                 origem_encaminhamento="cras", endereco="Quadra Fictícia 10, Casa 1", ensino_medio_completo=False,
                 observacao_encaminhamento="")
 

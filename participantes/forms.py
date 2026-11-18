@@ -79,6 +79,11 @@ class ParticipanteForm(forms.ModelForm):
         self.mostrar_confirmacao = mostrar_confirmacao
         entrada = self.instance.data_entrada if self.instance.pk else None
         self.fields["data_entrada"].initial = entrada or timezone.localdate()
+        from .categorias import IDENTIDADES_GENERO_LEGADAS
+        if self.instance.identidade_genero in IDENTIDADES_GENERO_LEGADAS:
+            self.fields["identidade_genero"].help_text = (
+                "O cadastro possui uma categoria anterior. Confirme a autodeclaração e selecione uma das opções do FMR."
+            )
         if not mostrar_confirmacao:
             # Só existe depois do alerta de duplicidade; antes disso, nunca confirma.
             del self.fields["confirmar_duplicidade"]

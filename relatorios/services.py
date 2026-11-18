@@ -131,10 +131,10 @@ def consultar_perfil_demografico_fmr(*, usuario, ano, mes):
         {"codigo": "GENERO", "titulo": "Identidade de gênero", "total": None,
          "primeira_coluna": "Identidade de gênero", "colunas": ["Quantidade"],
          "linhas": [{"rotulo": genero, "valores": [None]} for genero in ("Cisgênero", "Transgênero", "Agênero", "Não declarado", "Total")],
-         "aviso": "Faltam identidade de gênero nas categorias oficiais e histórico para calcular esta tabela.",
+         "aviso": "Falta histórico de identidade de gênero para calcular esta tabela.",
          "explicacao": "As categorias oficiais são Cisgênero, Transgênero, Agênero e Não declarado. Precisamos que "
-             "o cadastro e o contrato de consulta representem essa autodeclaração com vigência no mês. "
-             "O cadastro atual não oferece Agênero e Não declarado e usa outras opções sem correspondência oficial confirmada. "
+             "o contrato de consulta represente essa autodeclaração com vigência no mês. "
+             "O cadastro já oferece as quatro opções oficiais, mas suas correções ainda não possuem vigência própria. "
              "Não inferimos identidade de gênero pelo sexo nem reclassificamos meses anteriores pelo cadastro atual."},
         {"codigo": "REGIAO", "titulo": "Região de moradia", "linhas": None, "total": None,
          "aviso": "Faltam as regiões oficiais e o registro histórico da região de moradia.",

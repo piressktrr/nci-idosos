@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from core.models import EventoAuditoria, ProtegidoPorAuditoria
 
-from .categorias import (IdentidadeGenero, OrigemEncaminhamento, RacaCor, Sexo, StatusParticipante,
+from .categorias import (IDENTIDADES_GENERO_LEGADAS, IdentidadeGenero, OrigemEncaminhamento, RacaCor, Sexo, StatusParticipante,
                          TipoMovimentacao)
 from .regras import (celular_valido, chave_nome, data_minima_nascimento, faixa_etaria_fmr, formatar_telefone,
                      idade_em, normalizar_espacos, residencial_valido, so_digitos)
@@ -58,7 +58,7 @@ class Participante(ProtegidoPorAuditoria, models.Model):
         constraints = [
             models.CheckConstraint(condition=models.Q(sexo__in=Sexo.values), name="participante_sexo_valido"),
             models.CheckConstraint(condition=models.Q(raca_cor__in=RacaCor.values), name="participante_raca_cor_valida"),
-            models.CheckConstraint(condition=models.Q(identidade_genero__in=IdentidadeGenero.values),
+            models.CheckConstraint(condition=models.Q(identidade_genero__in=[*IdentidadeGenero.values, *IDENTIDADES_GENERO_LEGADAS]),
                                    name="participante_identidade_genero_valida"),
             models.CheckConstraint(condition=models.Q(status__in=StatusParticipante.values),
                                    name="participante_status_valido"),

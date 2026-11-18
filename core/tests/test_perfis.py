@@ -28,7 +28,7 @@ DADOS = {
     "data_nascimento": date(1951, 5, 20),
     "sexo": "F",
     "raca_cor": "parda",
-    "identidade_genero": "mulher_cis",
+    "identidade_genero": "cisgenero",
     "telefone_celular": "61912345678",
     "telefone_residencial": "",
     "origem_encaminhamento": "cras",

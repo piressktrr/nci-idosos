@@ -20,7 +20,7 @@ DADOS = {
     "data_nascimento": date(1950, 3, 10),
     "sexo": "F",
     "raca_cor": "parda",
-    "identidade_genero": "mulher_cis",
+    "identidade_genero": "cisgenero",
     "telefone_celular": "61912345678",
     "telefone_residencial": "",
     "origem_encaminhamento": "cras",
@@ -190,14 +190,14 @@ class CorrecaoTests(TestCase):
         self.assertEqual(len(eventos(self.participante)), 1)
 
     def test_audita_anteriores_e_novos(self):
-        self.corrigir(raca_cor="preta", identidade_genero="outra")
+        self.corrigir(raca_cor="preta", identidade_genero="agenero")
         cadastro, correcao = eventos(self.participante)
         self.assertEqual(correcao.acao, "correcao")
         self.assertEqual(correcao.usuario, self.usuario)
         self.assertEqual(correcao.anteriores["raca_cor"], "parda")
         self.assertEqual(correcao.novos["raca_cor"], "preta")
-        self.assertEqual(correcao.anteriores["identidade_genero"], "mulher_cis")
-        self.assertEqual(correcao.novos["identidade_genero"], "outra")
+        self.assertEqual(correcao.anteriores["identidade_genero"], "cisgenero")
+        self.assertEqual(correcao.novos["identidade_genero"], "agenero")
         self.assertEqual(correcao.anteriores, cadastro.novos)
         alterados = {campo for campo in correcao.novos if correcao.novos[campo] != correcao.anteriores[campo]}
         self.assertEqual(alterados, {"raca_cor", "identidade_genero"})

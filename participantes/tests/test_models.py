@@ -17,7 +17,7 @@ NASCIMENTO = date(1955, 4, 20)
 def dados_participante(**extras):
     """Cadastro fictício válido (RN-SEG-02)."""
     dados = dict(nome_completo="Zuleica Fictícia Teste", data_nascimento=NASCIMENTO, sexo=Sexo.FEMININO,
-                 raca_cor=RacaCor.PARDA, identidade_genero=IdentidadeGenero.MULHER_CIS,
+                 raca_cor=RacaCor.PARDA, identidade_genero=IdentidadeGenero.CISGENERO,
                  endereco="Rua Inventada, 123", ensino_medio_completo=False, telefone_celular="61900000001",
                  origem_encaminhamento=OrigemEncaminhamento.CRAS)
     dados.update(extras)
