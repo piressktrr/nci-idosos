@@ -17,6 +17,16 @@
   <h2 id="periodo-selecionado">Mês de referência: {{ periodo.inicio|date:"m/Y" }}</h2>
   <p class="mb-0">Período: {{ periodo.inicio|date:"d/m/Y" }} a {{ periodo.fim|date:"d/m/Y" }}.</p>
 </section>
+{% if avisos_consistencia %}
+<section class="alert alert-warning" aria-labelledby="avisos-consistencia">
+  <h2 id="avisos-consistencia">Valores para conferir</h2>
+  <ul class="mb-0">
+    {% for aviso in avisos_consistencia %}
+    <li><a href="#{{ aviso.secao }}">{{ aviso.campo }}</a> — {{ aviso.mensagem }}</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
 <section aria-labelledby="indicadores-disponiveis">
   <h2 id="indicadores-disponiveis">Indicadores disponíveis</h2>
   <p>Esta consulta reúne os indicadores de convivência disponíveis no sistema para o mês selecionado.</p>

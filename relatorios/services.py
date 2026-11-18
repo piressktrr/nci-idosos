@@ -13,6 +13,7 @@ from core.permissoes import autorizar
 from .integracoes import participantes as integracao_participantes
 from .permissoes import pode_consultar_fmr
 from .cobertura import identificar_campos_indisponiveis
+from .consistencia import verificar_consistencia
 
 
 def consultar_periodo_fmr(*, usuario, ano, mes):
@@ -42,19 +43,21 @@ def consultar_indicadores_fmr(*, usuario, ano, mes):
         frequencia = consultar_frequencia_mensal(usuario=usuario, ano=ano, mes=mes)
     except PermissionDenied:
         resultado["aviso"] = "Seu perfil não possui as permissões para consultar os indicadores de frequência."
-        return resultado | {"campos_indisponiveis": identificar_campos_indisponiveis(resultado)}
-    if frequencia["demonstracao"]:
-        resultado["aviso"] = "Os indicadores precisam da integração real de participantes; dados de demonstração não são utilizados no FMR."
-        return resultado | {"campos_indisponiveis": identificar_campos_indisponiveis(resultado)}
-    totais = frequencia["totais"]
-    resultado["indicadores"] = [
-        {"codigo": "aulas_realizadas", "nome": "Aulas realizadas", "valor": totais["aulas_realizadas"],
-         "descricao": "Aulas realizadas no mês, excluindo as canceladas."},
-        {"codigo": "participacoes", "nome": "Participações por presença", "valor": totais["presentes"],
-         "descricao": "Uma ocorrência por presença em aula; a mesma pessoa pode contar mais de uma vez no mês."},
-    ]
-    resultado["presencas"] = consultar_presencas_fmr(usuario=usuario, ano=ano, mes=mes)
-    return resultado | {"campos_indisponiveis": identificar_campos_indisponiveis(resultado)}
+    else:
+        if frequencia["demonstracao"]:
+            resultado["aviso"] = "Os indicadores precisam da integração real de participantes; dados de demonstração não são utilizados no FMR."
+        else:
+            totais = frequencia["totais"]
+            resultado["indicadores"] = [
+                {"codigo": "aulas_realizadas", "nome": "Aulas realizadas", "valor": totais["aulas_realizadas"],
+                 "descricao": "Aulas realizadas no mês, excluindo as canceladas."},
+                {"codigo": "participacoes", "nome": "Participações por presença", "valor": totais["presentes"],
+                 "descricao": "Uma ocorrência por presença em aula; a mesma pessoa pode contar mais de uma vez no mês."},
+            ]
+            resultado["presencas"] = consultar_presencas_fmr(usuario=usuario, ano=ano, mes=mes)
+    resultado["campos_indisponiveis"] = identificar_campos_indisponiveis(resultado)
+    resultado["avisos_consistencia"] = verificar_consistencia(resultado)
+    return resultado
 
 
 def consultar_permanentes_fmr(*, usuario, ano, mes):
