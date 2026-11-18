@@ -97,7 +97,8 @@ def cadastrar_participante(*, usuario, data_entrada, confirmar_duplicidade=False
     if set(dados) != set(CAMPOS_CADASTRO):
         raise ValidationError("Dados de cadastro incompletos ou inválidos.")
     participante = Participante(**dados, status=StatusParticipante.ATIVO)
-    entrada = Movimentacao(participante=participante, tipo=TipoMovimentacao.ENTRADA, data=data_entrada, usuario=autor)
+    entrada = Movimentacao(participante=participante, tipo=TipoMovimentacao.ENTRADA, data=data_entrada,
+                          usuario=autor, origem_entrada=participante.origem_encaminhamento)
     _validar(participante, entrada)
     _verificar_duplicidade(participante, confirmar_duplicidade)
     participante.save()
@@ -123,6 +124,7 @@ def corrigir_participante(*, usuario, participante_id, data_entrada, confirmar_d
                .order_by("-data", "-pk").first())
     anteriores = _dados(participante, entrada)
     if entrada is None:
+        # Entrada histórica ausente: não presumir sua origem a partir do cadastro atual.
         entrada = Movimentacao(participante=participante, tipo=TipoMovimentacao.ENTRADA, usuario=autor)
     else:
         entrada.participante = participante  # a validação usa a data de nascimento corrigida

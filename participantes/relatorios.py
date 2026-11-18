@@ -6,8 +6,32 @@ from django.core.exceptions import ValidationError
 from django.db.models import Count, OuterRef, Subquery
 
 from core.permissoes import autorizar
+from .categorias import OrigemEncaminhamento
 from .models import MotivoDesligamento, Movimentacao, Participante
 from .regras import idade_em
+
+
+def ingressantes_por_encaminhamento_mensal(*, usuario, ano, mes):
+    """Origem registrada na entrada; correções do cadastro não reclassificam o ingresso."""
+    autorizar(usuario, "participantes.view_participante")
+    if type(ano) is not int or type(mes) is not int or not 1 <= ano <= 9999 or not 1 <= mes <= 12:
+        raise ValidationError("Informe ano e mês válidos.")
+    if Participante.objects.exclude(movimentacoes__tipo="entrada").exists():
+        return None
+    inicio, fim = date(ano, mes, 1), date(ano, mes, monthrange(ano, mes)[1])
+    grupos = (Movimentacao.objects.filter(tipo="entrada", data__range=(inicio, fim))
+              .values("origem_entrada").annotate(quantidade=Count("pk")).order_by("origem_entrada"))
+    contagens = {grupo["origem_entrada"]: grupo["quantidade"] for grupo in grupos}
+    sem_origem = contagens.get("", 0)
+    linhas = [{"codigo": codigo, "origem": rotulo, "quantidade": contagens.get(codigo, 0)}
+              for codigo, rotulo in OrigemEncaminhamento.choices if codigo != OrigemEncaminhamento.OUTRA]
+    total = sum(linha["quantidade"] for linha in linhas)
+    if sem_origem:
+        for linha in linhas:
+            linha["quantidade"] = None
+    return {"linhas": linhas, "total": None if sem_origem else total,
+            "total_ingressantes": sum(contagens.values()), "sem_origem": sem_origem,
+            "outras_origens": None if sem_origem else contagens.get(OrigemEncaminhamento.OUTRA, 0)}
 
 
 def desligamentos_por_motivo_mensal(*, usuario, ano, mes):

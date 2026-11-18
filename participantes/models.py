@@ -212,6 +212,8 @@ class Movimentacao(models.Model):
     tipo = models.CharField("tipo", max_length=20, choices=TipoMovimentacao.choices)
     motivo = models.ForeignKey(MotivoDesligamento, null=True, blank=True, on_delete=models.PROTECT)
     motivo_descricao = models.CharField(max_length=150, blank=True, default="", editable=False)
+    origem_entrada = models.CharField("origem no ingresso", max_length=20,
+        choices=OrigemEncaminhamento.choices, blank=True, default="", editable=False)
     data = models.DateField("data")
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+",
                                 verbose_name="registrado por")
@@ -230,6 +232,10 @@ class Movimentacao(models.Model):
             # Retornos não geram nova entrada (RN-PAR-08).
             models.UniqueConstraint(fields=["participante"], condition=models.Q(tipo=TipoMovimentacao.ENTRADA),
                                     name="movimentacao_uma_entrada"),
+            models.CheckConstraint(condition=models.Q(origem_entrada__in=[*OrigemEncaminhamento.values, ""]),
+                                   name="movimentacao_origem_valida"),
+            models.CheckConstraint(condition=models.Q(tipo="entrada") | models.Q(origem_entrada=""),
+                                   name="movimentacao_origem_so_entrada"),
         ]
 
     def __str__(self):
