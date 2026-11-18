@@ -14,10 +14,10 @@ from atividades.models import Atividade, CategoriaFMR
 from atividades.services import (cadastrar_atividade, cadastrar_horario, inscrever_participante,
                                  registrar_aula, registrar_frequencias)
 from participantes.categorias import OrigemEncaminhamento, RacaCor
-from participantes.models import MotivoDesligamento, Participante
+from participantes.models import MotivoDesligamento, Participante, PerfilDemografico, RegistroParticipante
 from participantes.movimentacoes import movimentar_participante
 from participantes.provedor import ProvedorParticipantes
-from participantes.services import cadastrar_participante, registrar_situacao_social
+from participantes.services import CAMPOS_DEMOGRAFICOS, cadastrar_participante, registrar_situacao_social
 
 
 INICIO = date(2026, 10, 1)
@@ -116,6 +116,20 @@ def realizar_chamadas(autor, oficinas, sorteio):
             registrar_frequencias(usuario=autor, atividade_id=atividade.pk, aula_id=aula.pk, registros=registros)
 
 
+def completar_perfis_da_carga(autor):
+    """Recupera a vigência original dos exemplos criados antes da migration demográfica."""
+    cadastros = RegistroParticipante.objects.filter(acao="cadastro", usuario=autor)
+    for cadastro in cadastros:
+        dados = cadastro.novos
+        if " Exemplo " not in dados["nome_completo"]:
+            raise CommandError("A conta da carga contém cadastros fora do cenário fictício.")
+        PerfilDemografico.objects.get_or_create(
+            participante_id=cadastro.alvo_id,
+            vigente_desde=date.fromisoformat(dados["data_entrada"]),
+            defaults={campo: dados[campo] for campo in CAMPOS_DEMOGRAFICOS},
+        )
+
+
 class Command(BaseCommand):
     help = "Carrega exemplos no banco local nci_fmr_demonstracao após migrate. Consulte o FMR de 2026-10."
 
@@ -125,8 +139,10 @@ class Command(BaseCommand):
         if not settings.DEBUG or db["NAME"] != BANCO or db["HOST"] not in ("localhost", "127.0.0.1", "::1"):
             raise CommandError(f"Use DEBUG local e POSTGRES_DB={BANCO}.")
         usuarios = get_user_model().objects
-        if usuarios.filter(username="carga_ficticia_fmr").exists():
-            self.stdout.write("Cenário já carregado. Consulte outubro de 2026.")
+        autor = usuarios.filter(username="carga_ficticia_fmr").first()
+        if autor is not None:
+            completar_perfis_da_carga(autor)
+            self.stdout.write("Cenário fictício atualizado. Consulte outubro de 2026.")
             return
         if usuarios.exists() or Participante.objects.exists() or Atividade.objects.exists():
             raise CommandError("A primeira carga requer um banco de demonstração vazio e migrado.")
