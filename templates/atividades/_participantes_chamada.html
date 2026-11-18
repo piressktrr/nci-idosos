@@ -1,6 +1,6 @@
   {% if participantes %}<div class="table-scroll"><table>
     <thead><tr><th scope="col">Nº</th><th scope="col">Participante</th><th scope="col">Presente</th><th scope="col">Ausente</th><th scope="col">Ausente justificado</th></tr></thead>
-    <tbody>{% for participante in participantes %}<tr><td>{{ forloop.counter }}</td><th scope="row">{{ participante.nome }}{% if not participante.disponivel %} — confira o cadastro antes da chamada{% endif %}</th>
+    <tbody>{% for participante in participantes %}<tr><td>{{ forloop.counter }}</td><th scope="row">{{ participante.nome }}{% if participante.afastado %}<small class="d-block">Afastado: ausências justificadas automaticamente</small>{% endif %}{% if not participante.disponivel %} — confira o cadastro antes da chamada{% endif %}</th>
       {% if not pode_ver_frequencia %}<td colspan="3">—</td>
       {% elif participante.frequencia %}
         <td><input type="radio" disabled aria-label="Presente — {{ participante.nome }}" {% if participante.frequencia.situacao == 'presente' %}checked{% endif %}></td>

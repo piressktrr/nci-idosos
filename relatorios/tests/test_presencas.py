@@ -166,7 +166,6 @@ class PresencasFMRTests(TestCase):
         self.assertIsNone(resposta.context["presencas"]["media_diaria"])
         for consulta in consultas:
             self.assertTrue(consulta["sql"].upper().startswith("SELECT"), consulta["sql"])
-            self.assertNotRegex(consulta["sql"].upper(), r'(?:FROM|JOIN) "PARTICIPANTES_')
 
     def test_interface_sem_aulas_preserva_mes_e_restringe_consulta(self):
         self.client.force_login(self.usuario)

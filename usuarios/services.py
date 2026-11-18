@@ -4,7 +4,7 @@ Só administradores (`core.perfis.e_administrador`) usam estes serviços. Cada g
 junto com o seu evento `RegistroConta`. A senha nunca vai para a auditoria (nem o hash): o evento "senha" só
 registra que ela foi redefinida.
 
-Fora do escopo por estarem pendentes: desativar/reativar conta (RF-USR-04) e recuperação de acesso (RF-USR-05).
+Recuperação de acesso (RF-USR-05) permanece pendente. Desativação autorizada pelo responsável.
 """
 
 from django.contrib.auth import get_user_model
@@ -127,6 +127,7 @@ def corrigir_colaborador(*, usuario, conta_id, first_name, last_name, email, per
     """
     autor = autorizar_administrador(usuario)
     Usuario = get_user_model()
+    Group.objects.select_for_update().get(name=GRUPO_ADMINISTRADOR)
     conta = Usuario.objects.select_for_update().get(pk=conta_id)
     perfil_atual = perfil_de(conta)
     anteriores = _dados(conta, perfil_atual)
@@ -166,4 +167,33 @@ def definir_senha(*, usuario, conta_id, senha):
     conta.set_password(senha)
     conta.save(update_fields=["password"])
     _registrar(conta=conta, acao="senha", autor=autor, novos={"senha": "redefinida"})
+    return conta
+
+
+@transaction.atomic
+def alterar_situacao_conta(*, usuario, conta_id, ativo):
+    """Desativa/reativa preservando ações e revogando as sessões da conta desativada."""
+    from django.contrib.sessions.models import Session
+    from django.utils import timezone
+
+    autorizar_administrador(usuario)
+    if type(ativo) is not bool:
+        raise ValidationError("Informe uma situação válida.")
+    Group.objects.select_for_update().get(name=GRUPO_ADMINISTRADOR)
+    conta = get_user_model().objects.select_for_update().get(pk=conta_id)
+    autor = autorizar_administrador(usuario)
+    if conta.pk == autor.pk and not ativo:
+        raise ValidationError("Você não pode desativar a própria conta.")
+    anterior = conta.is_active
+    if anterior == ativo:
+        return conta
+    conta.is_active = ativo
+    garantir_administrador_restante(conta, perfil_de(conta))
+    conta.save(update_fields=["is_active"])
+    if not ativo:
+        for sessao in Session.objects.filter(expire_date__gt=timezone.now()).iterator():
+            if str(sessao.get_decoded().get("_auth_user_id")) == str(conta.pk):
+                sessao.delete()
+    _registrar(conta=conta, acao="ativacao" if ativo else "desativacao", autor=autor,
+               anteriores={"is_active": anterior}, novos={"is_active": ativo})
     return conta

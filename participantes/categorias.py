@@ -44,17 +44,21 @@ class OrigemEncaminhamento(models.TextChoices):
 
 
 class StatusParticipante(models.TextChoices):
-    """D13: status do protótipo. Provisório até o NCI definir afastado/inativo/cancelado (RN-PAR-09, P02)
-    e até existir o desligamento com motivo (RF-PAR-07)."""
+    """Situação operacional; afastamento e desligamento definidos pelo responsável.
+
+    Inativo/cancelado são opções legadas ainda sem equivalência de negócio.
+    """
     ATIVO = "ativo", "Ativo"
     INATIVO = "inativo", "Inativo"
     CANCELADO = "cancelado", "Cancelado"
+    DESLIGADO = "desligado", "Desligado"
+    AFASTADO = "afastado", "Afastado"
 
 
 class TipoMovimentacao(models.TextChoices):
-    """Eventos de entrada e saída do participante no serviço (RF-PAR-07, 08 e 10).
-
-    Por enquanto só a entrada (Q5: o cadastro registra a data de entrada). O desligamento depende da lista de
-    motivos do FMR (Q3, RF-PAR-07) e a reativação de como ela entra na equação do FMR (Q4, RF-PAR-08, RN-PAR-08).
-    """
+    """Eventos por vigência; somente entrada é ingresso, retornos preservam a identidade."""
     ENTRADA = "entrada", "Entrada"
+    DESLIGAMENTO = "desligamento", "Desligamento"
+    REATIVACAO = "reativacao", "Reativação"
+    AFASTAMENTO = "afastamento", "Afastamento"
+    RETORNO = "retorno", "Retorno de afastamento"

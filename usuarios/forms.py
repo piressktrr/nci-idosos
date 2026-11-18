@@ -71,3 +71,8 @@ class SenhaForm(_ConfirmacaoSenhaMixin, forms.Form):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         aplicar_bootstrap(self)
+
+
+class SituacaoContaForm(forms.Form):
+    ativo = forms.TypedChoiceField(label="Situação desejada", choices=(("0", "Inativo"), ("1", "Ativo")),
+                                  coerce=lambda valor: valor == "1")

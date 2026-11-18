@@ -45,8 +45,7 @@ class Participante(ProtegidoPorAuditoria, models.Model):
                                              choices=OrigemEncaminhamento.choices)
     observacao_encaminhamento = models.TextField("observação sobre o encaminhamento", max_length=1000,
                                                  blank=True, default="")
-    # D13: provisório e só leitura nas telas; todo cadastro nasce ativo e não há como mudar o status enquanto o NCI
-    # não definir afastado/inativo/cancelado (RN-PAR-09, P02) nem os motivos do desligamento (RF-PAR-07, Q3).
+    # Situação somente pelos serviços de movimentação, nunca por edição direta do cadastro.
     status = models.CharField("status", max_length=10, choices=StatusParticipante.choices,
                               default=StatusParticipante.ATIVO)
     cadastrado_em = models.DateTimeField("cadastrado em", auto_now_add=True)
@@ -195,15 +194,24 @@ class SituacaoSocial(models.Model):
         return cls.objects.filter(participante=participante, vigente_desde__lte=data).order_by("-vigente_desde").first()
 
 
-class Movimentacao(models.Model):
-    """Entradas e saídas do participante no serviço (RF-PAR-10); o cadastro registra a entrada (Q5).
+class MotivoDesligamento(ProtegidoPorAuditoria, models.Model):
+    descricao = models.CharField("descrição", max_length=150, unique=True)
+    ativo = models.BooleanField(default=True)
 
-    Só a entrada por enquanto: desligamento (RF-PAR-07) depende da Q3 e reativação (RF-PAR-08) da Q4.
-    Não é alvo de auditoria: a data de entrada é auditada no evento do participante (cadastro e correção).
-    """
+    class Meta:
+        ordering = ["descricao", "pk"]
+
+    def __str__(self):
+        return self.descricao
+
+
+class Movimentacao(models.Model):
+    """Histórico de entrada, desligamento, reativação e afastamento, auditado no participante."""
 
     participante = models.ForeignKey(Participante, on_delete=models.PROTECT, related_name="movimentacoes")
     tipo = models.CharField("tipo", max_length=20, choices=TipoMovimentacao.choices)
+    motivo = models.ForeignKey(MotivoDesligamento, null=True, blank=True, on_delete=models.PROTECT)
+    motivo_descricao = models.CharField(max_length=150, blank=True, default="", editable=False)
     data = models.DateField("data")
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+",
                                 verbose_name="registrado por")
@@ -216,8 +224,10 @@ class Movimentacao(models.Model):
         constraints = [
             models.CheckConstraint(condition=models.Q(tipo__in=TipoMovimentacao.values),
                                    name="movimentacao_tipo_valido"),
-            # Sem desligamento e reativação, cada pessoa entra uma única vez. Rever com a Q3/Q4: reingresso após
-            # desligamento pode ser nova entrada; reativação não conta como entrada (RN-PAR-08).
+            models.CheckConstraint(condition=(models.Q(tipo="desligamento", motivo__isnull=False)
+                | (~models.Q(tipo="desligamento") & models.Q(motivo__isnull=True, motivo_descricao=""))),
+                name="movimentacao_motivo_coerente"),
+            # Retornos não geram nova entrada (RN-PAR-08).
             models.UniqueConstraint(fields=["participante"], condition=models.Q(tipo=TipoMovimentacao.ENTRADA),
                                     name="movimentacao_uma_entrada"),
         ]
@@ -241,6 +251,14 @@ class RegistroParticipante(EventoAuditoria):
     """Cadastro, correção e situação social do participante (RNF-SEG-07), na tabela única core.EventoAuditoria."""
 
     alvo, modelo_alvo = "participante", Participante
+
+    class Meta:
+        proxy = True
+        default_permissions = ()
+
+
+class RegistroMotivoDesligamento(EventoAuditoria):
+    alvo, modelo_alvo = "motivo_desligamento", MotivoDesligamento
 
     class Meta:
         proxy = True

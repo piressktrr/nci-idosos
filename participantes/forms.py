@@ -63,7 +63,7 @@ class ParticipanteForm(forms.ModelForm):
         fields = ("nome_completo", "endereco", "identidade_genero", "origem_encaminhamento",
                   "observacao_encaminhamento", "telefone_residencial", "telefone_celular", "data_nascimento",
                   "raca_cor", "sexo", "ensino_medio_completo")
-        # Sem "status": só leitura até RN-PAR-09/P02 e o desligamento com motivo (RF-PAR-07, Q3).
+        # Sem status: desligamento, reativação e afastamento passam pelos serviços de movimentação.
         labels = {"telefone_residencial": "Telefone fixo", "raca_cor": "Raça/cor"}
         field_classes = {"telefone_celular": TelefoneField, "telefone_residencial": TelefoneField}
         widgets = {

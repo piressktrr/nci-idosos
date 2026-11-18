@@ -34,6 +34,35 @@
   <p class="mb-0" role="status">{{ aviso }}</p>
   {% endif %}
 </section>
+{% if permanentes %}
+<section aria-labelledby="participantes-permanecem">
+  <h2 id="participantes-permanecem">Participantes que permanecem no serviço</h2>
+  <p>Referência: último dia do mês selecionado, {{ permanentes.data_referencia|date:"d/m/Y" }}.</p>
+  {% if permanentes.pendencia %}
+  <div class="alert alert-warning mb-0">
+    <span tabindex="0" title="{{ permanentes.pendencia.explicacao }}" aria-describedby="explicacao-permanentes-pendentes" style="cursor: help;">{{ permanentes.pendencia.aviso }}</span>
+    <small class="d-block">Passe o mouse sobre o aviso para ver quais informações estão faltando.</small>
+    <span id="explicacao-permanentes-pendentes" class="visually-hidden">{{ permanentes.pendencia.explicacao }}</span>
+  </div>
+  {% elif permanentes.aviso %}
+  <p class="mb-0" role="status">{{ permanentes.aviso }}</p>
+  {% else %}
+  <p><strong>Total de participantes que permanecem:</strong> {{ permanentes.total }}.</p>
+  {% if permanentes.participantes %}
+  <div class="nci-tabela verde table-responsive">
+    <table class="table table-hover">
+      <thead><tr><th scope="col">Participante</th></tr></thead>
+      <tbody>{% for participante in permanentes.participantes %}
+        <tr><td>{{ participante.nome }}</td></tr>
+      {% endfor %}</tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="mb-0">Nenhum participante permanece no serviço nesta data.</p>
+  {% endif %}
+  {% endif %}
+</section>
+{% endif %}
 {% if presencas %}
 <section aria-labelledby="presencas-por-data">
   <h2 id="presencas-por-data">Presenças por data</h2>

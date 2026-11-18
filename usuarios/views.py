@@ -11,6 +11,8 @@ from .consultas import ACOES, diferencas, historico, pesquisar_colaboradores
 from .decorators import administrador_required
 from .forms import ColaboradorForm, NovoColaboradorForm, SenhaForm
 from .services import cadastrar_colaborador, corrigir_colaborador, definir_senha, perfil_de
+from .services import alterar_situacao_conta
+from .forms import SituacaoContaForm
 
 
 def _aplicar_erro(form, erro):
@@ -88,3 +90,20 @@ def senha(request, conta_id):
             messages.success(request, f"Nova senha definida para {conta.get_username()}.")
             return redirect("usuarios:editar", conta_id=conta.pk)
     return render(request, "usuarios/senha.html", {"form": form, "conta": conta})
+
+
+@administrador_required
+@require_http_methods(["GET", "POST"])
+def situacao(request, conta_id):
+    conta = get_object_or_404(get_user_model(), pk=conta_id)
+    form = SituacaoContaForm(request.POST if request.method == "POST" else None,
+                       initial={"ativo": "0" if conta.is_active else "1"})
+    if request.method == "POST" and form.is_valid():
+        try:
+            alterar_situacao_conta(usuario=request.user, conta_id=conta.pk, **form.cleaned_data)
+        except ValidationError as erro:
+            form.add_error(None, erro.messages)
+        else:
+            messages.success(request, "Situação da conta atualizada; histórico preservado.")
+            return redirect("usuarios:editar", conta_id=conta.pk)
+    return render(request, "usuarios/situacao.html", {"form": form, "conta": conta})

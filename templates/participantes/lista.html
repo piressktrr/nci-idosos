@@ -2,6 +2,7 @@
 {% block title %}Participantes · NCI Idade Dourada{% endblock %}
 {% block content %}
 <h1>Gestão de Participantes</h1>
+{% if administrador %}<p><a class="btn btn-outline-secondary" href="{% url 'participantes:motivos_desligamento' %}">Administrar motivos de desligamento</a></p>{% endif %}
 <div class="d-flex flex-wrap align-items-center gap-3 my-3">
   <form method="get" role="search" aria-label="Pesquisar participantes" class="flex-grow-1" style="max-width: 420px">
     <div class="input-group nci-busca">

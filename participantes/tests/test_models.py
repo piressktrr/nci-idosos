@@ -155,7 +155,7 @@ class ParticipantePersistenciaTests(TestCase):
         self.assertEqual(participante.endereco, "Rua Outra Inventada, 9")
 
     def test_banco_rejeita_valores_fora_das_choices(self):
-        invalidos = {"sexo": "X", "raca_cor": "azul", "identidade_genero": "nenhuma", "status": "desligado",
+        invalidos = {"sexo": "X", "raca_cor": "azul", "identidade_genero": "nenhuma", "status": "ilegal",
                      "origem_encaminhamento": "escola"}
         for campo, valor in invalidos.items():
             with self.subTest(campo=campo):
@@ -252,10 +252,10 @@ class MovimentacaoTests(TestCase):
 
     def test_tipo_fora_das_choices_e_rejeitado(self):
         with self.assertRaises(ValidationError) as contexto:
-            self.nova(tipo="desligamento").full_clean()
+            self.nova(tipo="inexistente").full_clean()
         self.assertIn("tipo", contexto.exception.message_dict)
         with self.assertRaises(IntegrityError), transaction.atomic():
-            self.nova(tipo="desligamento").save()
+            self.nova(tipo="inexistente").save()
 
     def test_entrada_e_data_entrada_do_participante(self):
         self.assertIsNone(self.participante.entrada)

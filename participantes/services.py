@@ -9,8 +9,7 @@ from .auditoria import registrar
 from .categorias import StatusParticipante, TipoMovimentacao
 from .models import Movimentacao, Participante, SituacaoSocial, chave_busca
 
-# Sem "status": todo cadastro nasce ativo e o status fica só leitura até a definição de afastado/inativo/cancelado
-# (RN-PAR-09, P02) e dos motivos do desligamento (RF-PAR-07, Q3). A data de entrada (Q5) vai à parte, na Movimentacao.
+# Status é alterado somente no serviço de movimentações. Entrada fica na Movimentacao.
 CAMPOS_CADASTRO = ("nome_completo", "data_nascimento", "sexo", "raca_cor", "identidade_genero",
                    "telefone_celular", "telefone_residencial", "origem_encaminhamento",
                    "endereco", "ensino_medio_completo", "observacao_encaminhamento")
@@ -130,6 +129,11 @@ def corrigir_participante(*, usuario, participante_id, data_entrada, confirmar_d
     for campo, valor in dados.items():
         setattr(participante, campo, valor)
     entrada.data = data_entrada
+    posteriores = participante.movimentacoes.exclude(tipo=TipoMovimentacao.ENTRADA)
+    if posteriores.filter(data__lt=data_entrada).exists():
+        raise ValidationError({"data_entrada": "A entrada não pode ser posterior a desligamentos ou reativações registrados."})
+    if posteriores.filter(data__lt=participante.data_nascimento).exists():
+        raise ValidationError({"data_nascimento": "O nascimento não pode ser posterior a movimentações registradas."})
     _validar(participante, entrada)
     if _dados(participante, entrada) == anteriores:
         return participante

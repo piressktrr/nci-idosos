@@ -13,7 +13,7 @@ from ..models import Atividade
 
 
 class EscolherAtividadeForm(forms.Form):
-    atividade = forms.ModelChoiceField(label="Atividade", queryset=Atividade.objects.all(), empty_label="Escolha a atividade")
+    atividade = forms.ModelChoiceField(label="Atividade", queryset=Atividade.objects.filter(ativa=True), empty_label="Escolha a atividade")
 
 
 @login_required
@@ -24,10 +24,15 @@ def nova_chamada(request):
     atividade, participantes, demonstracao = None, [], False
     horarios = []
     indisponivel = False
+    from datetime import date
+    try:
+        data_referencia = date.fromisoformat(request.POST.get("data", request.GET.get("data", timezone.localdate().isoformat())))
+    except (TypeError, ValueError):
+        data_referencia = timezone.localdate()
     if selecao.is_bound and selecao.is_valid():
         try:
             atividade, participantes, demonstracao = preparar_chamada(
-                usuario=request.user, atividade_id=selecao.cleaned_data["atividade"].pk)
+                usuario=request.user, atividade_id=selecao.cleaned_data["atividade"].pk, data=data_referencia)
         except Atividade.DoesNotExist as erro:
             raise Http404 from erro
         except ImproperlyConfigured:
@@ -36,6 +41,8 @@ def nova_chamada(request):
             horarios = list(atividade.horarios.values("pk", "dia_semana", "inicio", "fim"))
     dados = request.POST if request.method == "POST" else None
     form_aula = AulaForm(dados, horarios=horarios)
+    if request.method == "GET":
+        form_aula.initial["data"] = data_referencia
     form = ChamadaForm(dados, participantes=participantes)
     if request.method == "POST":
         validos = [selecao.is_valid(), form_aula.is_valid(), form.is_valid()]

@@ -75,6 +75,7 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 NCI_PARTICIPANTES_PROVIDER = 'participantes.provedor.ProvedorParticipantes'
 # RF-PAR-10: frequência do participante no detalhe, lida de atividades sem participantes importá-lo (vazio = sem cartão).
 NCI_CONSULTA_FREQUENCIA_PARTICIPANTE = 'atividades.consultas_participante.frequencia_do_participante'
+NCI_AJUSTE_AFASTAMENTO = 'atividades.ajustes_afastamento.atualizar_ausencias'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

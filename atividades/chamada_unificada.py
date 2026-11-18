@@ -11,15 +11,19 @@ PERMISSOES = ("atividades.view_atividade", "atividades.view_aula", "atividades.v
               "atividades.view_frequencia", "atividades.add_aula", "atividades.add_frequencia")
 
 
-def preparar_chamada(*, usuario, atividade_id):
+def preparar_chamada(*, usuario, atividade_id, data=None):
     autorizar(usuario, *PERMISSOES)
     atividade = Atividade.objects.get(pk=atividade_id)
     provedor = obter_provedor()
     nomes = {p.referencia: p.nome for p in provedor.listar()}
+    from django.utils import timezone
+    estados = getattr(provedor, "situacoes_em", lambda data: {})(data or timezone.localdate())
     participantes = [{"inscricao_id": i.pk, "referencia": i.participante_referencia,
         "nome": nomes.get(i.participante_referencia, "Participante indisponível"),
+        "afastado": estados.get(i.participante_referencia) == "afastamento",
         "disponivel": i.participante_referencia in nomes, "frequencia": None}
-        for i in atividade.inscricoes.filter(origem_participante=provedor.origem)]
+        for i in atividade.inscricoes.filter(origem_participante=provedor.origem)
+        if estados.get(i.participante_referencia) not in ("desligamento", "nao_ingressou")]
     participantes.sort(key=lambda p: (p["nome"].casefold(), p["referencia"]))
     return atividade, participantes, provedor.demonstracao
 
@@ -28,7 +32,7 @@ def preparar_chamada(*, usuario, atividade_id):
 def salvar_chamada(*, usuario, atividade_id, dados_aula, registros, justificativas=None):
     autorizar(usuario, *PERMISSOES)
     Atividade.objects.select_for_update().get(pk=atividade_id)
-    _, participantes, _ = preparar_chamada(usuario=usuario, atividade_id=atividade_id)
+    _, participantes, _ = preparar_chamada(usuario=usuario, atividade_id=atividade_id, data=dados_aula.get("data"))
     if not participantes:
         raise ValidationError("Inscreva participantes nesta atividade antes de realizar a chamada.")
     if any(not p["disponivel"] for p in participantes):

@@ -7,7 +7,9 @@ from django.core.exceptions import ImproperlyConfigured, PermissionDenied, Valid
 
 from atividades.consultas_fmr import consultar_presencas_mensais
 from atividades.services import consultar_frequencia_mensal
+from core.permissoes import autorizar
 
+from .integracoes import participantes as integracao_participantes
 from .permissoes import pode_consultar_fmr
 
 
@@ -27,6 +29,7 @@ def consultar_indicadores_fmr(*, usuario, ano, mes):
     """
     periodo = consultar_periodo_fmr(usuario=usuario, ano=ano, mes=mes)
     resultado = {"periodo": periodo, "indicadores": [], "aviso": ""}
+    resultado["permanentes"] = consultar_permanentes_fmr(usuario=usuario, ano=ano, mes=mes)
     try:
         frequencia = consultar_frequencia_mensal(usuario=usuario, ano=ano, mes=mes)
     except PermissionDenied:
@@ -43,6 +46,40 @@ def consultar_indicadores_fmr(*, usuario, ano, mes):
          "descricao": "Uma ocorrência por presença em aula; a mesma pessoa pode contar mais de uma vez no mês."},
     ]
     resultado["presencas"] = consultar_presencas_fmr(usuario=usuario, ano=ano, mes=mes)
+    return resultado
+
+
+def consultar_permanentes_fmr(*, usuario, ano, mes):
+    """RF-FMR-04: prepara o fechamento mensal sem presumir permanência histórica.
+
+    A consulta real depende de contrato e histórico do módulo de participantes.
+    Enquanto indisponível, total e lista permanecem ausentes, nunca zero.
+    """
+    periodo = consultar_periodo_fmr(usuario=usuario, ano=ano, mes=mes)
+    resultado = {"data_referencia": periodo["fim"], "participantes": None,
+                 "total": None, "pendencia": None, "aviso": ""}
+    try:
+        autorizar(usuario, "participantes.view_participante")
+    except PermissionDenied:
+        resultado["aviso"] = "Seu perfil não possui permissão para consultar os participantes que permanecem no serviço."
+        return resultado
+    participantes = integracao_participantes.consultar_permanentes_na_data(
+        usuario=usuario, data_referencia=periodo["fim"])
+    if participantes is None:
+        resultado["pendencia"] = {
+            "codigo": "CONTRATO-PERMANENCIA",
+            "aviso": "Faltam informações históricas para apresentar quem permanece no serviço.",
+            "explicacao": (
+                "Precisamos que o módulo de participantes tenha histórico completo de quem permanecia "
+                "no serviço na data indicada, considerando entradas, desligamentos e reativações. "
+                "Existem cadastros sem data de entrada ou com situações temporárias indefinidas; "
+                "o tratamento dos status legados inativo e cancelado depende da definição do NCI (P02). "
+                "O status atual e as presenças em aulas não substituem esse histórico. "
+                "Até essa integração, a lista e o total não serão calculados."
+            ),
+        }
+    else:
+        resultado.update(participantes=participantes, total=len(participantes))
     return resultado
 
 

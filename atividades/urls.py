@@ -5,6 +5,7 @@ from .views.nova_chamada import nova_chamada
 
 app_name = "atividades"
 urlpatterns = [
+    path("<int:atividade_id>/situacao/", atividades.situacao, name="situacao"),
     path("", atividades.lista, name="lista"),
     path("registro-diario/", nova_chamada, name="registro_diario"),
     path("categorias-fmr/", classificacao.categorias, name="categorias_fmr"),

@@ -4,6 +4,7 @@
 <p class="mb-1"><a class="btn btn-outline-secondary" href="{% url 'participantes:lista' %}">← Voltar para participantes</a></p>
 <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
   <h1 class="mb-0">{{ participante.nome_completo }}</h1>
+  {% if perms.participantes.change_participante %}<a class="btn btn-outline-secondary" href="{% url 'participantes:movimentar' participante.pk %}">Situação e histórico de movimentações</a>{% endif %}
   <span class="badge rounded-pill border status-{{ participante.status }} bg-white fs-6 fw-normal">{{ participante.get_status_display }}</span>
   {% if perms.participantes.change_participante %}<a class="btn btn-nci ms-auto" href="{% url 'participantes:corrigir' participante.pk %}">Editar cadastro</a>{% endif %}
 </div>
