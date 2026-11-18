@@ -53,6 +53,7 @@ def _formulario(request, participante=None):
                 messages.success(request, "Participante cadastrado com sucesso.")
             else:
                 corrigir_participante(usuario=request.user, participante_id=participante.pk,
+                                      perfil_vigente_desde=form.cleaned_data.get("perfil_vigente_desde"),
                                       confirmar_duplicidade=confirmar, **dados)
                 messages.success(request, "Cadastro atualizado.")
         except ValidationError as erro:

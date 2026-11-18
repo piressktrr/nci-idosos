@@ -56,7 +56,7 @@ def verificar_consistencia(dados):
         avisar("indicadores-sociais", "Pessoas que moram sozinhas",
                f"A quantidade de pessoas que moram sozinhas ({sozinhos}) supera o total de permanentes ({permanentes}).")
 
-    for bloco in dados["perfil_demografico"]["blocos_pendentes"]:
+    for bloco in dados["perfil_demografico"]["blocos"]:
         total = bloco["total"]
         if total is not None and total != permanentes:
             avisar(f"demografico-{bloco['codigo']}", bloco["titulo"],

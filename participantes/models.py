@@ -152,6 +152,23 @@ class Participante(ProtegidoPorAuditoria, models.Model):
         return entrada.data if entrada else None
 
 
+class PerfilDemografico(models.Model):
+    """Sexo e autodeclarações vigentes a partir de uma data."""
+
+    participante = models.ForeignKey(Participante, on_delete=models.PROTECT, related_name="perfis_demograficos")
+    vigente_desde = models.DateField()
+    sexo = models.CharField(max_length=1, choices=Sexo.choices)
+    raca_cor = models.CharField(max_length=20, choices=RacaCor.choices)
+    identidade_genero = models.CharField(max_length=20, choices=IdentidadeGenero.choices)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["participante", "vigente_desde"], name="perfil_demografico_vigencia"),
+            models.CheckConstraint(condition=models.Q(sexo__in=Sexo.values, raca_cor__in=RacaCor.values,
+                identidade_genero__in=IdentidadeGenero.values), name="perfil_demografico_categorias_validas"),
+        ]
+
+
 class SituacaoSocial(models.Model):
     """RF-PAR-04 e RF-PAR-05: situação social com vigência por data de início (D2).
 

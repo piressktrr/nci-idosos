@@ -6,6 +6,8 @@ from django.contrib.auth.models import Group, Permission
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
+from participantes.services import cadastrar_participante
+from participantes.tests.test_models import dados_participante
 
 class TranscricaoFMRTests(TestCase):
     @classmethod
@@ -33,10 +35,10 @@ class TranscricaoFMRTests(TestCase):
     def test_contagem_adotada_mensal_unico_e_alerta_sem_lista_nominal(self):
         frequencia = {"dias": [{"data": date(2024, 2, 2), "ocorrencias": 2, "participantes_unicos": 1}],
                       "total_participantes_unicos": 1, "total_ocorrencias": 2, "demonstracao": False}
-        with patch("relatorios.services.consultar_presencas_mensais", return_value=frequencia), patch(
-            "relatorios.services.integracao_participantes.consultar_permanentes_na_data",
-            return_value=[{"nome": "Nome fictício privado"}]
-        ):
+        cadastrar_participante(usuario=self.usuario, data_entrada=date(2024, 2, 1),
+            **dados_participante(nome_completo="Nome fictício privado", telefone_residencial="",
+                                observacao_encaminhamento=""))
+        with patch("relatorios.services.consultar_presencas_mensais", return_value=frequencia):
             resposta = self.client.get(self.url, self.parametros)
             self.assertContains(resposta, '<tr><th scope="row">02/02/2024</th><td>2</td></tr>', html=True)
             self.assertContains(resposta, "Pessoas atendidas no mês de referência (indivíduos)</dt><dd>1")

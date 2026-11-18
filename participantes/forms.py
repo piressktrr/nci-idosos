@@ -57,6 +57,10 @@ class ParticipanteForm(forms.ModelForm):
     # Q5: o cadastro registra a data de entrada (Movimentacao); o serviço valida (não futura, não antes do nascimento).
     data_entrada = forms.DateField(label="Data de entrada",
                                    widget=forms.DateInput(format="%Y-%m-%d", attrs={"type": "date"}))
+    perfil_vigente_desde = forms.DateField(label="Vigência do perfil no FMR", required=False,
+        widget=forms.DateInput(format="%Y-%m-%d", attrs={"type": "date"}),
+        help_text="Informe desde quando valem sexo, raça/cor e identidade de gênero. "
+                  "Uma alteração sem data vale a partir de hoje. Use a última data para corrigi-la.")
 
     class Meta:
         model = Participante
@@ -78,6 +82,12 @@ class ParticipanteForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.mostrar_confirmacao = mostrar_confirmacao
         entrada = self.instance.data_entrada if self.instance.pk else None
+        if not self.instance.pk:
+            del self.fields["perfil_vigente_desde"]
+        else:
+            ultima = self.instance.perfis_demograficos.order_by("-vigente_desde").first()
+            if ultima:
+                self.fields["perfil_vigente_desde"].help_text += f" Última vigência: {ultima.vigente_desde:%d/%m/%Y}."
         self.fields["data_entrada"].initial = entrada or timezone.localdate()
         from .categorias import IDENTIDADES_GENERO_LEGADAS
         if self.instance.identidade_genero in IDENTIDADES_GENERO_LEGADAS:

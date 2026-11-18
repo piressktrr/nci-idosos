@@ -24,7 +24,7 @@ class ConsistenciaTests(SimpleTestCase):
             "situacao_social": {"linhas": [
                 {"codigo": "moram_sozinhos", "quantidade": 1},
                 {"codigo": "moram_sozinhos_com_apoio", "quantidade": 1}]},
-            "perfil_demografico": {"blocos_pendentes": [
+            "perfil_demografico": {"blocos": [
                 {"codigo": codigo, "titulo": titulo, "total": None}
                 for codigo, titulo in (("REGIAO", "Região"), ("GENERO", "Gênero"), ("RACA-COR", "Sexo por raça/cor"))
             ]},
@@ -42,7 +42,7 @@ class ConsistenciaTests(SimpleTestCase):
         self.dados["desligamentos_motivo"]["linhas"][0]["quantidade"] = 0
         self.dados["situacao_social"]["linhas"][0]["quantidade"] = 2
         self.dados["situacao_social"]["linhas"][1]["quantidade"] = 3
-        for bloco in self.dados["perfil_demografico"]["blocos_pendentes"]:
+        for bloco in self.dados["perfil_demografico"]["blocos"]:
             bloco["total"] = 0
         anterior = deepcopy(self.dados)
         self.assertCountEqual(self.campos(), [
