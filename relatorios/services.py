@@ -1,6 +1,7 @@
 """Consultas mensais do FMR, usando os serviços de leitura das áreas de origem."""
 from calendar import monthrange
 from datetime import date
+from decimal import Decimal
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured, PermissionDenied, ValidationError
@@ -104,30 +105,25 @@ def consultar_movimentacao_etaria_fmr(*, usuario, ano, mes):
 
 
 def consultar_presencas_fmr(*, usuario, ano, mes):
-    """Presenças diárias/mensais; média permanece indefinida enquanto P06 estiver pendente.
+    """RF-FMR-03: calendário e média por datas com atendimento efetivamente registrado.
 
     NCI_FMR_CONTAGEM_DIARIA permite trocar a contagem principal de ocorrencias
     para participantes_unicos, caso haja orientação diferente (RN-FMR-09).
     As duas medidas continuam disponíveis e explicitamente identificadas.
     """
-    consultar_periodo_fmr(usuario=usuario, ano=ano, mes=mes)
+    periodo = consultar_periodo_fmr(usuario=usuario, ano=ano, mes=mes)
     criterio = getattr(settings, "NCI_FMR_CONTAGEM_DIARIA", "ocorrencias")
     if criterio not in ("ocorrencias", "participantes_unicos"):
         raise ImproperlyConfigured("NCI_FMR_CONTAGEM_DIARIA deve ser ocorrencias ou participantes_unicos.")
     resultado = consultar_presencas_mensais(usuario=usuario, ano=ano, mes=mes)
     if resultado["demonstracao"]:
         raise ImproperlyConfigured("O FMR exige uma integração real de participantes.")
-    return resultado | {
-        "criterio": criterio,
-        "media_diaria": None,
-        "pendencia_media": {
-            "codigo": "P06",
-            "aviso": "Falta informação para calcular a média diária.",
-            "explicacao": (
-                "Precisamos que o NCI defina o que considera dia de funcionamento e quais dias entram "
-                "no divisor da média: dias do calendário de atendimento, dias com aulas realizadas "
-                "ou outro critério, incluindo o tratamento de feriados e dias sem aulas. "
-                "Até essa definição, a média diária não será calculada."
-            ),
-        },
-    }
+    por_data = {dia["data"]: dia for dia in resultado["dias"]}
+    dias = [por_data.get(date(ano, mes, numero), {
+        "data": date(ano, mes, numero), "ocorrencias": 0, "participantes_unicos": 0,
+    }) for numero in range(1, periodo["fim"].day + 1)]
+    funcionamento = sum(dia["ocorrencias"] > 0 for dia in dias)
+    total = sum(dia[criterio] for dia in dias)
+    return resultado | {"dias": dias, "criterio": criterio, "total_contagem_diaria": total,
+        "dias_funcionamento": funcionamento,
+        "media_diaria": Decimal(total) / Decimal(funcionamento) if funcionamento else None}

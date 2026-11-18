@@ -72,7 +72,7 @@
   {% if presencas.dias %}
   <div class="nci-tabela verde table-responsive">
     <table class="table table-hover">
-      <caption>Datas com aulas realizadas no mês; valores conforme as presenças registradas.</caption>
+      <caption>Todos os dias do mês; zero quando não houver atendimento registrado em aulas realizadas.</caption>
       <thead><tr><th scope="col">Data da aula</th>
         {% if presencas.criterio == "participantes_unicos" %}
         <th scope="col">Participantes únicos no dia</th><th scope="col">Ocorrências de presença</th>
@@ -94,18 +94,17 @@
   {% else %}
   <p>Nenhuma aula realizada registrada neste mês.</p>
   {% endif %}
+  {% if not presencas.dias_funcionamento %}<p>Nenhum atendimento registrado neste mês.</p>{% endif %}
   <p><strong>Total mensal de ocorrências:</strong> {{ presencas.total_ocorrencias }}.<br>
-    <strong>Participantes únicos no mês:</strong> {{ presencas.total_participantes_unicos }}.</p>
-  <p>O total de participantes únicos no mês é contado no mês inteiro e pode ser menor que a soma dos únicos de cada dia.</p>
-  {% if presencas.pendencia_media %}
-  <div class="alert alert-warning mb-0">
-    <strong>Média diária:</strong>
-    <span tabindex="0" title="{{ presencas.pendencia_media.explicacao }}" aria-describedby="explicacao-media-pendente" style="cursor: help;">{{ presencas.pendencia_media.aviso }}</span>
-    <small class="d-block">Passe o mouse sobre o aviso para ver qual definição está pendente.</small>
-    <span id="explicacao-media-pendente" class="visually-hidden">{{ presencas.pendencia_media.explicacao }}</span>
-  </div>
+    <strong>Pessoas atendidas no mês de referência (indivíduos):</strong> {{ presencas.total_participantes_unicos }}.</p>
+  <p>No mês, cada pessoa atendida conta uma única vez, independentemente de quantas aulas ou dias frequentou. As ocorrências diárias e as pessoas atendidas no mês são medidas diferentes.</p>
+  <p><strong>Dias de funcionamento:</strong> {{ presencas.dias_funcionamento }}.</p>
+  <p>Conta como dia de funcionamento a data com ao menos uma presença em aula realizada. Várias aulas no mesmo dia representam um único dia de funcionamento. Ausências e aulas canceladas não são atendimentos.</p>
+  {% if presencas.criterio == "participantes_unicos" %}<p><strong>Soma dos participantes únicos de cada dia:</strong> {{ presencas.total_contagem_diaria }}. A média usa essa soma, conforme o critério selecionado.</p>{% endif %}
+  {% if presencas.dias_funcionamento %}
+  <p class="mb-0"><strong>Média diária:</strong> {{ presencas.media_diaria|floatformat:"0" }} <small>({{ presencas.total_contagem_diaria }} ÷ {{ presencas.dias_funcionamento }} = {{ presencas.media_diaria|floatformat:"2" }}; apresentada sem casas decimais).</small></p>
   {% else %}
-  <p class="mb-0"><strong>Média diária:</strong> {{ presencas.media_diaria }}</p>
+  <p class="mb-0"><strong>Média diária:</strong> não calculada porque não houve dias com atendimento.</p>
   {% endif %}
 </section>
 {% endif %}
