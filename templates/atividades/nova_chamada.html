@@ -1,0 +1,41 @@
+{% extends "nci/base.html" %}
+{% load static %}
+{% block title %}Realizar chamada · NCI{% endblock %}
+{% block content %}
+<h1>Realizar chamada</h1>
+{% if atividade %}
+<p><a class="btn btn-nci" href="{% url 'atividades:aulas' atividade.pk %}">Ver aulas de {{ atividade.nome }}</a></p>
+<p>Confira a lista física assinada. A aula e as presenças só serão registradas ao salvar esta chamada.</p>
+{% endif %}
+<section aria-labelledby="atividade-chamada">
+<h2 id="atividade-chamada">Atividade</h2>
+<form method="get" id="escolher-atividade">
+{{ selecao.non_field_errors }}
+{% for campo in selecao %}<div class="field">{{ campo.label_tag }}{{ campo }}{{ campo.errors }}</div>{% endfor %}
+<button type="submit">Selecionar atividade</button>
+</form>
+</section>
+<script src="{% static 'atividades/nova_chamada.js' %}" defer></script>
+{% if indisponivel %}<p role="alert">Cadastro de participantes indisponível.</p>{% elif atividade %}
+{% if demonstracao %}<p>Participantes fictícios; integração provisória.</p>{% endif %}
+<form method="post" id="form-aula" data-bound="{{ form_aula.is_bound|yesno:'true,false' }}">
+{% csrf_token %}<input type="hidden" name="atividade" value="{{ atividade.pk }}">
+<section aria-labelledby="dados-aula-chamada">
+<h2 id="dados-aula-chamada">Aula de {{ atividade.nome }}</h2>
+{{ form_aula.non_field_errors }}
+{% for campo in form_aula %}<div class="field">{{ campo.label_tag }}{{ campo }}{{ campo.errors }}</div>{% endfor %}
+<div class="field" id="selecao-grade" hidden><label for="horario-sugerido">Horário da grade (opcional)</label><select id="horario-sugerido"></select></div>
+<p id="aviso-sugestao" role="status"></p>
+</section>
+<section aria-labelledby="participantes-chamada">
+<h2 id="participantes-chamada">Participantes inscritos</h2>
+{{ form.non_field_errors }}
+{% include "atividades/_participantes_chamada.html" %}
+{% if participantes %}<button type="submit">Salvar chamada</button>{% else %}<p><a class="btn btn-nci" href="{% url 'atividades:inscricoes' atividade.pk %}">Inscrever participantes</a></p>{% endif %}
+</section>
+</form>
+{{ sugestoes|json_script:"sugestoes-aula" }}
+<script src="{% static 'atividades/aulas.js' %}" defer></script>
+<script src="{% static 'atividades/frequencia.js' %}" defer></script>
+{% endif %}
+{% endblock %}

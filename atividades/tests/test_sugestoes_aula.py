@@ -43,10 +43,12 @@ class SugestoesAulaTests(TestCase):
 
     def test_regular_com_horario_unico_deduz_inicio_e_termino(self):
         self.horario()
-        resposta = self.client.get(self.url)
-        self.assertEqual(resposta.context["form"].initial["inicio"], time(14))
-        self.assertEqual(resposta.context["form"].initial["fim"], time(15))
-        self.assertEqual(resposta.context["form"].initial["data"], date(2026, 11, 7))
+        self.usuario.user_permissions.add(*Permission.objects.filter(content_type__app_label="atividades",
+            codename__in=("view_inscricao", "view_frequencia", "add_frequencia")))
+        resposta = self.client.get(reverse("atividades:registro_diario"), {"atividade": self.atividade.pk})
+        self.assertEqual(resposta.context["form_aula"].initial["inicio"], time(14))
+        self.assertEqual(resposta.context["form_aula"].initial["fim"], time(15))
+        self.assertEqual(resposta.context["form_aula"].initial["data"], date(2026, 11, 7))
         self.assertContains(resposta, 'atividades/aulas.js')
         self.assertContains(resposta, 'id="sugestoes-aula"')
 
@@ -78,9 +80,11 @@ class SugestoesAulaTests(TestCase):
 
     def test_post_invalido_preserva_campos_digitados_inclusive_campos_vazios(self):
         self.horario()
+        self.usuario.user_permissions.add(*Permission.objects.filter(content_type__app_label="atividades",
+            codename__in=("view_inscricao", "view_frequencia", "add_frequencia")))
         dados = {"tipo": "extra", "data": "", "inicio": "16:31", "fim": "17:32"}
-        resposta = self.client.post(self.url, dados)
-        form = resposta.context["form"]
+        resposta = self.client.post(reverse("atividades:registro_diario"), dados | {"atividade": self.atividade.pk})
+        form = resposta.context["form_aula"]
         self.assertTrue(form.is_bound)
         for campo, valor in dados.items():
             self.assertEqual(form[campo].value(), valor)

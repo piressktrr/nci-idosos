@@ -1,9 +1,9 @@
 {% extends "nci/base.html" %}
 {% block title %}Inscrições de {{ atividade.nome }} · NCI Idade Dourada{% endblock %}
 {% block content %}
-<p><a href="{% url 'atividades:lista' %}">Voltar às atividades</a></p>
+<p><a class="btn btn-outline-secondary" href="{% url 'atividades:lista' %}">Voltar às atividades</a></p>
 <h1>Inscrições de {{ atividade.nome }}</h1>
-{% if perms.atividades.view_esperaatividade %}<p><a href="{% url 'atividades:lista_espera' atividade.pk %}">Ver lista de espera</a></p>{% endif %}
+{% if perms.atividades.view_esperaatividade %}<p><a class="btn btn-nci" href="{% url 'atividades:lista_espera' atividade.pk %}">Ver lista de espera</a></p>{% endif %}
 {% if indisponivel %}<p role="alert">Cadastro de participantes indisponível. Tente novamente após a integração ser configurada.</p>
 {% else %}
 {% if demonstracao %}<p class="message" role="status">Demonstração: os participantes desta tela são fictícios.</p>{% endif %}
@@ -20,13 +20,13 @@
 <section aria-labelledby="inscricoes-registradas">
   <h2 id="inscricoes-registradas">Inscrições registradas ({{ pagina.paginator.count }})</h2>
   {% if linhas %}<div class="table-scroll"><table>
-    <thead><tr><th scope="col">Participante</th><th scope="col">Inscrito em</th></tr></thead>
-    <tbody>{% for linha in linhas %}<tr><td>{{ linha.nome }}{% if perms.atividades.view_aula and perms.atividades.view_frequencia %}<br><a href="{% url 'atividades:historico_participante' atividade.pk linha.inscricao.pk %}" aria-label="Ver frequência de {{ linha.nome }}">Ver frequência</a>{% endif %}</td><td>{{ linha.inscricao.cadastrada_em|date:"d/m/Y H:i" }}</td></tr>{% endfor %}</tbody>
+    <thead><tr><th scope="col">Participante</th><th scope="col">Inscrito em</th>{% if perms.atividades.view_aula and perms.atividades.view_frequencia %}<th scope="col" class="text-end">Ações</th>{% endif %}</tr></thead>
+    <tbody>{% for linha in linhas %}<tr><td>{{ linha.nome }}</td><td>{{ linha.inscricao.cadastrada_em|date:"d/m/Y H:i" }}</td>{% if perms.atividades.view_aula and perms.atividades.view_frequencia %}<td class="text-end text-nowrap"><a href="{% url 'atividades:historico_participante' atividade.pk linha.inscricao.pk %}" aria-label="Ver frequência de {{ linha.nome }}">Ver frequência</a></td>{% endif %}</tr>{% endfor %}</tbody>
   </table></div>
   {% if pagina.has_other_pages %}<nav aria-label="Páginas de inscrições">
-    {% if pagina.has_previous %}<a href="?page={{ pagina.previous_page_number }}">Anterior</a>{% endif %}
+    {% if pagina.has_previous %}<a class="btn btn-outline-secondary" href="?page={{ pagina.previous_page_number }}">Anterior</a>{% endif %}
     <span>Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
-    {% if pagina.has_next %}<a href="?page={{ pagina.next_page_number }}">Próxima</a>{% endif %}
+    {% if pagina.has_next %}<a class="btn btn-outline-secondary" href="?page={{ pagina.next_page_number }}">Próxima</a>{% endif %}
   </nav>{% endif %}
   {% else %}<p>Nenhuma inscrição registrada para esta atividade.</p>{% endif %}
 </section>

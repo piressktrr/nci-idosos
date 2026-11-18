@@ -1,7 +1,7 @@
 {% extends "nci/base.html" %}
 {% block title %}Situação social · NCI Idade Dourada{% endblock %}
 {% block content %}
-<p class="mb-1"><a href="{% url 'participantes:detalhe' participante.pk %}">← Voltar</a></p>
+<p class="mb-1"><a class="btn btn-outline-secondary" href="{% url 'participantes:detalhe' participante.pk %}">← Voltar</a></p>
 <h1>Situação social</h1>
 <p>{{ participante.nome_completo }}. As situações anteriores continuam no histórico e valem para os meses passados.</p>
 <form method="post" class="nci-cartao" novalidate>

@@ -29,6 +29,13 @@ class HistoricoParticipanteTests(TestCase):
         return consultar_historico_participante(**({"usuario": self.usuario, "atividade_id": self.atividade.pk,
             "inscricao_id": self.inscricao.pk} | kwargs))
 
+    def test_titulo_mostra_nome_da_pessoa_e_nao_nome_da_rota(self):
+        self.client.force_login(self.usuario)
+        resposta = self.client.get(self.url)
+        self.assertContains(resposta, "<h1>Frequência de Participante fictício 1</h1>", html=True)
+        self.assertContains(resposta, "<title>Frequência de Participante fictício 1 · NCI</title>", html=True)
+        self.assertNotContains(resposta, "Frequência de historico_participante")
+
     def test_todas_situacoes_ordenacao_data_ocorrencia_e_total(self):
         for dia, situacao in ((1, "presente"), (2, "ausente"), (3, "ausente_justificado")):
             aula = Aula.objects.create(atividade=self.atividade, data=date(2023, 1, dia), inicio=time(9), fim=time(10))

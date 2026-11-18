@@ -1,10 +1,12 @@
 from django.urls import path
 
 from .views import atividades, aulas, classificacao, espera, frequencia, grade, inscricoes
+from .views.nova_chamada import nova_chamada
 
 app_name = "atividades"
 urlpatterns = [
     path("", atividades.lista, name="lista"),
+    path("registro-diario/", nova_chamada, name="registro_diario"),
     path("categorias-fmr/", classificacao.categorias, name="categorias_fmr"),
     path("categorias-fmr/<int:categoria_id>/editar/", classificacao.categorias, name="editar_categoria_fmr"),
     path("<int:atividade_id>/classificacao-fmr/", classificacao.classificacao, name="classificacao_fmr"),

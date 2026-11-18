@@ -62,7 +62,7 @@ class ClassificacaoTests(TestCase):
         self.client.force_login(self.equipe)
         for hoje, esperado in ((date(2024, 1, 31), "Categoria fictícia"), (date(2024, 2, 1), "Outra fictícia")):
             with self.subTest(hoje=hoje), patch("django.utils.timezone.localdate", return_value=hoje):
-                self.assertContains(self.client.get(reverse("atividades:lista")), "Categoria atual: " + esperado)
+                self.assertContains(self.client.get(reverse("atividades:lista")), f"<td>{esperado}</td>", html=True)
                 resposta = self.client.get(self.url)
                 self.assertContains(resposta, "Categoria atual: " + esperado)
                 self.assertContains(resposta, "Vigente hoje", count=1)
@@ -109,12 +109,13 @@ class ClassificacaoTests(TestCase):
         self.assertEqual(Aula.objects.com_categoria_fmr().get(pk=aula.pk).categoria_fmr_nome, "Categoria fictícia")
         with self.assertRaises(ValidationError):
             self.classificar(inicio=date(2024, 2, 1))
-        self.classificar()  # Manter o vínculo não reescreve o snapshot.
+        with self.assertRaises(ValidationError):
+            self.classificar()  # Não fabrica mudança nem reescreve snapshot.
         self.assertEqual(RegistroClassificacaoAtividade.objects.count(), 1)
 
     def test_correcao_de_vigencia_auditada_sem_alterar_outros_periodos(self):
         vinculo = self.classificar()
-        self.classificar(inicio=date(2024, 3, 1))
+        self.classificar(categoria_id=self.outra.pk, inicio=date(2024, 3, 1))
         self.classificar(categoria_id=self.outra.pk)
         self.assertEqual(ClassificacaoAtividade.objects.count(), 2)
         evento = vinculo.registros.latest("pk")
@@ -202,3 +203,50 @@ class ClassificacaoTests(TestCase):
         self.assertEqual(self.client.get(reverse("atividades:classificacao_fmr", args=[999999])).status_code, 404)
         self.equipe.user_permissions.remove(Permission.objects.get(content_type__app_label="atividades", codename="change_atividade"))
         self.assertEqual(self.client.post(self.url, {}).status_code, 403)
+
+    def test_coluna_categoria_sem_destaque_ou_botao_individual(self):
+        self.classificar()
+        self.client.force_login(self.equipe)
+        resposta = self.client.get(reverse("atividades:lista"))
+        self.assertContains(resposta, '<th scope="col">Categoria</th>', html=True)
+        self.assertContains(resposta, f"<td>{self.cat.nome}</td>", html=True)
+        self.assertNotContains(resposta, 'class="category-badge')
+        self.assertNotContains(resposta, 'href="' + self.url + '"')
+
+    def test_mesma_categoria_nao_cria_vigencia_nem_auditoria(self):
+        self.classificar()
+        for inicio in (date(2024, 1, 1), date(2024, 2, 1)):
+            with self.assertRaises(ValidationError):
+                self.classificar(inicio=inicio)
+        self.assertEqual(ClassificacaoAtividade.objects.count(), 1)
+        self.assertEqual(RegistroClassificacaoAtividade.objects.count(), 1)
+        self.client.force_login(self.admin)
+        resposta = self.client.post(reverse("atividades:categorias_fmr"), {"acao": "classificar",
+            "atividade": self.atividade.pk, "categoria": self.cat.pk, "inicio": "2024-02-01"})
+        self.assertContains(resposta, "já pertence a essa categoria")
+
+    def test_painel_atribui_e_edita_categoria_com_vigencia(self):
+        self.client.force_login(self.admin)
+        url = reverse("atividades:categorias_fmr")
+        self.assertContains(self.client.get(url), "Registrar categoria de atividades")
+        resposta = self.client.get(url, {"atividade": self.atividade.pk})
+        self.assertContains(resposta, "Atribuir categoria")
+        self.assertContains(resposta, "Sem categoria")
+        dados = {"acao": "classificar", "atividade": self.atividade.pk, "categoria": self.cat.pk, "inicio": "2024-01-01"}
+        self.assertEqual(self.client.post(url, dados).status_code, 302)
+        resposta = self.client.get(url, {"atividade": self.atividade.pk})
+        self.assertContains(resposta, "Editar categoria")
+        self.assertEqual(resposta.context["form_classificacao"]["categoria"].value(), self.cat.pk)
+        self.assertEqual(self.client.post(url, dados | {"categoria": self.outra.pk, "inicio": "2024-02-01"}).status_code, 302)
+        self.assertEqual(ClassificacaoAtividade.objects.count(), 2)
+
+    def test_painel_rejeita_invalido_e_nao_altera_catalogo_ao_atribuir(self):
+        self.client.force_login(self.admin)
+        url = reverse("atividades:categorias_fmr")
+        dados = {"acao": "classificar", "atividade": self.atividade.pk, "categoria": 99999, "inicio": "2024-01-01"}
+        resposta = self.client.post(url, dados)
+        self.assertTrue(resposta.context["form_classificacao"].errors)
+        self.assertFalse(ClassificacaoAtividade.objects.exists())
+        self.assertEqual(CategoriaFMR.objects.count(), 2)
+        self.client.force_login(self.equipe)
+        self.assertEqual(self.client.post(url, dados).status_code, 403)
