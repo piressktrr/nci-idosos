@@ -1,0 +1,21 @@
+{% extends "nci/base.html" %}
+{% block title %}FMR de convivência · NCI{% endblock %}
+{% block content %}
+<h1>FMR de convivência</h1>
+<section aria-labelledby="selecionar-mes">
+  <h2 id="selecionar-mes">Selecionar mês de referência</h2>
+  <form method="get" class="row g-3 align-items-end">
+    <div class="col-sm-auto"><div class="field mb-0">
+      {{ form.mes.label_tag }}{{ form.mes }}{{ form.mes.errors }}
+    </div></div>
+    <div class="col-sm-auto"><button type="submit" class="btn btn-nci">Consultar FMR</button></div>
+  </form>
+</section>
+{% if periodo %}
+<section aria-labelledby="periodo-selecionado">
+  <h2 id="periodo-selecionado">Mês de referência: {{ periodo.inicio|date:"m/Y" }}</h2>
+  <p class="mb-0">Período: {{ periodo.inicio|date:"d/m/Y" }} a {{ periodo.fim|date:"d/m/Y" }}.</p>
+</section>
+<p>O mês está selecionado. Os indicadores do FMR serão disponibilizados nos próximos requisitos.</p>
+{% endif %}
+{% endblock %}

@@ -30,7 +30,7 @@
           <a href="{% url 'atividades:frequencia_mensal' %}"{% if nome_rota == 'frequencia_mensal' %} class="ativo" aria-current="page"{% endif %}>Frequência Mensal</a>
         </div>
       </div>{% endif %}
-      <span class="d-block py-1 nci-desativado">FMR <span class="nci-em-breve">(em breve)</span></span>
+      {% if pode_consultar_fmr %}<a href="{% url 'relatorios:fmr' %}"{% if ns == 'relatorios' %} class="ativo" aria-current="page"{% endif %}>FMR</a>{% endif %}
       {% if e_administrador %}<a href="{% url 'usuarios:lista' %}"{% if ns == 'usuarios' %} class="ativo" aria-current="page"{% endif %}>Gestão de Colaboradores</a>{% endif %}
     </div>
     {% endif %}
