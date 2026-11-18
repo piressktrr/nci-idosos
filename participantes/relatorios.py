@@ -53,6 +53,29 @@ def tempo_permanencia_desligamentos_mensal(*, usuario, ano, mes):
             "total_desligamentos": len(saidas), "sem_periodo": sem_periodo}
 
 
+def indicadores_sociais_mensal(*, usuario, ano, mes):
+    """RF-FMR-09: pessoas permanentes e situação social vigente no fechamento."""
+    autorizar(usuario, "participantes.view_participante")
+    if type(ano) is not int or type(mes) is not int or not 1 <= ano <= 9999 or not 1 <= mes <= 12:
+        raise ValidationError("Informe ano e mês válidos.")
+    fim = date(ano, mes, monthrange(ano, mes)[1])
+    permanentes = permanentes_em(usuario=usuario, data_referencia=fim)
+    if permanentes is None:
+        return None
+    situacoes = situacoes_vigentes_em(fim, [int(pessoa.referencia) for pessoa in permanentes])
+    sem_situacao = sum(situacao is None for situacao in situacoes.values())
+    totais = dict.fromkeys(("moram_sozinhos", "moram_sozinhos_com_apoio", "possuem_deficiencia", "recebem_bpc"), None)
+    if not sem_situacao:
+        valores = list(situacoes.values())
+        totais = {
+            "moram_sozinhos": sum(s.mora_sozinho for s in valores),
+            "moram_sozinhos_com_apoio": sum(s.mora_sozinho and s.tem_apoio for s in valores),
+            "possuem_deficiencia": sum(s.possui_deficiencia for s in valores),
+            "recebem_bpc": sum(s.recebe_bpc for s in valores),
+        }
+    return {"total_permanentes": len(permanentes), "sem_situacao": sem_situacao, "totais": totais}
+
+
 def imigrantes_refugiados_mensal(*, usuario, ano, mes):
     """Conta permanentes com informação social vigente no fechamento; desconhecido não é não."""
     autorizar(usuario, "participantes.view_participante")

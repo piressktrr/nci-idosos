@@ -10,6 +10,11 @@ def consultar_tempo_permanencia_desligamentos(*, usuario, ano, mes):
     return tempo_permanencia_desligamentos_mensal(usuario=usuario, ano=ano, mes=mes)
 
 
+def consultar_indicadores_sociais(*, usuario, ano, mes):
+    from participantes.relatorios import indicadores_sociais_mensal
+    return indicadores_sociais_mensal(usuario=usuario, ano=ano, mes=mes)
+
+
 def consultar_imigrantes_refugiados(*, usuario, ano, mes):
     from participantes.relatorios import imigrantes_refugiados_mensal
     return imigrantes_refugiados_mensal(usuario=usuario, ano=ano, mes=mes)

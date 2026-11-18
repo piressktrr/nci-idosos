@@ -36,6 +36,7 @@ def consultar_indicadores_fmr(*, usuario, ano, mes):
     resultado["tempo_permanencia"] = consultar_tempo_permanencia_fmr(usuario=usuario, ano=ano, mes=mes)
     resultado["ingressantes_encaminhamento"] = consultar_ingressantes_encaminhamento_fmr(usuario=usuario, ano=ano, mes=mes)
     resultado["perfil_demografico"] = consultar_perfil_demografico_fmr(usuario=usuario, ano=ano, mes=mes)
+    resultado["situacao_social"] = consultar_indicadores_sociais_fmr(usuario=usuario, ano=ano, mes=mes)
     try:
         frequencia = consultar_frequencia_mensal(usuario=usuario, ano=ano, mes=mes)
     except PermissionDenied:
@@ -106,6 +107,43 @@ def consultar_tempo_permanencia_fmr(*, usuario, ano, mes):
             "explicacao": "É necessário identificar a entrada ou última reativação anterior a cada desligamento, "
                 "na ordem das movimentações. Uma saída sem esse início ou com outra saída anterior sem reativação "
                 "não tem período completo. As faixas não foram preenchidas com zero ou com totais parciais."}
+    return resultado
+
+
+def consultar_indicadores_sociais_fmr(*, usuario, ano, mes):
+    """RF-FMR-09: moradia, apoio, deficiência e BPC sem presumir dados históricos."""
+    periodo = consultar_periodo_fmr(usuario=usuario, ano=ano, mes=mes)
+    resultado = {"periodo": periodo, "aviso": "", "pendencia": None, "linhas": [],
+                 "total_permanentes": None, "sem_situacao": None}
+    try:
+        autorizar(usuario, "participantes.view_participante")
+    except PermissionDenied:
+        resultado["aviso"] = "Seu perfil não possui permissão para consultar os indicadores de situação social."
+        return resultado
+    dados = integracao_participantes.consultar_indicadores_sociais(usuario=usuario, ano=ano, mes=mes)
+    if dados is None:
+        resultado["pendencia"] = {
+            "codigo": "PERMANENCIA", "aviso": "Faltam informações históricas para calcular os indicadores sociais.",
+            "explicacao": "É necessário completar as entradas e esclarecer situações legadas indefinidas para "
+                "identificar quem permanecia no serviço no último dia do mês. A situação atual e as presenças "
+                "em aulas não substituem o histórico de permanência."}
+        return resultado
+    resultado.update(total_permanentes=dados["total_permanentes"], sem_situacao=dados["sem_situacao"])
+    if dados["sem_situacao"]:
+        resultado["pendencia"] = {
+            "codigo": "SITUACAO", "aviso": "Faltam informações de situação social vigentes no mês.",
+            "explicacao": "Precisamos de situação social com vigência até o último dia do mês para todos os "
+                "participantes que permanecem no serviço. Registros posteriores não completam meses anteriores. "
+                "Ausência de informação não significa não morar sozinho, não ter apoio, não possuir deficiência "
+                "ou não receber BPC; os totais não foram preenchidos com zero."}
+    else:
+        resultado["linhas"] = [{"codigo": codigo, "indicador": rotulo, "quantidade": dados["totais"][codigo]}
+            for codigo, rotulo in (
+                ("moram_sozinhos", "Pessoas que moram sozinhas"),
+                ("moram_sozinhos_com_apoio", "Dessas pessoas, quantas contam com apoio da família/comunidade"),
+                ("possuem_deficiencia", "Pessoas que possuem deficiência"),
+                ("recebem_bpc", "Pessoas que recebem BPC"),
+            )]
     return resultado
 
 
