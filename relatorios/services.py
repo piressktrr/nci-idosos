@@ -34,6 +34,7 @@ def consultar_indicadores_fmr(*, usuario, ano, mes):
     resultado["movimentacao_etaria"] = consultar_movimentacao_etaria_fmr(usuario=usuario, ano=ano, mes=mes)
     resultado["desligamentos_motivo"] = consultar_desligamentos_motivo_fmr(usuario=usuario, ano=ano, mes=mes)
     resultado["ingressantes_encaminhamento"] = consultar_ingressantes_encaminhamento_fmr(usuario=usuario, ano=ano, mes=mes)
+    resultado["perfil_demografico"] = consultar_perfil_demografico_fmr(usuario=usuario, ano=ano, mes=mes)
     try:
         frequencia = consultar_frequencia_mensal(usuario=usuario, ano=ano, mes=mes)
     except PermissionDenied:
@@ -84,6 +85,56 @@ def consultar_permanentes_fmr(*, usuario, ano, mes):
         }
     else:
         resultado.update(participantes=participantes, total=len(participantes))
+    return resultado
+
+
+def consultar_perfil_demografico_fmr(*, usuario, ano, mes):
+    """RF-FMR-08: somente dados com histórico; blocos pendentes não recebem estimativas."""
+    periodo = consultar_periodo_fmr(usuario=usuario, ano=ano, mes=mes)
+    resultado = {"periodo": periodo, "aviso": "", "total_permanentes": None,
+                 "imigrantes_refugiados": None, "sem_situacao": None,
+                 "pendencia_imigrantes": None, "blocos_pendentes": []}
+    try:
+        autorizar(usuario, "participantes.view_participante")
+    except PermissionDenied:
+        resultado["aviso"] = "Seu perfil não possui permissão para consultar o perfil demográfico dos participantes."
+        return resultado
+    resultado["blocos_pendentes"] = [
+        {"codigo": "RACA-COR", "titulo": "Sexo por raça/cor", "total": None,
+         "primeira_coluna": "Sexo", "colunas": ["Branca", "Preta", "Pardo", "Amarela", "Indígena", "Não informada", "Total"],
+         "linhas": [{"rotulo": sexo, "valores": [None] * 7} for sexo in ("Feminino", "Masculino", "Total")],
+         "aviso": "Falta histórico de sexo e raça/cor para calcular esta tabela.",
+         "explicacao": "As categorias do formulário FMR foram fornecidas pelo responsável. Precisamos disponibilizar "
+             "sexo e raça/cor vigentes no mês. O cadastro permite correções sem vigência própria. "
+             "O cadastro atual e a data da auditoria não substituem esse histórico; nenhum valor foi presumido."},
+        {"codigo": "GENERO", "titulo": "Identidade de gênero", "total": None,
+         "primeira_coluna": "Identidade de gênero", "colunas": ["Quantidade"],
+         "linhas": [{"rotulo": genero, "valores": [None]} for genero in ("Cisgênero", "Transgênero", "Agênero", "Não declarado", "Total")],
+         "aviso": "Faltam identidade de gênero nas categorias oficiais e histórico para calcular esta tabela.",
+         "explicacao": "As categorias oficiais são Cisgênero, Transgênero, Agênero e Não declarado. Precisamos que "
+             "o cadastro e o contrato de consulta representem essa autodeclaração com vigência no mês. "
+             "O cadastro atual não oferece Agênero e Não declarado e usa outras opções sem correspondência oficial confirmada. "
+             "Não inferimos identidade de gênero pelo sexo nem reclassificamos meses anteriores pelo cadastro atual."},
+        {"codigo": "REGIAO", "titulo": "Região de moradia", "linhas": None, "total": None,
+         "aviso": "Faltam as regiões oficiais e o registro histórico da região de moradia.",
+         "explicacao": "Precisamos da lista de regiões exigidas no FMR e de uma informação estruturada no cadastro, "
+             "com data de vigência. O endereço livre não determina automaticamente a região; sem essa informação, "
+             "as quantidades não são calculadas nem preenchidas com zero."},
+    ]
+    dados = integracao_participantes.consultar_imigrantes_refugiados(usuario=usuario, ano=ano, mes=mes)
+    if dados is None:
+        resultado["pendencia_imigrantes"] = {
+            "codigo": "PERMANENCIA", "aviso": "Faltam informações históricas para identificar quem permanece no serviço.",
+            "explicacao": "É necessário completar as entradas e esclarecer situações legadas indefinidas. "
+                "A contagem de imigrantes/refugiados depende de quem permanecia no último dia do mês."}
+    else:
+        resultado.update(dados)
+        if dados["sem_situacao"]:
+            resultado["pendencia_imigrantes"] = {
+                "codigo": "IMIGRANTE", "aviso": "Falta informação vigente de imigrante/refugiado para participantes do mês.",
+                "explicacao": "Precisamos de situação social com vigência até o último dia do mês para todos os permanentes. "
+                    "Sem registro, não é possível presumir que a pessoa não é imigrante/refugiada. "
+                    "Registros que começam depois do fechamento não completam meses anteriores."}
     return resultado
 
 

@@ -7,8 +7,25 @@ from django.db.models import Count, OuterRef, Subquery
 
 from core.permissoes import autorizar
 from .categorias import OrigemEncaminhamento
+from .consultas import permanentes_em, situacoes_vigentes_em
 from .models import MotivoDesligamento, Movimentacao, Participante
 from .regras import idade_em
+
+
+def imigrantes_refugiados_mensal(*, usuario, ano, mes):
+    """Conta permanentes com informação social vigente no fechamento; desconhecido não é não."""
+    autorizar(usuario, "participantes.view_participante")
+    if type(ano) is not int or type(mes) is not int or not 1 <= ano <= 9999 or not 1 <= mes <= 12:
+        raise ValidationError("Informe ano e mês válidos.")
+    fim = date(ano, mes, monthrange(ano, mes)[1])
+    permanentes = permanentes_em(usuario=usuario, data_referencia=fim)
+    if permanentes is None:
+        return None
+    situacoes = situacoes_vigentes_em(fim, [int(pessoa.referencia) for pessoa in permanentes])
+    sem_situacao = sum(situacao is None for situacao in situacoes.values())
+    quantidade = sum(situacao.imigrante_refugiado for situacao in situacoes.values() if situacao is not None)
+    return {"total_permanentes": len(permanentes), "imigrantes_refugiados": None if sem_situacao else quantidade,
+            "sem_situacao": sem_situacao}
 
 
 def ingressantes_por_encaminhamento_mensal(*, usuario, ano, mes):
