@@ -88,7 +88,7 @@ class IndicadoresFMRTests(TestCase):
                 self.assertEqual(resultado["indicadores"], [])
                 resposta = self.client.get(self.url, {"mes": "2024-02"})
                 self.assertContains(resposta, "Seu perfil não possui as permissões")
-                self.assertNotContains(resposta, "<table")
+                self.assertNotContains(resposta, 'id="tabela-indicadores-fmr"')
                 self.usuario.user_permissions.add(permissao)
 
     def test_acesso_fmr_e_periodo_validados_antes_de_chamar_fonte(self):
@@ -114,7 +114,7 @@ class IndicadoresFMRTests(TestCase):
         resposta = self.client.get(self.url, {"mes": "2024-02"})
         self.assertEqual(resposta.context["indicadores"], [])
         self.assertContains(resposta, "dados de demonstração não são utilizados no FMR")
-        self.assertNotContains(resposta, "<table")
+        self.assertNotContains(resposta, 'id="tabela-indicadores-fmr"')
 
     def test_mes_invalido_nao_consulta_fonte(self):
         with patch("relatorios.services.consultar_frequencia_mensal") as fonte:

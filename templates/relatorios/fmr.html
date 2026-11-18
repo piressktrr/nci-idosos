@@ -22,7 +22,7 @@
   <p>Esta consulta reúne os indicadores de convivência disponíveis no sistema para o mês selecionado.</p>
   {% if indicadores %}
   <div class="nci-tabela verde table-responsive">
-    <table class="table table-hover">
+    <table class="table table-hover" id="tabela-indicadores-fmr">
       <thead><tr><th scope="col">Indicador</th><th scope="col">Total no mês</th><th scope="col">Como é contado</th></tr></thead>
       <tbody>{% for indicador in indicadores %}
         <tr><th scope="row">{{ indicador.nome }}</th><td>{{ indicador.valor }}</td><td>{{ indicador.descricao }}</td></tr>
@@ -63,6 +63,7 @@
   {% endif %}
 </section>
 {% endif %}
+{% if movimentacao_etaria %}{% include "relatorios/_movimentacao_etaria.html" %}{% endif %}
 {% if presencas %}
 <section aria-labelledby="presencas-por-data">
   <h2 id="presencas-por-data">Presenças por data</h2>

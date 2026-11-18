@@ -5,6 +5,11 @@ from datetime import date
 from core.integracoes import ParticipanteResumo
 
 
+def consultar_movimentacao_etaria(*, usuario, ano, mes):
+    from participantes.relatorios import movimentacao_etaria_mensal
+    return movimentacao_etaria_mensal(usuario=usuario, ano=ano, mes=mes)
+
+
 def consultar_permanentes_na_data(*, usuario, data_referencia: date) -> tuple[ParticipanteResumo, ...] | None:
     """None = consulta histórica indisponível; tupla vazia = consulta válida sem permanentes.
 

@@ -30,6 +30,7 @@ def consultar_indicadores_fmr(*, usuario, ano, mes):
     periodo = consultar_periodo_fmr(usuario=usuario, ano=ano, mes=mes)
     resultado = {"periodo": periodo, "indicadores": [], "aviso": ""}
     resultado["permanentes"] = consultar_permanentes_fmr(usuario=usuario, ano=ano, mes=mes)
+    resultado["movimentacao_etaria"] = consultar_movimentacao_etaria_fmr(usuario=usuario, ano=ano, mes=mes)
     try:
         frequencia = consultar_frequencia_mensal(usuario=usuario, ano=ano, mes=mes)
     except PermissionDenied:
@@ -81,6 +82,25 @@ def consultar_permanentes_fmr(*, usuario, ano, mes):
     else:
         resultado.update(participantes=participantes, total=len(participantes))
     return resultado
+
+
+def consultar_movimentacao_etaria_fmr(*, usuario, ano, mes):
+    """RF-FMR-05: idade no dia 1 e retornos separados dos ingressos."""
+    periodo = consultar_periodo_fmr(usuario=usuario, ano=ano, mes=mes)
+    resultado = {"periodo": periodo, "linhas": [], "totais": None, "pendencias": [], "aviso": ""}
+    try:
+        autorizar(usuario, "participantes.view_participante")
+    except PermissionDenied:
+        resultado["aviso"] = "Seu perfil não possui permissão para consultar a movimentação por faixa etária e sexo."
+        return resultado
+    dados = integracao_participantes.consultar_movimentacao_etaria(usuario=usuario, ano=ano, mes=mes)
+    if dados is None:
+        resultado["pendencias"] = [{"codigo": "HISTORICO", "aviso": "Faltam informações históricas para calcular a movimentação.",
+            "explicacao": "Confira cadastros sem entrada ou com status legados ainda indefinidos. Nenhum total foi presumido."}]
+    else:
+        resultado.update(dados)
+    return resultado
+
 
 
 def consultar_presencas_fmr(*, usuario, ano, mes):
