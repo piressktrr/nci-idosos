@@ -26,6 +26,6 @@ def fmr(request):
         try:
             contexto.update(consultar_indicadores_fmr(usuario=request.user, ano=mes.year, mes=mes.month))
         except ImproperlyConfigured:
-            form.add_error(None, "A integração de participantes está indisponível. Tente consultar novamente mais tarde.")
+            form.add_error(None, "A integração de participantes está indisponível ou a configuração do FMR é inválida. Tente consultar novamente mais tarde.")
             status = 503
     return render(request, "relatorios/fmr.html", contexto, status=status)

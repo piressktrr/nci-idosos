@@ -34,5 +34,50 @@
   <p class="mb-0" role="status">{{ aviso }}</p>
   {% endif %}
 </section>
+{% if presencas %}
+<section aria-labelledby="presencas-por-data">
+  <h2 id="presencas-por-data">Presenças por data</h2>
+  <p>Ocorrências contam cada presença em uma aula. Participantes únicos contam cada pessoa uma vez no período indicado, mesmo que frequente várias aulas.</p>
+  <p>Contagem adotada para pessoas por dia: {% if presencas.criterio == "participantes_unicos" %}participantes únicos{% else %}ocorrências de presença por aula{% endif %}.</p>
+  {% if presencas.dias %}
+  <div class="nci-tabela verde table-responsive">
+    <table class="table table-hover">
+      <caption>Datas com aulas realizadas no mês; valores conforme as presenças registradas.</caption>
+      <thead><tr><th scope="col">Data da aula</th>
+        {% if presencas.criterio == "participantes_unicos" %}
+        <th scope="col">Participantes únicos no dia</th><th scope="col">Ocorrências de presença</th>
+        {% else %}
+        <th scope="col">Ocorrências de presença</th><th scope="col">Participantes únicos no dia</th>
+        {% endif %}
+      </tr></thead>
+      <tbody>{% for dia in presencas.dias %}
+        <tr><th scope="row">{{ dia.data|date:"d/m/Y" }}</th>
+          {% if presencas.criterio == "participantes_unicos" %}
+          <td>{{ dia.participantes_unicos }}</td><td>{{ dia.ocorrencias }}</td>
+          {% else %}
+          <td>{{ dia.ocorrencias }}</td><td>{{ dia.participantes_unicos }}</td>
+          {% endif %}
+        </tr>
+      {% endfor %}</tbody>
+    </table>
+  </div>
+  {% else %}
+  <p>Nenhuma aula realizada registrada neste mês.</p>
+  {% endif %}
+  <p><strong>Total mensal de ocorrências:</strong> {{ presencas.total_ocorrencias }}.<br>
+    <strong>Participantes únicos no mês:</strong> {{ presencas.total_participantes_unicos }}.</p>
+  <p>O total de participantes únicos no mês é contado no mês inteiro e pode ser menor que a soma dos únicos de cada dia.</p>
+  {% if presencas.pendencia_media %}
+  <div class="alert alert-warning mb-0">
+    <strong>Média diária:</strong>
+    <span tabindex="0" title="{{ presencas.pendencia_media.explicacao }}" aria-describedby="explicacao-media-pendente" style="cursor: help;">{{ presencas.pendencia_media.aviso }}</span>
+    <small class="d-block">Passe o mouse sobre o aviso para ver qual definição está pendente.</small>
+    <span id="explicacao-media-pendente" class="visually-hidden">{{ presencas.pendencia_media.explicacao }}</span>
+  </div>
+  {% else %}
+  <p class="mb-0"><strong>Média diária:</strong> {{ presencas.media_diaria }}</p>
+  {% endif %}
+</section>
+{% endif %}
 {% endif %}
 {% endblock %}

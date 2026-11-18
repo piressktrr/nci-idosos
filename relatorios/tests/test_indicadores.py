@@ -76,7 +76,7 @@ class IndicadoresFMRTests(TestCase):
         self.assertEqual(resultado["aviso"], "")
         resposta = self.client.get(self.url, {"mes": "2024-02"})
         self.assertContains(resposta, "Indicadores disponíveis", count=1)
-        for texto in ("Média diária", "Permanentes", "Desligamentos", "BPC"):
+        for texto in ("Permanentes", "Desligamentos", "BPC"):
             self.assertNotContains(resposta, texto)
 
     def test_permissoes_da_fonte_revogadas_nao_viram_zero_nem_sao_concedidas(self):
