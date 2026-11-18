@@ -1,11 +1,12 @@
 {% extends "nci/base.html" %}
 {% block title %}FMR de convivência · NCI{% endblock %}
 {% block content %}
-<h1>FMR de convivência</h1>
+<h1>{% if transcricao %}FMR para transcrição manual{% else %}FMR de convivência{% endif %}</h1>
 <section aria-labelledby="selecionar-mes">
   <h2 id="selecionar-mes">Selecionar mês de referência</h2>
   {{ form.non_field_errors }}
   <form method="get" class="row g-3 align-items-end">
+    {% if transcricao %}<input type="hidden" name="modo" value="transcricao">{% endif %}
     <div class="col-sm-auto"><div class="field mb-0">
       {{ form.mes.label_tag }}{{ form.mes }}{{ form.mes.errors }}
     </div></div>
@@ -16,6 +17,11 @@
 <section aria-labelledby="periodo-selecionado">
   <h2 id="periodo-selecionado">Mês de referência: {{ periodo.inicio|date:"m/Y" }}</h2>
   <p class="mb-0">Período: {{ periodo.inicio|date:"d/m/Y" }} a {{ periodo.fim|date:"d/m/Y" }}.</p>
+  {% if transcricao %}
+  <a class="btn btn-outline-secondary mt-2" href="?mes={{ form.mes.value|urlencode }}">Voltar ao relatório detalhado</a>
+  {% else %}
+  <a class="btn btn-nci mt-2" href="?mes={{ form.mes.value|urlencode }}&amp;modo=transcricao">Preparar transcrição para a SMADS</a>
+  {% endif %}
 </section>
 {% if avisos_consistencia %}
 <section class="alert alert-warning" aria-labelledby="avisos-consistencia">
@@ -27,6 +33,9 @@
   </ul>
 </section>
 {% endif %}
+{% if transcricao %}
+{% include "relatorios/_transcricao_atendimento.html" %}
+{% else %}
 <section aria-labelledby="indicadores-disponiveis">
   <h2 id="indicadores-disponiveis">Indicadores disponíveis</h2>
   <p>Esta consulta reúne os indicadores de convivência disponíveis no sistema para o mês selecionado.</p>
@@ -73,13 +82,14 @@
   {% endif %}
 </section>
 {% endif %}
+{% endif %}
 {% if movimentacao_etaria %}{% include "relatorios/_movimentacao_etaria.html" %}{% endif %}
 {% if desligamentos_motivo %}{% include "relatorios/_desligamentos_motivo.html" %}{% endif %}
 {% if tempo_permanencia %}{% include "relatorios/_tempo_permanencia.html" %}{% endif %}
 {% if ingressantes_encaminhamento %}{% include "relatorios/_ingressantes_encaminhamento.html" %}{% endif %}
 {% if perfil_demografico %}{% include "relatorios/_perfil_demografico.html" %}{% endif %}
 {% if situacao_social %}{% include "relatorios/_situacao_social.html" %}{% endif %}
-{% if presencas %}
+{% if presencas and not transcricao %}
 <section aria-labelledby="presencas-por-data">
   <h2 id="presencas-por-data">Presenças por data</h2>
   <p>Ocorrências contam cada presença em uma aula. Participantes únicos contam cada pessoa uma vez no período indicado, mesmo que frequente várias aulas.</p>

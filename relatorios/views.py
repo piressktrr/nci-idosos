@@ -19,7 +19,7 @@ def fmr(request):
         hoje = timezone.localdate()
         dados["mes"] = f"{hoje.year:04d}-{hoje.month:02d}"
     form = MesReferenciaForm(dados)
-    contexto = {"form": form, "periodo": None}
+    contexto = {"form": form, "periodo": None, "transcricao": dados.get("modo") == "transcricao"}
     status = 200
     if form.is_valid():
         mes = form.cleaned_data["mes"]
