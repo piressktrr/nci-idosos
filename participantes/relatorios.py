@@ -3,13 +3,54 @@ from calendar import monthrange
 from datetime import date
 
 from django.core.exceptions import ValidationError
-from django.db.models import Count, OuterRef, Subquery
+from django.db.models import Count, OuterRef, Q, Subquery
 
 from core.permissoes import autorizar
 from .categorias import OrigemEncaminhamento
 from .consultas import permanentes_em, situacoes_vigentes_em
 from .models import MotivoDesligamento, Movimentacao, Participante
 from .regras import idade_em
+
+
+def _ate_meses(inicio, fim, meses):
+    indice = (inicio.year - 1) * 12 + inicio.month - 1 + meses
+    ano, mes = divmod(indice, 12)
+    ano, mes = ano + 1, mes + 1
+    if ano > 9999:
+        return True
+    limite = date(ano, mes, min(inicio.day, monthrange(ano, mes)[1]))
+    return fim <= limite
+
+
+def tempo_permanencia_desligamentos_mensal(*, usuario, ano, mes):
+    """RF-FMR-14: meses de calendário no vínculo encerrado, sem somar ciclos anteriores."""
+    autorizar(usuario, "participantes.view_participante")
+    if type(ano) is not int or type(mes) is not int or not 1 <= ano <= 9999 or not 1 <= mes <= 12:
+        raise ValidationError("Informe ano e mês válidos.")
+    inicio, fim = date(ano, mes, 1), date(ano, mes, monthrange(ano, mes)[1])
+    anteriores = (Movimentacao.objects.filter(participante_id=OuterRef("participante_id"),
+                    tipo__in=("entrada", "reativacao", "desligamento"))
+        .filter(Q(data__lt=OuterRef("data")) | Q(data=OuterRef("data"), pk__lt=OuterRef("pk")))
+        .order_by("-data", "-pk"))
+    saidas = list(Movimentacao.objects.filter(tipo="desligamento", data__range=(inicio, fim))
+        .annotate(inicio_vinculo=Subquery(anteriores.values("data")[:1]),
+                  tipo_anterior=Subquery(anteriores.values("tipo")[:1]))
+        .order_by("data", "pk").values("data", "inicio_vinculo", "tipo_anterior"))
+    linhas = [{"faixa": faixa, "quantidade": 0} for faixa in (
+        "Até 6 meses", "Entre 6 meses a 1 ano", "Entre 1 ano a 3 anos", "Mais de 3 anos")]
+    sem_periodo = 0
+    for saida in saidas:
+        if saida["tipo_anterior"] not in ("entrada", "reativacao") or saida["inicio_vinculo"] is None:
+            sem_periodo += 1
+            continue
+        faixa = next((indice for indice, meses in enumerate((6, 12, 36))
+                      if _ate_meses(saida["inicio_vinculo"], saida["data"], meses)), 3)
+        linhas[faixa]["quantidade"] += 1
+    if sem_periodo:
+        for linha in linhas:
+            linha["quantidade"] = None
+    return {"linhas": linhas, "total": None if sem_periodo else len(saidas),
+            "total_desligamentos": len(saidas), "sem_periodo": sem_periodo}
 
 
 def imigrantes_refugiados_mensal(*, usuario, ano, mes):

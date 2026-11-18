@@ -5,6 +5,11 @@ from datetime import date
 from core.integracoes import ParticipanteResumo
 
 
+def consultar_tempo_permanencia_desligamentos(*, usuario, ano, mes):
+    from participantes.relatorios import tempo_permanencia_desligamentos_mensal
+    return tempo_permanencia_desligamentos_mensal(usuario=usuario, ano=ano, mes=mes)
+
+
 def consultar_imigrantes_refugiados(*, usuario, ano, mes):
     from participantes.relatorios import imigrantes_refugiados_mensal
     return imigrantes_refugiados_mensal(usuario=usuario, ano=ano, mes=mes)

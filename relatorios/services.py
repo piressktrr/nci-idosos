@@ -33,6 +33,7 @@ def consultar_indicadores_fmr(*, usuario, ano, mes):
     resultado["permanentes"] = consultar_permanentes_fmr(usuario=usuario, ano=ano, mes=mes)
     resultado["movimentacao_etaria"] = consultar_movimentacao_etaria_fmr(usuario=usuario, ano=ano, mes=mes)
     resultado["desligamentos_motivo"] = consultar_desligamentos_motivo_fmr(usuario=usuario, ano=ano, mes=mes)
+    resultado["tempo_permanencia"] = consultar_tempo_permanencia_fmr(usuario=usuario, ano=ano, mes=mes)
     resultado["ingressantes_encaminhamento"] = consultar_ingressantes_encaminhamento_fmr(usuario=usuario, ano=ano, mes=mes)
     resultado["perfil_demografico"] = consultar_perfil_demografico_fmr(usuario=usuario, ano=ano, mes=mes)
     try:
@@ -85,6 +86,26 @@ def consultar_permanentes_fmr(*, usuario, ano, mes):
         }
     else:
         resultado.update(participantes=participantes, total=len(participantes))
+    return resultado
+
+
+def consultar_tempo_permanencia_fmr(*, usuario, ano, mes):
+    """RF-FMR-14: quatro faixas sem sobreposição, por saída do mês."""
+    periodo = consultar_periodo_fmr(usuario=usuario, ano=ano, mes=mes)
+    resultado = {"periodo": periodo, "linhas": [], "total": None, "total_desligamentos": None,
+                 "sem_periodo": None, "aviso": "", "pendencia": None}
+    try:
+        autorizar(usuario, "participantes.view_participante")
+    except PermissionDenied:
+        resultado["aviso"] = "Seu perfil não possui permissão para consultar o tempo de permanência dos desligados."
+        return resultado
+    resultado.update(integracao_participantes.consultar_tempo_permanencia_desligamentos(usuario=usuario, ano=ano, mes=mes))
+    if resultado["sem_periodo"]:
+        resultado["pendencia"] = {
+            "codigo": "VINCULO", "aviso": "Falta histórico do vínculo para classificar o tempo de algumas saídas.",
+            "explicacao": "É necessário identificar a entrada ou última reativação anterior a cada desligamento, "
+                "na ordem das movimentações. Uma saída sem esse início ou com outra saída anterior sem reativação "
+                "não tem período completo. As faixas não foram preenchidas com zero ou com totais parciais."}
     return resultado
 
 
