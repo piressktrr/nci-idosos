@@ -16,8 +16,7 @@
   <p class="alert alert-warning">Há registros de pessoas com menos de 60 anos na data de referência, fora das faixas do FMR. Não foram incluídos nesta tabela. Permanentes fora das faixas: {{ movimentacao_etaria.fora_faixas.permanecem }}; vindos: {{ movimentacao_etaria.fora_faixas.vieram_mes_anterior }}; ingressos: {{ movimentacao_etaria.fora_faixas.ingressaram }}; reativações: {{ movimentacao_etaria.fora_faixas.reativados }}; saídas: {{ movimentacao_etaria.fora_faixas.sairam }}.</p>
   {% endif %}
   <div class="nci-tabela verde table-responsive">
-    <table class="table table-hover" id="tabela-movimentacao-etaria" aria-describedby="legenda-movimentacao-etaria">
-      <caption>Movimentação do mês {{ movimentacao_etaria.periodo.inicio|date:"m/Y" }}.</caption>
+    <table class="table table-hover" id="tabela-movimentacao-etaria" aria-describedby="legenda-movimentacao-etaria resumo-movimentacao-etaria">
       <thead><tr><th scope="col">Faixa etária</th><th scope="col">Sexo</th><th scope="col">Vieram do mês anterior</th><th scope="col">Ingressaram</th><th scope="col">Reativados no mês</th><th scope="col">Saíram</th><th scope="col">Permanecem</th></tr></thead>
       <tbody>{% for linha in movimentacao_etaria.linhas %}
         <tr><th scope="row">{{ linha.faixa }}</th><td>{{ linha.sexo }} ({{ linha.sexo_codigo }})</td>
@@ -37,5 +36,6 @@
       </tr></tfoot>
     </table>
   </div>
+  <p class="nci-legenda-tabela" id="resumo-movimentacao-etaria">Movimentação do mês {{ movimentacao_etaria.periodo.inicio|date:"m/Y" }}.</p>
   {% endif %}
 </section>

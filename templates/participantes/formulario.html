@@ -1,13 +1,16 @@
 {% extends "nci/base.html" %}
 {% block title %}{% if participante %}Editar cadastro{% else %}Novo cadastro{% endif %} · NCI Idade Dourada{% endblock %}
+{% block body_class %}nci-participante-cadastro{% endblock %}
+{% block cabecalho_pagina %}<h1>Gestão de Participantes - Cadastro</h1>{% endblock %}
 {% block content %}
-<h1>Gestão de Participantes - Cadastro</h1>
+<div class="nci-titulo-reserva" aria-hidden="true"></div>
+
 <form method="post" class="nci-cartao mt-3" novalidate>
   <div class="nci-cartao-titulo">{% if participante %}Editar cadastro{% else %}Novo cadastro{% endif %}</div>
   <div class="nci-cartao-corpo">
     {% csrf_token %}
     {% if form.non_field_errors %}<div class="alert alert-warning">{{ form.non_field_errors|join:" " }}</div>{% endif %}
-    <div class="row g-3">
+    <div class="row g-3 nci-form-participante">
       <div class="col-lg-6">
         {% include "participantes/_campo.html" with campo=form.nome_completo obrigatorio=True %}
         {% include "participantes/_campo.html" with campo=form.endereco obrigatorio=True %}

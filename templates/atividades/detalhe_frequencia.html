@@ -1,9 +1,11 @@
 {% extends "nci/base.html" %}
 {% load static %}
 {% block title %}Histórico da frequência · NCI Idade Dourada{% endblock %}
+{% block cabecalho_pagina %}<h1>Frequência de {{ nome }}</h1>{% endblock %}
 {% block content %}
 <p><a class="btn btn-outline-secondary" href="{% url 'atividades:chamada' frequencia.aula.atividade_id frequencia.aula_id %}?correcao=1">Voltar à chamada</a></p>
-<h1>Frequência de {{ nome }}</h1>
+<div class="nci-titulo-reserva" aria-hidden="true"></div>
+
 <p>{{ frequencia.aula.atividade.nome }} · {{ frequencia.aula.data|date:"d/m/Y" }} · {{ frequencia.aula.get_situacao_display }}</p>
 {% if demonstracao %}<p class="message">Demonstração: participante fictício.</p>{% endif %}
 <p>Situação atual: <strong>{{ frequencia.get_situacao_display }}</strong> · versão {{ frequencia.versao }}</p>

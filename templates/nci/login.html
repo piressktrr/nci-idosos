@@ -18,10 +18,10 @@
         <label class="form-label" for="{{ form.password.id_for_label }}">Senha</label>
         <input class="form-control" type="password" name="password" id="{{ form.password.id_for_label }}" placeholder="Digite sua senha" autocomplete="current-password" required>
       </div>
+      <p class="nci-login-recuperar"><a href="{% url 'recuperar_senha' %}">Esqueci minha senha</a></p>
       <input type="hidden" name="next" value="{{ next }}">
     </form>
     <button type="submit" form="form-login" class="btn btn-nci mt-3 px-4">ENTRAR</button>
-    <p class="mt-3 mb-0"><a href="{% url 'recuperar_senha' %}">Esqueci minha senha</a></p>
   </div>
 </main>
 {% endblock %}

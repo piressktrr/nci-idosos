@@ -1,15 +1,16 @@
 <section aria-labelledby="presencas-por-data">
   <h2 id="presencas-por-data">Pessoas que frequentaram o serviço por dia</h2>
   {% if presencas %}
-  <div class="nci-tabela verde table-responsive">
-    <table class="table table-sm">
-      <caption>{% if presencas.criterio == "participantes_unicos" %}Cada pessoa conta uma vez no dia.{% else %}Cada presença em aula conta uma vez no dia.{% endif %}</caption>
+  <div class="nci-tabela verde table-responsive nci-tabela-rolavel nci-tabela-duas-colunas" data-linhas-visiveis="10">
+    <table class="table table-sm" aria-describedby="nota-transcricao-atendimento">
+
       <thead><tr><th scope="col">Data</th><th scope="col">Quantidade</th></tr></thead>
-      <tbody>{% for dia in presencas.dias %}
+      <tbody tabindex="0" aria-label="Presenças por data, lista com rolagem">{% for dia in presencas.dias %}
         <tr><th scope="row">{{ dia.data|date:"d/m/Y" }}</th><td>{% if presencas.criterio == "participantes_unicos" %}{{ dia.participantes_unicos }}{% else %}{{ dia.ocorrencias }}{% endif %}</td></tr>
       {% endfor %}</tbody>
     </table>
   </div>
+  <p class="nci-legenda-tabela" id="nota-transcricao-atendimento">{% if presencas.criterio == "participantes_unicos" %}Cada pessoa conta uma vez no dia.{% else %}Cada presença em aula conta uma vez no dia.{% endif %}</p>
   {% else %}<p class="alert alert-warning">{{ aviso }}</p>{% endif %}
 </section>
 <section aria-labelledby="participantes-permanecem">

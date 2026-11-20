@@ -1,7 +1,11 @@
 {% extends "nci/base.html" %}
 {% block title %}FMR de convivência · NCI{% endblock %}
+{% block body_class %}nci-fmr{% endblock %}
+{% block cabecalho_pagina %}<h1>{% if transcricao %}FMR para transcrição manual{% else %}FMR de convivência{% endif %}</h1>{% endblock %}
 {% block content %}
-<h1>{% if transcricao %}FMR para transcrição manual{% else %}FMR de convivência{% endif %}</h1>
+<div class="nci-titulo-reserva" aria-hidden="true"></div>
+
+<div class="nci-fmr-controles">
 <section aria-labelledby="selecionar-mes">
   <h2 id="selecionar-mes">Selecionar mês de referência</h2>
   {{ form.non_field_errors }}
@@ -23,6 +27,9 @@
   <a class="btn btn-nci mt-2" href="?mes={{ form.mes.value|urlencode }}&amp;modo=transcricao">Preparar transcrição para a SMADS</a>
   {% endif %}
 </section>
+{% endif %}
+</div>
+{% if periodo %}
 {% if avisos_consistencia %}
 <section class="alert alert-warning" aria-labelledby="avisos-consistencia">
   <h2 id="avisos-consistencia">Valores para conferir</h2>
@@ -95,9 +102,9 @@
   <p>Ocorrências contam cada presença em uma aula. Participantes únicos contam cada pessoa uma vez no período indicado, mesmo que frequente várias aulas.</p>
   <p>Contagem adotada para pessoas por dia: {% if presencas.criterio == "participantes_unicos" %}participantes únicos{% else %}ocorrências de presença por aula{% endif %}.</p>
   {% if presencas.dias %}
-  <div class="nci-tabela verde table-responsive">
-    <table class="table table-hover">
-      <caption>Todos os dias do mês; zero quando não houver atendimento registrado em aulas realizadas.</caption>
+  <div class="nci-tabela verde table-responsive nci-tabela-rolavel" data-linhas-visiveis="10">
+    <table class="table table-hover" aria-describedby="nota-fmr">
+
       <thead><tr><th scope="col">Data da aula</th>
         {% if presencas.criterio == "participantes_unicos" %}
         <th scope="col">Participantes únicos no dia</th><th scope="col">Ocorrências de presença</th>
@@ -105,7 +112,7 @@
         <th scope="col">Ocorrências de presença</th><th scope="col">Participantes únicos no dia</th>
         {% endif %}
       </tr></thead>
-      <tbody>{% for dia in presencas.dias %}
+      <tbody tabindex="0" aria-label="Presenças por data, lista com rolagem">{% for dia in presencas.dias %}
         <tr><th scope="row">{{ dia.data|date:"d/m/Y" }}</th>
           {% if presencas.criterio == "participantes_unicos" %}
           <td>{{ dia.participantes_unicos }}</td><td>{{ dia.ocorrencias }}</td>
@@ -116,6 +123,7 @@
       {% endfor %}</tbody>
     </table>
   </div>
+  <p class="nci-legenda-tabela" id="nota-fmr">Todos os dias do mês; zero quando não houver atendimento registrado em aulas realizadas.</p>
   {% else %}
   <p>Nenhuma aula realizada registrada neste mês.</p>
   {% endif %}

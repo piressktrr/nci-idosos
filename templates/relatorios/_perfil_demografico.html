@@ -11,14 +11,15 @@
     {% if bloco.linhas %}
     {% if bloco.aviso %}<p id="demografico-legenda-{{ bloco.codigo }}">— significa informação ainda não calculada, diferente de zero.</p>{% endif %}
     <div class="nci-tabela verde table-responsive">
-      <table class="table table-hover" id="demografico-tabela-{{ bloco.codigo }}"{% if bloco.aviso %} aria-describedby="demografico-legenda-{{ bloco.codigo }}"{% endif %}>
-        <caption>{{ bloco.titulo }} dos participantes que permanecem no mês.</caption>
+      <table class="table table-hover" id="demografico-tabela-{{ bloco.codigo }}" aria-describedby="nota-perfil-demografico-{{ bloco.codigo }}{% if bloco.aviso %} demografico-legenda-{{ bloco.codigo }}{% endif %}">
+
         <thead><tr><th scope="col">{{ bloco.primeira_coluna }}</th>{% for coluna in bloco.colunas %}<th scope="col">{{ coluna }}</th>{% endfor %}</tr></thead>
         <tbody>{% for linha in bloco.linhas %}
           <tr><th scope="row">{{ linha.rotulo }}</th>{% for valor in linha.valores %}<td>{% include "relatorios/_valor_contagem.html" with valor=valor only %}</td>{% endfor %}</tr>
         {% endfor %}</tbody>
       </table>
     </div>
+  <p class="nci-legenda-tabela" id="nota-perfil-demografico-{{ bloco.codigo }}">{{ bloco.titulo }} dos participantes que permanecem no mês.</p>
     {% endif %}
   </div>
   {% endfor %}

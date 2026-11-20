@@ -1,6 +1,9 @@
 {% extends "nci/base.html" %}
+{% block body_class %}nci-usuarios{% endblock %}
+{% block cabecalho_pagina %}<h1>Alterar situação de {{ conta.get_username }}</h1>{% endblock %}
 {% block content %}
-<h1>Alterar situação de {{ conta.get_username }}</h1>
+<div class="nci-titulo-reserva" aria-hidden="true"></div>
+
 <section><p>Desativar impede o acesso e encerra as sessões existentes. O histórico é preservado. Reativar permite um novo login.</p>
 <form method="post">{% csrf_token %}{{ form.non_field_errors }}
 <div class="field">{{ form.ativo.label_tag }}{{ form.ativo }}{{ form.ativo.errors }}</div>
