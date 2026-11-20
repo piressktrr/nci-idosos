@@ -2,7 +2,7 @@
 {% block title %}Participantes · NCI Idade Dourada{% endblock %}
 {% block content %}
 <h1>Gestão de Participantes</h1>
-{% if administrador %}<p><a class="btn btn-outline-secondary" href="{% url 'participantes:motivos_desligamento' %}">Administrar motivos de desligamento</a></p>{% endif %}
+{% if e_administrador %}<p><a class="btn btn-outline-secondary" href="{% url 'participantes:motivos_desligamento' %}">Administrar motivos de desligamento</a></p>{% endif %}
 <div class="d-flex flex-wrap align-items-center gap-3 my-3">
   <form method="get" role="search" aria-label="Pesquisar participantes" class="flex-grow-1" style="max-width: 420px">
     <div class="input-group nci-busca">
@@ -14,7 +14,10 @@
     </div>
   </form>
   {% if termo %}<a class="btn btn-outline-secondary" href="{% url 'participantes:lista' %}">Limpar pesquisa</a>{% endif %}
-  {% if perms.participantes.add_participante %}<a class="btn btn-nci ms-auto" href="{% url 'participantes:cadastrar' %}">+ Novo Cadastro</a>{% endif %}
+  <div class="d-flex flex-wrap gap-2 ms-auto">
+    {% if perms.participantes.exportar_participante %}<a class="btn btn-nci-sec" href="{% url 'participantes:exportar' %}" download>Exportar CSV</a>{% endif %}
+    {% if perms.participantes.add_participante %}<a class="btn btn-nci" href="{% url 'participantes:cadastrar' %}">+ Novo Cadastro</a>{% endif %}
+  </div>
 </div>
 <p class="small mb-2" aria-live="polite">{% if termo %}{{ pagina.paginator.count }} encontrado{{ pagina.paginator.count|pluralize }} para “{{ termo }}”{% else %}{{ pagina.paginator.count }} participante{{ pagina.paginator.count|pluralize }} cadastrado{{ pagina.paginator.count|pluralize }}{% endif %}</p>
 {% if pagina %}

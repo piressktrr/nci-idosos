@@ -32,7 +32,9 @@ class ColaboradorForm(forms.Form):
 
     first_name = forms.CharField(label="Nome", max_length=_tamanho("first_name"))
     last_name = forms.CharField(label="Sobrenome", max_length=_tamanho("last_name"), required=False)
-    email = forms.EmailField(label="E-mail", max_length=_tamanho("email"), required=False)
+    # RF-USR-05: o e-mail é o caminho para recuperar a senha, por isso é obrigatório.
+    email = forms.EmailField(label="E-mail", max_length=_tamanho("email"),
+                             help_text="Usado para recuperar a senha (Esqueci minha senha).")
     perfil = forms.ChoiceField(label="Perfil", choices=ESCOLHAS_PERFIL, help_text=AJUDA_PERFIL)
 
     def __init__(self, *args, proprio=False, **kwargs):

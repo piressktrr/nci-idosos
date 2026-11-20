@@ -9,7 +9,7 @@ from .services import autorizar_administrador
 
 ROTULOS = {"username": "Usuário", "first_name": "Nome", "last_name": "Sobrenome", "email": "E-mail",
            "perfil": "Perfil", "senha": "Senha"}
-ACOES = {"cadastro": "Cadastro", "correcao": "Correção", "senha": "Nova senha",
+ACOES = {"cadastro": "Cadastro", "correcao": "Correção", "senha": "Nova senha", "senha_recuperada": "Senha recuperada por e-mail",
          "ativacao": "Reativação", "desativacao": "Desativação"}
 ROTULOS["is_active"] = "Conta ativa"
 

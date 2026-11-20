@@ -64,7 +64,7 @@ class ParticipanteForm(forms.ModelForm):
 
     class Meta:
         model = Participante
-        fields = ("nome_completo", "endereco", "identidade_genero", "origem_encaminhamento",
+        fields = ("nome_completo", "endereco", "identidade_genero", "origem_encaminhamento", "origem_descricao",
                   "observacao_encaminhamento", "telefone_residencial", "telefone_celular", "data_nascimento",
                   "raca_cor", "sexo", "ensino_medio_completo")
         # Sem status: desligamento, reativação e afastamento passam pelos serviços de movimentação.
@@ -76,7 +76,8 @@ class ParticipanteForm(forms.ModelForm):
             "telefone_residencial": _widget_telefone("(11) 3123-4567"),
             "observacao_encaminhamento": forms.Textarea(attrs={"rows": 4}),
         }
-        help_texts = {"telefone_celular": "Informe pelo menos um dos dois telefones do próprio participante."}
+        help_texts = {"telefone_celular": "Informe pelo menos um dos dois telefones do próprio participante.",
+                      "origem_descricao": "Obrigatória quando a origem for \"Outros\"; descreva de onde a pessoa veio."}
 
     def __init__(self, *args, mostrar_confirmacao=False, **kwargs):
         super().__init__(*args, **kwargs)
@@ -98,6 +99,13 @@ class ParticipanteForm(forms.ModelForm):
             # Só existe depois do alerta de duplicidade; antes disso, nunca confirma.
             del self.fields["confirmar_duplicidade"]
         aplicar_bootstrap(self)
+
+    def clean(self):
+        dados = super().clean()
+        # RF-PAR-14 (P14, NCI 20/11/2026): origem "Outros" exige a descrição em texto livre.
+        if dados.get("origem_encaminhamento") == "outra" and not (dados.get("origem_descricao") or "").strip():
+            self.add_error("origem_descricao", "Descreva a origem do encaminhamento.")
+        return dados
 
     def dados_servico(self):
         # Telefones podem ir com máscara: o full_clean do serviço os normaliza no modelo.

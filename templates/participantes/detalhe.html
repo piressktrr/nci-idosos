@@ -23,7 +23,7 @@
       <dt class="col-sm-4">Raça/cor autodeclarada</dt><dd class="col-sm-8">{{ participante.get_raca_cor_display }}</dd>
       <dt class="col-sm-4">Identidade de gênero</dt><dd class="col-sm-8">{{ participante.get_identidade_genero_display }}</dd>
       <dt class="col-sm-4">Ensino médio completo</dt><dd class="col-sm-8">{{ participante.ensino_medio_completo|yesno:"Sim,Não,—" }}</dd>
-      <dt class="col-sm-4">Origem do encaminhamento</dt><dd class="col-sm-8">{{ participante.get_origem_encaminhamento_display|default:"—" }}{% if participante.observacao_encaminhamento %}<br><span class="small">{{ participante.observacao_encaminhamento|linebreaksbr }}</span>{% endif %}</dd>
+      <dt class="col-sm-4">Origem do encaminhamento</dt><dd class="col-sm-8">{{ participante.origem_formatada|default:"—" }}{% if participante.observacao_encaminhamento %}<br><span class="small">{{ participante.observacao_encaminhamento|linebreaksbr }}</span>{% endif %}</dd>
     </dl>
   </div>
 </div>
@@ -42,6 +42,7 @@
   </div>
 </div>
 
+{% include "participantes/_movimentacoes.html" %}
 {% if frequencias is not None %}{% include "participantes/_frequencia.html" %}{% endif %}
 
 {% if registros is not None %}

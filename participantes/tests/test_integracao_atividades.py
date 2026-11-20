@@ -293,9 +293,11 @@ class FrequenciaDoParticipanteTests(IntegracaoBase):
 
 
 class IndependenciaDeImportsTests(TestCase):
-    """participantes não depende de atividades (o contrato fica em core.integracoes)."""
+    """participantes depende só de core: nem atividades (contrato em core.integracoes) nem usuarios
+    (critério de administrador em core.perfis/core.permissoes/core.decorators)."""
 
-    PADRAO = re.compile(r"^\s*(?:import\s+atividades\b|from\s+atividades\b)", re.MULTILINE)
+    PROIBIDOS = ("atividades", "usuarios")
+    PADRAO = re.compile(r"^\s*(?:import|from)\s+(?:atividades|usuarios)\b", re.MULTILINE)
 
     def arquivos(self):
         raiz = Path(apps.get_app_config("participantes").path)
@@ -307,7 +309,7 @@ class IndependenciaDeImportsTests(TestCase):
         self.assertTrue({"models.py", "provedor.py", "views.py", "services.py"} <= nomes)
         self.assertNotIn("test_integracao_atividades.py", nomes)
 
-    def test_participantes_nao_importa_atividades(self):
+    def test_participantes_nao_importa_atividades_nem_usuarios(self):
         violacoes = []
         for caminho in self.arquivos():
             texto = caminho.read_text(encoding="utf-8")
@@ -321,6 +323,6 @@ class IndependenciaDeImportsTests(TestCase):
                     modulos = [alias.name for alias in no.names]
                 elif isinstance(no, ast.ImportFrom) and no.level == 0 and no.module:
                     modulos = [no.module]
-                if any(modulo == "atividades" or modulo.startswith("atividades.") for modulo in modulos):
+                if any(modulo.split(".", 1)[0] in self.PROIBIDOS for modulo in modulos):
                     violacoes.append(f"{caminho}:{no.lineno}: import de {modulos}")
-        self.assertEqual(violacoes, [], "participantes não deve importar atividades:\n" + "\n".join(violacoes))
+        self.assertEqual(violacoes, [], "participantes não deve importar atividades nem usuarios:\n" + "\n".join(violacoes))

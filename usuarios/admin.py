@@ -1,21 +1,18 @@
-"""Admin do Django para contas: sem exclusão, nem para superusuário.
+"""Contas e grupos fora do admin do Django (RNF-SEG-07, RF-USR-03).
 
-Contas não são excluídas (o histórico das ações precisa ser preservado; a desativação é o RF-USR-04, pendente).
-Contas com eventos de auditoria também são barradas pelo pre_delete do core (RegistroConta).
+Contas só são criadas e alteradas pelas telas próprias (`/colaboradores/`), cujos serviços gravam cada mudança
+junto com o seu evento `usuarios.RegistroConta`. Pelo admin do Django as alterações ficariam só no LogEntry,
+fora da auditoria comum; por isso `auth.User` e `auth.Group` são retirados dele. Exclusão de contas continua
+barrada pelo pre_delete do core para contas com eventos de auditoria.
 """
 
 from django.contrib import admin
 from django.contrib.auth import get_user_model
-from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.models import Group
 
+# Importar django.contrib.auth.admin registra User e Group; aqui os dois são retirados do site.
+import django.contrib.auth.admin  # noqa: F401  (garante o registro antes de retirar, qualquer que seja a ordem)
 
-class ContaAdmin(UserAdmin):
-    def has_delete_permission(self, request, obj=None):
-        return False
-
-
-Usuario = get_user_model()
-# Importar django.contrib.auth.admin (acima) já registra o UserAdmin padrão; aqui ele é substituído.
-if admin.site.is_registered(Usuario):
-    admin.site.unregister(Usuario)
-admin.site.register(Usuario, ContaAdmin)
+for modelo in (get_user_model(), Group):
+    if admin.site.is_registered(modelo):
+        admin.site.unregister(modelo)

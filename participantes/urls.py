@@ -10,6 +10,7 @@ urlpatterns = [
     path("<int:participante_id>/movimentacoes/", movimentos.movimentar, name="movimentar"),
     path("", views.lista, name="lista"),
     path("novo/", views.cadastrar, name="cadastrar"),
+    path("exportar/", views.exportar, name="exportar"),
     path("<int:participante_id>/", views.detalhe, name="detalhe"),
     path("<int:participante_id>/corrigir/", views.corrigir, name="corrigir"),
     path("<int:participante_id>/situacao-social/", views.situacao_social, name="situacao_social"),

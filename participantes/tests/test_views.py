@@ -438,3 +438,46 @@ class SituacaoSocialViewTests(Base):
         self.assertEqual(resposta.status_code, 200)
         self.assertContains(resposta, "A data de início não pode estar no futuro.")
         self.assertFalse(SituacaoSocial.objects.filter(participante=self.participante).exists())
+
+
+@override_settings(DEBUG=True, SECURE_SSL_REDIRECT=False)
+class MovimentacoesNoDetalheTests(Base):
+    """RF-PAR-10: o histórico de entradas e saídas aparece para quem só consulta o cadastro."""
+
+    def test_leitor_ve_entrada_no_detalhe(self):
+        self.client.force_login(_usuario("leitor_movimentos_ficticio", "view_participante"))
+        resposta = self.client.get(reverse("participantes:detalhe", args=[self.participante.pk]))
+        self.assertContains(resposta, "Entradas e saídas")
+        self.assertContains(resposta, "<td>01/02/2024</td><td>Entrada</td>", html=True)
+        self.assertNotContains(resposta, reverse("participantes:movimentar", args=[self.participante.pk]))
+
+    def test_sem_movimentacao_mostra_aviso(self):
+        avulso = Participante.objects.create(
+            nome_completo="Avulso Ficticio", data_nascimento=date(1950, 1, 1), sexo="M", raca_cor="parda",
+            identidade_genero="cisgenero", endereco="Rua", telefone_celular="11912345678",
+            origem_encaminhamento="cras")
+        self.client.force_login(self.gestor)
+        resposta = self.client.get(reverse("participantes:detalhe", args=[avulso.pk]))
+        self.assertContains(resposta, "Sem movimentações registradas.")
+
+
+@override_settings(DEBUG=True, SECURE_SSL_REDIRECT=False)
+class OrigemOutrosViewTests(Base):
+    """RF-PAR-14: cadastro com origem "Outros" pela tela."""
+
+    def setUp(self):
+        self.client.force_login(self.gestor)
+        self.url = reverse("participantes:cadastrar")
+
+    def test_outros_sem_descricao_mostra_erro(self):
+        resposta = self.client.post(self.url, {**POST_FICTICIO, "origem_encaminhamento": "outra"})
+        self.assertEqual(resposta.status_code, 200)
+        self.assertContains(resposta, "Descreva a origem do encaminhamento.")
+        self.assertFalse(Participante.objects.filter(nome_completo="Josefa Exemplo Ficticia").exists())
+
+    def test_outros_com_descricao_cadastra_e_mostra_no_detalhe(self):
+        resposta = self.client.post(self.url, {**POST_FICTICIO, "origem_encaminhamento": "outra",
+                                               "origem_descricao": "Indicação de vizinha"})
+        participante = Participante.objects.get(nome_completo="Josefa Exemplo Ficticia")
+        self.assertEqual(participante.origem_descricao, "Indicação de vizinha")
+        self.assertContains(self.client.get(resposta["Location"]), "Outros: Indicação de vizinha")

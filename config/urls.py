@@ -13,6 +13,7 @@ from core.views import inicio
 urlpatterns = [
     path('', inicio, name='inicio'),
     path('entrar/', LoginView.as_view(template_name='nci/login.html', redirect_authenticated_user=True), name='entrar'),
+    path('entrar/', include('usuarios.urls_recuperacao')),
     path('sair/', LogoutView.as_view(), name='sair'),
     path('atividades/', include('atividades.urls')),
     path('participantes/', include('participantes.urls')),

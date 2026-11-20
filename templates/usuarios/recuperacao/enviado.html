@@ -1,0 +1,15 @@
+{% extends "nci/base.html" %}
+{% load static %}
+{% block title %}Verifique seu e-mail · NCI Idade Dourada{% endblock %}
+{% block corpo %}
+<main class="nci-login">
+  <div class="text-center px-3">
+    <img src="{% static 'img/logo-nci.png' %}" alt="Logo NCI Idade Dourada" width="90" class="mb-2">
+    <h1 class="h4 mb-3 nci-titulo">Verifique seu e-mail</h1>
+    <div class="nci-login-caixa text-start mx-auto">
+      <p class="mb-0">Se o e-mail informado pertencer a uma conta ativa, você receberá em instantes um link para criar uma nova senha. Confira também a caixa de spam. Se não receber, procure um administrador.</p>
+    </div>
+    <p class="mt-3"><a href="{% url 'entrar' %}">Voltar para a entrada</a></p>
+  </div>
+</main>
+{% endblock %}

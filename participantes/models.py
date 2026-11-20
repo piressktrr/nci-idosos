@@ -7,7 +7,7 @@ from core.models import EventoAuditoria, ProtegidoPorAuditoria
 
 from .categorias import (IDENTIDADES_GENERO_LEGADAS, IdentidadeGenero, OrigemEncaminhamento, RacaCor, Sexo, StatusParticipante,
                          TipoMovimentacao)
-from .regras import (celular_valido, chave_nome, data_minima_nascimento, faixa_etaria_fmr, formatar_telefone,
+from .regras import (celular_valido, chave_nome, data_minima_nascimento, faixa_etaria_fmr_no_mes, formatar_telefone,
                      idade_em, normalizar_espacos, residencial_valido, so_digitos)
 
 TAMANHO_NOME_BUSCA = 255
@@ -43,6 +43,8 @@ class Participante(ProtegidoPorAuditoria, models.Model):
     # RF-PAR-06: só a categoria; o registro de entrada fica para a Movimentacao (RF-PAR-07/08).
     origem_encaminhamento = models.CharField("origem do encaminhamento", max_length=20,
                                              choices=OrigemEncaminhamento.choices)
+    # RF-PAR-14 (P14, NCI 20/11/2026): origem em texto livre quando a categoria for "Outros".
+    origem_descricao = models.CharField("descrição da origem", max_length=150, blank=True, default="")
     observacao_encaminhamento = models.TextField("observação sobre o encaminhamento", max_length=1000,
                                                  blank=True, default="")
     # Situação somente pelos serviços de movimentação, nunca por edição direta do cadastro.
@@ -54,6 +56,9 @@ class Participante(ProtegidoPorAuditoria, models.Model):
         ordering = ["nome_completo", "pk"]
         verbose_name = "participante"
         verbose_name_plural = "participantes"
+        # RNF-SEG-11: exportação de todos os cadastros (dados sensíveis); o Administrador a recebe pelo
+        # core.perfis (todas as permissões do app), a Equipe não.
+        permissions = [("exportar_participante", "Pode exportar participantes")]
         indexes = [models.Index(fields=["data_nascimento"], name="participante_nascimento_idx")]
         constraints = [
             models.CheckConstraint(condition=models.Q(sexo__in=Sexo.values), name="participante_sexo_valido"),
@@ -102,7 +107,22 @@ class Participante(ProtegidoPorAuditoria, models.Model):
                 raise ValidationError({"endereco": "Informe o endereço."})
         if isinstance(self.observacao_encaminhamento, str):
             self.observacao_encaminhamento = self.observacao_encaminhamento.strip()
+        self._validar_origem_descricao()
         self._validar_telefones()
+
+    def _validar_origem_descricao(self):
+        """RF-PAR-14: a descrição só existe com a origem "Outros".
+
+        A obrigatoriedade é cobrada na tela (ParticipanteForm), para não invalidar cadastros antigos com "Outros"
+        nem os serviços chamados por outros módulos; aqui só normaliza e descarta a descrição fora de "Outros".
+        """
+        descricao = normalizar_espacos(self.origem_descricao) if isinstance(self.origem_descricao, str) else ""
+        self.origem_descricao = descricao if self.origem_encaminhamento == OrigemEncaminhamento.OUTRA else ""
+
+    def origem_formatada(self):
+        """Categoria da origem, com a descrição quando for "Outros" (RF-PAR-14)."""
+        rotulo = self.get_origem_encaminhamento_display()
+        return f"{rotulo}: {self.origem_descricao}" if self.origem_descricao else rotulo
 
     def _normalizar_telefones(self):
         """RF-PAR-02: guarda só os dígitos (único lugar onde a máscara é retirada)."""
@@ -136,8 +156,8 @@ class Participante(ProtegidoPorAuditoria, models.Model):
         return idade_em(self.data_nascimento, referencia or timezone.localdate())
 
     def faixa_etaria(self, referencia=None):
-        """RN-PAR-06: sempre calculada a partir da data de nascimento."""
-        return faixa_etaria_fmr(self.data_nascimento, referencia or timezone.localdate())
+        """RN-PAR-06 e RN-PAR-07: calculada da data de nascimento, pela idade no dia 1º do mês de `referencia`."""
+        return faixa_etaria_fmr_no_mes(self.data_nascimento, referencia or timezone.localdate())
 
     @property
     def entrada(self):
@@ -274,6 +294,19 @@ class RegistroParticipante(EventoAuditoria):
     """Cadastro, correção e situação social do participante (RNF-SEG-07), na tabela única core.EventoAuditoria."""
 
     alvo, modelo_alvo = "participante", Participante
+
+    class Meta:
+        proxy = True
+        default_permissions = ()
+
+
+class RegistroExportacao(EventoAuditoria):
+    """Exportação dos participantes (RNF-SEG-11): o alvo é a conta que exportou.
+
+    Guarda só quantidade e formato; nenhum dado pessoal dos participantes vai para o evento.
+    """
+
+    alvo, modelo_alvo = "exportador", settings.AUTH_USER_MODEL
 
     class Meta:
         proxy = True

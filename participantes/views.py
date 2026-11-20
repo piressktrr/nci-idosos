@@ -3,16 +3,17 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.module_loading import import_string
 from django.views.decorators.http import require_http_methods
 
 from .auditoria import diferencas, historico
+from .exportacao import PERMISSAO_EXPORTAR, exportar_participantes_csv
 from .forms import ParticipanteForm, SituacaoSocialForm
 from .models import Participante, SituacaoSocial
 from .provedor import ProvedorParticipantes
-from core.perfis import e_administrador
 from .services import (cadastrar_participante, corrigir_participante, pesquisar_participantes,
                        registrar_situacao_social)
 
@@ -73,7 +74,20 @@ def _formulario(request, participante=None):
 def lista(request):
     termo = request.GET.get("q", "").strip()[:200]
     pagina = Paginator(pesquisar_participantes(termo), 20).get_page(request.GET.get("page"))
-    return render(request, "participantes/lista.html", {"pagina": pagina, "termo": termo, "administrador": e_administrador(request.user)})
+    return render(request, "participantes/lista.html", {"pagina": pagina, "termo": termo})
+
+
+@login_required
+@permission_required(PERMISSAO_EXPORTAR, raise_exception=True)
+@require_http_methods(["GET"])
+def exportar(request):
+    """RNF-SEG-11: todos os participantes em CSV, como download; o serviço autoriza de novo e audita."""
+    nome = f"participantes_{timezone.localdate():%Y-%m-%d}.csv"
+    # Dados sensíveis: nada de cache no navegador ou em proxies.
+    resposta = HttpResponse(content_type="text/csv; charset=utf-8", headers={
+        "Content-Disposition": f'attachment; filename="{nome}"', "Cache-Control": "no-store"})
+    exportar_participantes_csv(usuario=request.user, destino=resposta)
+    return resposta
 
 
 @login_required
@@ -96,6 +110,8 @@ def detalhe(request, participante_id):
         "participante": participante, "registros": registros, "data_entrada": participante.data_entrada,
         "frequencias": _frequencias(request.user, participante),
         "situacoes": participante.situacoes_sociais.all(),
+        # RF-PAR-10: entradas, saídas e afastamentos visíveis a quem consulta o cadastro.
+        "movimentacoes": participante.movimentacoes.select_related("usuario").order_by("-data", "-pk"),
         "situacao_atual": SituacaoSocial.vigente_em(participante, timezone.localdate())})
 
 

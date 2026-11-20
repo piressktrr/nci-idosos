@@ -5,10 +5,9 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 
-from core.permissoes import autorizar
-from usuarios.services import autorizar_administrador
+from core.permissoes import autorizar, autorizar_administrador
 from .auditoria import registrar
-from .categorias import TipoMovimentacao, StatusParticipante
+from .categorias import TipoMovimentacao
 from .models import Participante, Movimentacao, MotivoDesligamento, RegistroMotivoDesligamento
 
 

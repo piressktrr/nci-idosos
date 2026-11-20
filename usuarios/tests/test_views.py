@@ -96,7 +96,7 @@ class MenuTests(TestCase):
                 else:
                     self.assertNotContains(resposta, "Gestão de Colaboradores")
                     self.assertNotContains(resposta, url)
-                self.assertNotContains(resposta, reverse("admin:auth_user_changelist"))
+                self.assertNotContains(resposta, "/admin/auth/user/")
 
     def test_menu_marca_colaboradores_como_ativo(self):
         self.client.force_login(administrador())
