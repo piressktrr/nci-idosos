@@ -3,6 +3,7 @@ from datetime import date
 from django.test import SimpleTestCase
 
 from participantes.regras import (celular_valido, chave_nome, data_minima_nascimento, faixa_etaria_fmr,
+                                  faixa_etaria_fmr_no_mes, inicio_do_mes,
                                   formatar_telefone, idade_em, normalizar_espacos, residencial_valido, so_digitos)
 
 
@@ -51,6 +52,25 @@ class FaixaEtariaFmrTests(SimpleTestCase):
         for idade, rotulo in esperado.items():
             with self.subTest(idade=idade):
                 self.assertEqual(self.faixa_com_idade(idade, aniversario_hoje=False), rotulo)
+
+
+class FaixaEtariaNoMesTests(SimpleTestCase):
+    """RN-PAR-07 (P01, NCI 20/11/2026): faixa do mês pela idade no dia 1º."""
+
+    def test_inicio_do_mes(self):
+        self.assertEqual(inicio_do_mes(date(2025, 3, 31)), date(2025, 3, 1))
+        self.assertEqual(inicio_do_mes(date(2024, 2, 29)), date(2024, 2, 1))
+
+    def test_aniversario_durante_o_mes_so_muda_a_faixa_no_mes_seguinte(self):
+        nascimento = date(1955, 3, 15)  # faz 70 em 15/03/2025
+        for dia in (1, 14, 15, 31):
+            with self.subTest(dia=dia):
+                self.assertEqual(faixa_etaria_fmr_no_mes(nascimento, date(2025, 3, dia)), "65 a 69 anos")
+        self.assertEqual(faixa_etaria_fmr_no_mes(nascimento, date(2025, 4, 1)), "70 a 74 anos")
+
+    def test_aniversario_no_dia_1_ja_conta_no_proprio_mes(self):
+        self.assertEqual(faixa_etaria_fmr_no_mes(date(1965, 3, 1), date(2025, 3, 20)), "60 a 64 anos")
+        self.assertIsNone(faixa_etaria_fmr_no_mes(date(1965, 3, 2), date(2025, 3, 20)))
 
 
 class NormalizacaoNomeTests(SimpleTestCase):

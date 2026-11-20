@@ -1,0 +1,26 @@
+{% extends "nci/base.html" %}
+{% load static %}
+{% block title %}Esqueci minha senha · NCI Idade Dourada{% endblock %}
+{% block corpo %}
+<main class="nci-login">
+  <div class="text-center px-3">
+    <img src="{% static 'img/logo-nci.png' %}" alt="Logo NCI Idade Dourada" width="90" class="mb-2">
+    <h1 class="h4 mb-3 nci-titulo">Esqueci minha senha</h1>
+    <div class="nci-login-caixa text-start mx-auto">
+      <p class="small">Informe o e-mail cadastrado na sua conta. Enviaremos um link para criar uma nova senha.</p>
+      <form method="post">{% csrf_token %}
+      {% if form.non_field_errors %}<div class="alert alert-warning py-2" role="alert">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+      {% for campo in form %}
+      <div class="mb-3">
+        <label class="form-label" for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+        {{ campo }}
+        {% for erro in campo.errors %}<div class="small mt-1" role="alert">{{ erro }}</div>{% endfor %}
+      </div>
+      {% endfor %}
+        <button type="submit" class="btn btn-light w-100">Enviar link</button>
+      </form>
+    </div>
+    <p class="mt-3"><a href="{% url 'entrar' %}">Voltar para a entrada</a></p>
+  </div>
+</main>
+{% endblock %}
