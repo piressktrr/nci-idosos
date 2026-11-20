@@ -110,6 +110,8 @@ def detalhe(request, participante_id):
         "participante": participante, "registros": registros, "data_entrada": participante.data_entrada,
         "frequencias": _frequencias(request.user, participante),
         "situacoes": participante.situacoes_sociais.all(),
+        # RF-PAR-10: entradas, saídas e afastamentos visíveis a quem consulta o cadastro.
+        "movimentacoes": participante.movimentacoes.select_related("usuario").order_by("-data", "-pk"),
         "situacao_atual": SituacaoSocial.vigente_em(participante, timezone.localdate())})
 
 

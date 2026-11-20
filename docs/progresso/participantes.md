@@ -12,7 +12,7 @@
 | [x] | RF-PAR-07 | Confirmado | Implementado (PR #8) | participantes/tests/test_movimentacoes.py | — | Motivos cadastrados pelo administrador; resposta da Q3 a registrar nos requisitos |
 | [x] | RF-PAR-08 | Confirmado | Implementado (PR #8) | participantes/tests/test_movimentacoes.py (reativação preserva identidade) | — | Resposta da Q4 a registrar nos requisitos |
 | [x] | RF-PAR-09 | Confirmado | Implementado, sem commit | participantes/tests/test_services.py (PesquisaTests), test_views.py (ListaTests) | — | Pesquisa no banco por `nome_busca` |
-| [ ] | RF-PAR-10 | Confirmado | Parcial | test_integracao_atividades.py, test_views.py, test_movimentacoes.py | — | Frequência no detalhe; movimentações só na tela de movimentações (exige change_participante) |
+| [x] | RF-PAR-10 | Confirmado | Implementado | participantes/tests/test_views.py (MovimentacoesNoDetalheTests), test_integracao_atividades.py | — | Entradas, saídas e afastamentos e frequência por atividade no detalhe |
 | [ ] | RF-PAR-11 | Pendente (P05) | Não iniciado | — | — | — |
 | [x] | RF-PAR-12 | Pendente (P02) | Implementado (PR #8) | participantes/tests/test_movimentacoes.py (afastamento e retorno) | — | Resposta da P02 a registrar nos requisitos |
 | [ ] | RF-PAR-13 | Pendente (P18) | Não iniciado | — | — | — |
