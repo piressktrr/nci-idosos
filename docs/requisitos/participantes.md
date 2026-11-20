@@ -77,37 +77,37 @@ Exibir o histórico de entradas, saídas e frequência de um participante.
 - **Fonte:** E2; §4; D05
 - **Status da definição:** Confirmado
 
-### RF-PAR-11 — Pendente (P05)
+### RF-PAR-11 — Não se aplica no momento (P05)
 
 Permitir importar participantes da planilha matriz existente, após validação de seu formato e campos.
 
 - **Prioridade:** MVP
 - **Fonte:** D08; P05
-- **Status da definição:** Pendente (P05)
+- **Status da definição:** Não se aplica no momento. Resposta do NCI (20/11/2026): o NCI não possui planilha matriz.
 
-### RF-PAR-12 — Pendente (P02)
+### RF-PAR-12 — Confirmado
 
 Representar afastamentos temporários sem confundi-los com desligamento, conforme situações definidas pelo NCI.
 
 - **Prioridade:** MVP
 - **Fonte:** P02; §8
-- **Status da definição:** Pendente (P02)
+- **Status da definição:** Confirmado. Resposta do NCI (20/11/2026): afastamento é por problema de saúde; o participante continua no serviço e suas inscrições e lista de espera ficam apenas suspensas (faltas no período são justificadas), como implementado no PR #8.
 
-### RF-PAR-13 — Pendente (P18)
+### RF-PAR-13 — Confirmado (implementação adiada)
 
 Aplicar identificação de duplicidades no cadastro por documento a ser escolhido pelo NCI.
 
 - **Prioridade:** MVP
 - **Fonte:** P18; §8
-- **Status da definição:** Pendente (P18)
+- **Status da definição:** Confirmado. Resposta do NCI (20/11/2026): o documento é o CPF, obrigatório. Implementação adiada por decisão da equipe.
 
-### RF-PAR-14 — Pendente (P14)
+### RF-PAR-14 — Confirmado
 
 Registrar a origem de ingressantes que não vieram de CRAS, CREAS ou outros serviços da rede.
 
 - **Prioridade:** MVP
 - **Fonte:** P14
-- **Status da definição:** Pendente (P14)
+- **Status da definição:** Confirmado. Resposta do NCI (20/11/2026): texto livre, com a opção "Outros".
 
 ## RN — Regras de negócio
 
@@ -159,26 +159,28 @@ A faixa etária deve ser derivada da data de nascimento, não armazenada como id
 - **Fonte:** FMR; §8
 - **Status da definição:** Confirmado
 
-### RN-PAR-07 — Pendente (P01)
+### RN-PAR-07 — Confirmado
 
 A data de referência para classificar quem muda de faixa etária durante o mês deve ser validada pelo NCI.
 
 - **Prioridade:** MVP
 - **Fonte:** P01
-- **Status da definição:** Pendente (P01)
+- **Status da definição:** Confirmado. Resposta do NCI (20/11/2026): a faixa etária usa a idade no dia 1º do mês de referência.
 
 ### RN-PAR-08 — Confirmado
 
 A reativação de participante anteriormente desligado representa somente uma mudança de status no sistema, sem contar como nova entrada nos indicadores mensais do FMR. O tempo de permanência anterior não deve ser somado ao cálculo do período mensal de referência. O histórico anterior deve ser preservado.
 
+> Decisão (20/11/2026, Q4): mantido como está no código do relatório FMR. Na reativação, a origem do encaminhamento continua a original (Q13), como o código faz hoje.
+
 - **Prioridade:** MVP
 - **Fonte:** P03
 - **Status da definição:** Confirmado
 
-### RN-PAR-09 — Pendente (P02)
+### RN-PAR-09 — Confirmado
 
 A situação de afastado, inativo, cancelado ou desabilitado não deve ser equiparada a desligado até definição do NCI.
 
 - **Prioridade:** MVP
 - **Fonte:** P02; §8
-- **Status da definição:** Pendente (P02)
+- **Status da definição:** Confirmado. Resposta do NCI (20/11/2026): afastado = problema de saúde (continua no serviço; inscrições e espera suspensas); inativo = saiu por vontade própria; cancelado = não frequentará por longo período. Mantém-se o comportamento do PR #8 e do relatório FMR.

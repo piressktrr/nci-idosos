@@ -37,13 +37,13 @@ Permitir ao administrador desativar um usuário preservando o histórico de suas
 - **Fonte:** PROTO, §14
 - **Status da definição:** Pendente (proposta do protótipo)
 
-### RF-USR-05 — Pendente
+### RF-USR-05 — Confirmado
 
 Oferecer mecanismo de recuperação de acesso a ser definido pela equipe e pelo NCI.
 
 - **Prioridade:** MVP
 - **Fonte:** PROTO, §14
-- **Status da definição:** Pendente
+- **Status da definição:** Confirmado. Resposta do NCI (20/11/2026): "esqueci minha senha" por e-mail.
 
 ## RN — Regras de negócio
 
