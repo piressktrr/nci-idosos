@@ -177,13 +177,11 @@ class EquipeTests(TestCase):
         self.assertFalse(e_administrador(self.equipe))
 
     def test_nao_abre_contas_no_admin_nem_com_is_staff(self):
-        url = reverse("admin:auth_user_changelist")
-        self.client.force_login(self.equipe)
-        self.assertRedirects(self.client.get(url), f"{reverse('admin:login')}?next={url}",
-                             fetch_redirect_response=False)
+        """RNF-SEG-07: contas e grupos não estão no admin do Django (só nas telas próprias, auditadas)."""
         get_user_model().objects.filter(pk=self.equipe.pk).update(is_staff=True)
-        self.assertEqual(self.client.get(url).status_code, 403)
-        self.assertEqual(self.client.get(reverse("admin:auth_group_changelist")).status_code, 403)
+        self.client.force_login(self.equipe)
+        self.assertEqual(self.client.get("/admin/auth/user/").status_code, 404)
+        self.assertEqual(self.client.get("/admin/auth/group/").status_code, 404)
 
     def test_inicio_nao_mostra_gestao_de_colaboradores(self):
         self.client.force_login(self.equipe)
@@ -232,10 +230,11 @@ class AdministradorTests(TestCase):
         self.administrador.groups.clear()
         self.assertFalse(e_administrador(self.administrador))
 
-    def test_administrador_com_is_staff_abre_contas_no_admin(self):
+    def test_administrador_com_is_staff_nao_abre_contas_no_admin(self):
+        """RNF-SEG-07: nem administrador altera contas pelo admin do Django (ficaria fora da auditoria)."""
         get_user_model().objects.filter(pk=self.administrador.pk).update(is_staff=True)
         self.client.force_login(self.administrador)
-        self.assertEqual(self.client.get(reverse("admin:auth_user_changelist")).status_code, 200)
+        self.assertEqual(self.client.get("/admin/auth/user/").status_code, 404)
 
     def test_administrador_ve_gestao_de_colaboradores_sem_is_staff(self):
         """RF-USR-03: o menu e o cartão apontam para as telas próprias, não para o admin do Django."""
@@ -243,7 +242,7 @@ class AdministradorTests(TestCase):
         resposta = self.client.get(reverse("inicio"))
         self.assertContains(resposta, "Gestão de Colaboradores")
         self.assertContains(resposta, reverse("usuarios:lista"))
-        self.assertNotContains(resposta, reverse("admin:auth_user_changelist"))
+        self.assertNotContains(resposta, "/admin/auth/user/")
         self.assertEqual(self.client.get(reverse("usuarios:lista")).status_code, 200)
 
     def test_administrador_cadastra_participante(self):

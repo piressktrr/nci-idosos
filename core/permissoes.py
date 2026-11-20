@@ -15,3 +15,11 @@ def autorizar(usuario, *permissoes, mensagem="Você não tem permissão para est
     if autor is None or not autor.has_perms(permissoes):
         raise PermissionDenied(mensagem)
     return autor
+
+
+def autorizar_administrador(usuario, mensagem="Somente administradores podem realizar esta ação."):
+    """RN-USR-01: devolve o autor reconsultado no banco se for administrador ativo (`core.perfis.e_administrador`)."""
+    from .perfis import e_administrador
+    if not e_administrador(usuario):
+        raise PermissionDenied(mensagem)
+    return get_user_model().objects.get(pk=usuario.pk)

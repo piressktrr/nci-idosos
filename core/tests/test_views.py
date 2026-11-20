@@ -60,7 +60,7 @@ class CoreTests(TestCase):
                                                                         codename="view_user"))
                 self.client.force_login(usuario)
                 resposta = self.client.get(reverse("inicio"))
-                self.assertNotContains(resposta, reverse("admin:auth_user_changelist"))
+                self.assertNotContains(resposta, "/admin/auth/user/")
                 if aparece:
                     self.assertContains(resposta, "Gestão de Colaboradores")
                     self.assertContains(resposta, reverse("usuarios:lista"))
