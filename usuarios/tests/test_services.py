@@ -6,7 +6,6 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.db.models.deletion import ProtectedError
 from django.test import TestCase
-from django.urls import reverse
 
 from core.models import AuditoriaImutavel, tipos_do_modelo
 from core.perfis import GRUPO_ADMINISTRADOR, GRUPO_EQUIPE, e_administrador
@@ -220,12 +219,11 @@ class AuditoriaContaTests(TestCase):
                                                    codename="delete_user").exists())
 
     def test_admin_do_django_nao_exclui_contas_nem_para_superusuario(self):
+        """Contas estão fora do admin do Django (RNF-SEG-07): nem a exclusão nem a lista existem lá."""
         superusuario = get_user_model().objects.create_superuser("super_exclui_ficticio", password=None)
         self.client.force_login(superusuario)
         with self.settings(DEBUG=True, SECURE_SSL_REDIRECT=False):
-            resposta = self.client.get(reverse("admin:auth_user_delete", args=[self.colab.pk]))
-            self.assertEqual(resposta.status_code, 403)
-            lista = self.client.get(reverse("admin:auth_user_changelist"))
-        self.assertEqual(lista.status_code, 200)
-        self.assertNotContains(lista, "delete_selected")
+            resposta = self.client.post(f"/admin/auth/user/{self.colab.pk}/delete/", {"post": "yes"})
+            self.assertEqual(resposta.status_code, 404)
+            self.assertEqual(self.client.get("/admin/auth/user/").status_code, 404)
         self.assertTrue(get_user_model().objects.filter(pk=self.colab.pk).exists())

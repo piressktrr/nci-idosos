@@ -6,8 +6,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
-from usuarios.decorators import administrador_required
-from core.perfis import e_administrador
+from core.decorators import administrador_required
 from .models import Participante, MotivoDesligamento
 from .movimentacoes import movimentar_participante, salvar_motivo
 
@@ -39,7 +38,7 @@ def movimentar(request, participante_id):
             return redirect("participantes:detalhe", participante_id=pessoa.pk)
     return render(request, "participantes/movimentar.html", {"form": form, "participante": pessoa,
         "movimentos": pessoa.movimentacoes.order_by("-data", "-pk"),
-        "sem_motivos": not MotivoDesligamento.objects.filter(ativo=True).exists(), "administrador": e_administrador(request.user)})
+        "sem_motivos": not MotivoDesligamento.objects.filter(ativo=True).exists()})
 
 
 class MotivoForm(forms.ModelForm):

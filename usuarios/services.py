@@ -10,11 +10,12 @@ Recuperação de acesso (RF-USR-05) permanece pendente. Desativação autorizada
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.contrib.auth.password_validation import validate_password
-from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Q
 
-from core.perfis import GRUPO_ADMINISTRADOR, PERFIS, e_administrador
+from core.permissoes import autorizar_administrador as _autorizar_administrador
+from core.perfis import GRUPO_ADMINISTRADOR, PERFIS
 
 from .models import RegistroConta
 
@@ -24,10 +25,8 @@ CAMPOS_CORRECAO = ("first_name", "last_name", "email", "perfil")
 
 
 def autorizar_administrador(usuario):
-    """RN-USR-01: devolve o autor reconsultado no banco se for administrador ativo."""
-    if not e_administrador(usuario):
-        raise PermissionDenied("Somente administradores podem gerenciar contas de acesso.")
-    return get_user_model().objects.get(pk=usuario.pk)
+    """RN-USR-01: devolve o autor reconsultado no banco se for administrador ativo (critério do core)."""
+    return _autorizar_administrador(usuario, "Somente administradores podem gerenciar contas de acesso.")
 
 
 def perfil_de(conta):
