@@ -216,6 +216,9 @@ SERVER_EMAIL = os.getenv('DJANGO_SERVER_EMAIL', DEFAULT_FROM_EMAIL)
 # onde o servidor de aplicação/serviço do sistema os coleta. Com DEBUG=False, erros também
 # são enviados por e-mail aos ADMINS.
 
+# RNF-SEG-05/LGPD: relatórios de erro (e-mail aos ADMINS) sem campos de formulário, cookies nem senhas.
+DEFAULT_EXCEPTION_REPORTER_FILTER = 'core.relatorio_erros.FiltroRelatorioErros'
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,

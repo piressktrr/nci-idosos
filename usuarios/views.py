@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model, update_session_auth_hash
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.debug import sensitive_post_parameters
 from django.views.decorators.http import require_http_methods
 
 from .consultas import ACOES, diferencas, historico, pesquisar_colaboradores
@@ -33,6 +34,7 @@ def lista(request):
     return render(request, "usuarios/lista.html", {"pagina": pagina, "linhas": linhas, "termo": termo})
 
 
+@sensitive_post_parameters("senha", "confirmacao_senha")
 @administrador_required
 @require_http_methods(["GET", "POST"])
 def cadastrar(request):
@@ -74,6 +76,7 @@ def editar(request, conta_id):
         "form": form, "conta": conta, "perfil": perfil, "proprio": proprio, "registros": registros})
 
 
+@sensitive_post_parameters("senha", "confirmacao_senha")
 @administrador_required
 @require_http_methods(["GET", "POST"])
 def senha(request, conta_id):

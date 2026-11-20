@@ -9,7 +9,7 @@ from django.utils import timezone
 from core.permissoes import autorizar
 
 from .auditoria import registrar
-from .categorias import StatusParticipante, TipoMovimentacao
+from .categorias import IdentidadeGenero, StatusParticipante, TipoMovimentacao
 from .models import Movimentacao, Participante, PerfilDemografico, SituacaoSocial, chave_busca
 
 # Status é alterado somente no serviço de movimentações. Entrada fica na Movimentacao.
@@ -116,6 +116,26 @@ def cadastrar_participante(*, usuario, data_entrada, confirmar_duplicidade=False
     return participante
 
 
+def _cobrir_perfil_desde_a_entrada(participante, data_entrada, anteriores, novos):
+    """RF-PAR-05 / RN-FMR-12: o perfil demográfico precisa valer desde a entrada.
+
+    O primeiro perfil nasce no cadastro, com a data de entrada. Se a entrada for antecipada, o início do primeiro
+    perfil acompanha; se o cadastro não tiver perfil (anterior à migration 0013), cria-se um com os valores que
+    valiam antes desta correção. Sem isso, os meses entre a entrada e o primeiro perfil ficam sem sexo, raça/cor e
+    identidade de gênero e o FMR deixa essas tabelas em branco para todos.
+    """
+    primeiro = participante.perfis_demograficos.order_by("vigente_desde").first()
+    if primeiro is None:
+        valores = {campo: anteriores[campo] for campo in CAMPOS_DEMOGRAFICOS}
+        if valores["identidade_genero"] not in IdentidadeGenero.values:
+            return  # categoria legada sem equivalente no FMR: o perfil começa na próxima vigência informada
+        PerfilDemografico.objects.create(participante=participante, vigente_desde=data_entrada, **valores)
+        anteriores["perfil_inicio"], novos["perfil_inicio"] = None, data_entrada.isoformat()
+    elif primeiro.vigente_desde > data_entrada:
+        anteriores["perfil_inicio"], novos["perfil_inicio"] = primeiro.vigente_desde.isoformat(), data_entrada.isoformat()
+        PerfilDemografico.objects.filter(pk=primeiro.pk).update(vigente_desde=data_entrada)
+
+
 @transaction.atomic
 def corrigir_participante(*, usuario, participante_id, data_entrada, perfil_vigente_desde=None,
                          confirmar_duplicidade=False, **dados):
@@ -148,13 +168,12 @@ def corrigir_participante(*, usuario, participante_id, data_entrada, perfil_vige
         raise ValidationError({"data_nascimento": "O nascimento não pode ser posterior a movimentações registradas."})
     _validar(participante, entrada)
     novos = _dados(participante, entrada)
+    _cobrir_perfil_desde_a_entrada(participante, data_entrada, anteriores, novos)
     if perfil_vigente_desde is not None or any(novos[campo] != anteriores[campo] for campo in CAMPOS_DEMOGRAFICOS):
         vigencia = timezone.localdate() if perfil_vigente_desde is None else perfil_vigente_desde
-        ultimo = participante.perfis_demograficos.order_by("-vigente_desde").first()
-        if (type(vigencia) is not date or not data_entrada <= vigencia <= timezone.localdate()
-                or (ultimo is not None and vigencia < ultimo.vigente_desde)):
-            raise ValidationError({"perfil_vigente_desde":
-                "Informe uma data entre a entrada e hoje, igual ou posterior à última vigência do perfil."})
+        if type(vigencia) is not date or not data_entrada <= vigencia <= timezone.localdate():
+            raise ValidationError({"perfil_vigente_desde": "Informe uma data entre a entrada e hoje."})
+        ultimo = participante.perfis_demograficos.filter(vigente_desde__lte=vigencia).order_by("-vigente_desde").first()
         perfil = {campo: novos[campo] for campo in CAMPOS_DEMOGRAFICOS}
         anteriores["perfil_vigente_desde"] = ultimo.vigente_desde.isoformat() if ultimo else None
         novos["perfil_vigente_desde"] = vigencia.isoformat()
