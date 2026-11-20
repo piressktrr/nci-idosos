@@ -1,7 +1,7 @@
 {% extends "nci/base.html" %}
 {% block title %}Grade de {{ atividade.nome }} · NCI Idade Dourada{% endblock %}
 {% block content %}
-<p><a href="{% url 'atividades:lista' %}">Voltar às atividades</a></p>
+<p><a class="btn btn-outline-secondary" href="{% url 'atividades:lista' %}">Voltar às atividades</a></p>
 <h1>Grade de {{ atividade.nome }}</h1>
 <p>Horários semanais da atividade. Cada faixa corresponde a um dia da semana.</p>
 {% if horario or perms.atividades.add_horarioatividade %}
@@ -11,7 +11,7 @@
     {% csrf_token %}{{ form.non_field_errors }}
     {% for field in form %}<div class="field">{{ field.label_tag }}{{ field }}{{ field.errors }}</div>{% endfor %}
     <button type="submit">{% if horario %}Salvar alteração{% else %}Adicionar horário{% endif %}</button>
-    {% if horario %}<a href="{% url 'atividades:grade' atividade.pk %}">Cancelar</a>{% endif %}
+    {% if horario %}<a class="btn btn-outline-secondary" href="{% url 'atividades:grade' atividade.pk %}">Cancelar</a>{% endif %}
   </form>
 </section>
 {% endif %}

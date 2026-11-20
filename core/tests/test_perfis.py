@@ -28,7 +28,7 @@ DADOS = {
     "data_nascimento": date(1951, 5, 20),
     "sexo": "F",
     "raca_cor": "parda",
-    "identidade_genero": "mulher_cis",
+    "identidade_genero": "cisgenero",
     "telefone_celular": "61912345678",
     "telefone_residencial": "",
     "origem_encaminhamento": "cras",
@@ -87,11 +87,12 @@ class GruposAposMigrateTests(TestCase):
         self.assertFalse({"delete_user", "delete_group"} & auth)
         self.assertFalse(any(app == "auth" and codename.endswith("_permission") for app, codename in pares))
 
-    def test_nenhum_grupo_tem_permissao_de_atividades(self):
+    def test_admin_tem_apenas_consulta_de_atividade_para_gerenciar_situacao(self):
         for nome in (GRUPO_EQUIPE, GRUPO_ADMINISTRADOR):
             with self.subTest(grupo=nome):
                 grupo = Group.objects.get(name=nome)
-                self.assertFalse(grupo.permissions.filter(content_type__app_label="atividades").exists())
+                esperadas = {"view_atividade"} if nome == GRUPO_ADMINISTRADOR else set()
+                self.assertEqual(set(grupo.permissions.filter(content_type__app_label="atividades").values_list("codename", flat=True)), esperadas)
 
     def test_post_migrate_recria_grupos_apagados(self):
         Group.objects.filter(name__in=(GRUPO_EQUIPE, GRUPO_ADMINISTRADOR)).delete()

@@ -1,14 +1,20 @@
 """Categorias FMR e classificação de atividades (RF-ATV-13)."""
+from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.views.decorators.http import require_http_methods
 from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.urls import reverse
 
 from ..classificacao import autorizar, classificar_atividade, com_categoria_vigente, salvar_categoria
 from ..forms import CategoriaForm, ClassificacaoForm
 from ..models import Atividade, CategoriaFMR
+
+
+class AtividadeCategoriaForm(forms.Form):
+    atividade = forms.ModelChoiceField(label="Atividade", queryset=Atividade.objects.all(), empty_label="Escolha a atividade")
 
 
 @login_required
@@ -16,8 +22,24 @@ from ..models import Atividade, CategoriaFMR
 def categorias(request, categoria_id=None):
     autorizar(request.user, catalogo=True)
     categoria = get_object_or_404(CategoriaFMR, pk=categoria_id) if categoria_id is not None else None
-    form = CategoriaForm(request.POST if request.method == "POST" else None, instance=categoria)
-    if request.method == "POST" and form.is_valid():
+    atribuindo = request.method == "POST" and request.POST.get("acao") == "classificar"
+    form = CategoriaForm(request.POST if request.method == "POST" and not atribuindo else None, instance=categoria)
+    selecao = AtividadeCategoriaForm(request.POST if atribuindo else request.GET or None)
+    atividade = None
+    if selecao.is_bound and selecao.is_valid():
+        atividade = com_categoria_vigente(Atividade.objects.all(), timezone.localdate()).get(pk=selecao.cleaned_data["atividade"].pk)
+    form_classificacao = ClassificacaoForm(request.POST if atribuindo else None,
+        initial={"categoria": atividade.categoria_atual_id} if atividade else None)
+    if atribuindo and selecao.is_valid() and form_classificacao.is_valid():
+        try:
+            classificar_atividade(usuario=request.user, atividade_id=atividade.pk,
+                categoria_id=form_classificacao.cleaned_data["categoria"].pk, inicio=form_classificacao.cleaned_data["inicio"])
+        except ValidationError as erro:
+            form_classificacao.add_error(None, erro.messages)
+        else:
+            messages.success(request, "Categoria da atividade salva com vigência.")
+            return redirect(reverse("atividades:categorias_fmr") + f"?atividade={atividade.pk}#categoria-atividade")
+    if request.method == "POST" and not atribuindo and form.is_valid():
         try:
             salvar_categoria(usuario=request.user, categoria_id=categoria_id, **form.cleaned_data)
         except ValidationError as erro:
@@ -26,7 +48,9 @@ def categorias(request, categoria_id=None):
             messages.success(request, "Categoria salva.")
             return redirect("atividades:categorias_fmr")
     return render(request, "atividades/categorias_fmr.html", {
-        "form": form, "categoria": categoria, "categorias": CategoriaFMR.objects.all()})
+        "form": form, "categoria": categoria, "categorias": CategoriaFMR.objects.all(),
+        "selecao": selecao, "atividade": atividade, "form_classificacao": form_classificacao,
+        "classificacoes": atividade.classificacoes.all() if atividade else []})
 
 
 @login_required

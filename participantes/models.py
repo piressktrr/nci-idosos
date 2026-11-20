@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from core.models import EventoAuditoria, ProtegidoPorAuditoria
 
-from .categorias import (IdentidadeGenero, OrigemEncaminhamento, RacaCor, Sexo, StatusParticipante,
+from .categorias import (IDENTIDADES_GENERO_LEGADAS, IdentidadeGenero, OrigemEncaminhamento, RacaCor, Sexo, StatusParticipante,
                          TipoMovimentacao)
 from .regras import (celular_valido, chave_nome, data_minima_nascimento, faixa_etaria_fmr, formatar_telefone,
                      idade_em, normalizar_espacos, residencial_valido, so_digitos)
@@ -45,8 +45,7 @@ class Participante(ProtegidoPorAuditoria, models.Model):
                                              choices=OrigemEncaminhamento.choices)
     observacao_encaminhamento = models.TextField("observação sobre o encaminhamento", max_length=1000,
                                                  blank=True, default="")
-    # D13: provisório e só leitura nas telas; todo cadastro nasce ativo e não há como mudar o status enquanto o NCI
-    # não definir afastado/inativo/cancelado (RN-PAR-09, P02) nem os motivos do desligamento (RF-PAR-07, Q3).
+    # Situação somente pelos serviços de movimentação, nunca por edição direta do cadastro.
     status = models.CharField("status", max_length=10, choices=StatusParticipante.choices,
                               default=StatusParticipante.ATIVO)
     cadastrado_em = models.DateTimeField("cadastrado em", auto_now_add=True)
@@ -62,7 +61,7 @@ class Participante(ProtegidoPorAuditoria, models.Model):
         constraints = [
             models.CheckConstraint(condition=models.Q(sexo__in=Sexo.values), name="participante_sexo_valido"),
             models.CheckConstraint(condition=models.Q(raca_cor__in=RacaCor.values), name="participante_raca_cor_valida"),
-            models.CheckConstraint(condition=models.Q(identidade_genero__in=IdentidadeGenero.values),
+            models.CheckConstraint(condition=models.Q(identidade_genero__in=[*IdentidadeGenero.values, *IDENTIDADES_GENERO_LEGADAS]),
                                    name="participante_identidade_genero_valida"),
             models.CheckConstraint(condition=models.Q(status__in=StatusParticipante.values),
                                    name="participante_status_valido"),
@@ -156,6 +155,23 @@ class Participante(ProtegidoPorAuditoria, models.Model):
         return entrada.data if entrada else None
 
 
+class PerfilDemografico(models.Model):
+    """Sexo e autodeclarações vigentes a partir de uma data."""
+
+    participante = models.ForeignKey(Participante, on_delete=models.PROTECT, related_name="perfis_demograficos")
+    vigente_desde = models.DateField()
+    sexo = models.CharField(max_length=1, choices=Sexo.choices)
+    raca_cor = models.CharField(max_length=20, choices=RacaCor.choices)
+    identidade_genero = models.CharField(max_length=20, choices=IdentidadeGenero.choices)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["participante", "vigente_desde"], name="perfil_demografico_vigencia"),
+            models.CheckConstraint(condition=models.Q(sexo__in=Sexo.values, raca_cor__in=RacaCor.values,
+                identidade_genero__in=IdentidadeGenero.values), name="perfil_demografico_categorias_validas"),
+        ]
+
+
 class SituacaoSocial(models.Model):
     """RF-PAR-04 e RF-PAR-05: situação social com vigência por data de início (D2).
 
@@ -198,15 +214,26 @@ class SituacaoSocial(models.Model):
         return cls.objects.filter(participante=participante, vigente_desde__lte=data).order_by("-vigente_desde").first()
 
 
-class Movimentacao(models.Model):
-    """Entradas e saídas do participante no serviço (RF-PAR-10); o cadastro registra a entrada (Q5).
+class MotivoDesligamento(ProtegidoPorAuditoria, models.Model):
+    descricao = models.CharField("descrição", max_length=150, unique=True)
+    ativo = models.BooleanField(default=True)
 
-    Só a entrada por enquanto: desligamento (RF-PAR-07) depende da Q3 e reativação (RF-PAR-08) da Q4.
-    Não é alvo de auditoria: a data de entrada é auditada no evento do participante (cadastro e correção).
-    """
+    class Meta:
+        ordering = ["descricao", "pk"]
+
+    def __str__(self):
+        return self.descricao
+
+
+class Movimentacao(models.Model):
+    """Histórico de entrada, desligamento, reativação e afastamento, auditado no participante."""
 
     participante = models.ForeignKey(Participante, on_delete=models.PROTECT, related_name="movimentacoes")
     tipo = models.CharField("tipo", max_length=20, choices=TipoMovimentacao.choices)
+    motivo = models.ForeignKey(MotivoDesligamento, null=True, blank=True, on_delete=models.PROTECT)
+    motivo_descricao = models.CharField(max_length=150, blank=True, default="", editable=False)
+    origem_entrada = models.CharField("origem no ingresso", max_length=20,
+        choices=OrigemEncaminhamento.choices, blank=True, default="", editable=False)
     data = models.DateField("data")
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+",
                                 verbose_name="registrado por")
@@ -219,10 +246,16 @@ class Movimentacao(models.Model):
         constraints = [
             models.CheckConstraint(condition=models.Q(tipo__in=TipoMovimentacao.values),
                                    name="movimentacao_tipo_valido"),
-            # Sem desligamento e reativação, cada pessoa entra uma única vez. Rever com a Q3/Q4: reingresso após
-            # desligamento pode ser nova entrada; reativação não conta como entrada (RN-PAR-08).
+            models.CheckConstraint(condition=(models.Q(tipo="desligamento", motivo__isnull=False)
+                | (~models.Q(tipo="desligamento") & models.Q(motivo__isnull=True, motivo_descricao=""))),
+                name="movimentacao_motivo_coerente"),
+            # Retornos não geram nova entrada (RN-PAR-08).
             models.UniqueConstraint(fields=["participante"], condition=models.Q(tipo=TipoMovimentacao.ENTRADA),
                                     name="movimentacao_uma_entrada"),
+            models.CheckConstraint(condition=models.Q(origem_entrada__in=[*OrigemEncaminhamento.values, ""]),
+                                   name="movimentacao_origem_valida"),
+            models.CheckConstraint(condition=models.Q(tipo="entrada") | models.Q(origem_entrada=""),
+                                   name="movimentacao_origem_so_entrada"),
         ]
 
     def __str__(self):
@@ -257,6 +290,14 @@ class RegistroExportacao(EventoAuditoria):
     """
 
     alvo, modelo_alvo = "exportador", settings.AUTH_USER_MODEL
+
+    class Meta:
+        proxy = True
+        default_permissions = ()
+
+
+class RegistroMotivoDesligamento(EventoAuditoria):
+    alvo, modelo_alvo = "motivo_desligamento", MotivoDesligamento
 
     class Meta:
         proxy = True

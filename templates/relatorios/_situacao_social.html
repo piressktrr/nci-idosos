@@ -1,0 +1,27 @@
+<section aria-labelledby="indicadores-sociais">
+  <h2 id="indicadores-sociais">Situação social dos participantes</h2>
+  {% if situacao_social.aviso %}
+  <p class="mb-0" role="status">{{ situacao_social.aviso }}</p>
+  {% else %}
+  <p>Referência: participantes que permanecem no serviço em {{ situacao_social.periodo.fim|date:"d/m/Y" }}, com a situação social vigente nessa data. Afastados permanecem; desligados ficam fora da contagem.</p>
+  {% if situacao_social.pendencia %}
+  <div class="alert alert-warning" role="status">
+    <span tabindex="0" title="{{ situacao_social.pendencia.explicacao }}" aria-describedby="social-pendencia-{{ situacao_social.pendencia.codigo }}" style="cursor: help;">{{ situacao_social.pendencia.aviso }}</span>
+    <small class="d-block">Passe o mouse sobre o aviso para ver qual informação está faltando.</small>
+    <span id="social-pendencia-{{ situacao_social.pendencia.codigo }}" class="visually-hidden">{{ situacao_social.pendencia.explicacao }}</span>
+  </div>
+  {% if situacao_social.sem_situacao %}<p class="mb-0">Participantes sem situação social vigente: {{ situacao_social.sem_situacao }}.</p>{% endif %}
+  {% else %}
+  <p id="legenda-indicadores-sociais">Cada pessoa conta uma vez em cada indicador. O apoio é contado somente entre quem mora sozinho. Os indicadores podem incluir as mesmas pessoas e não devem ser somados.</p>
+  <div class="nci-tabela verde table-responsive">
+    <table class="table table-hover" id="tabela-indicadores-sociais" aria-describedby="legenda-indicadores-sociais">
+      <caption>Situação social no fechamento de {{ situacao_social.periodo.inicio|date:"m/Y" }}.</caption>
+      <thead><tr><th scope="col">Indicador</th><th scope="col">Quantidade</th></tr></thead>
+      <tbody>{% for linha in situacao_social.linhas %}
+        <tr><th scope="row">{{ linha.indicador }}</th><td>{{ linha.quantidade }}</td></tr>
+      {% endfor %}</tbody>
+    </table>
+  </div>
+  {% endif %}
+  {% endif %}
+</section>

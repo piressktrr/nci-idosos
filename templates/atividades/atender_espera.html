@@ -1,6 +1,6 @@
 {% extends "nci/base.html" %}
 {% block content %}
-<p><a href="{% url 'atividades:lista_espera' espera.atividade_id %}">Voltar à espera</a></p>
+<p><a class="btn btn-outline-secondary" href="{% url 'atividades:lista_espera' espera.atividade_id %}">Voltar à espera</a></p>
 <h1>{% if retirar %}Retirar da espera{% else %}Atender lista de espera{% endif %}</h1>
 <p>{{ nome }} · {{ espera.atividade.nome }}</p>
 <form method="post">{% csrf_token %}

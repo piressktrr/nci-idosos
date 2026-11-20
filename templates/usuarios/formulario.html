@@ -22,6 +22,7 @@
         {% if conta %}
         <div class="mb-3"><span class="form-label d-block mb-1">Situação</span><strong class="{% if conta.is_active %}status-ativo{% else %}status-inativo{% endif %}">{% if conta.is_active %}Ativo{% else %}Inativo{% endif %}</strong></div>
         <a class="btn btn-nci btn-sm" href="{% url 'usuarios:senha' conta.pk %}">Definir nova senha</a>
+        {% if not proprio %}<a class="btn btn-outline-secondary btn-sm" href="{% url 'usuarios:situacao' conta.pk %}">{% if conta.is_active %}Desativar{% else %}Reativar{% endif %} conta</a>{% endif %}
         {% else %}
         {% include "usuarios/_campo.html" with campo=form.senha %}
         {% include "usuarios/_campo.html" with campo=form.confirmacao_senha %}

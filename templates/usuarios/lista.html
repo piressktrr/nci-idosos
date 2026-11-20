@@ -12,7 +12,7 @@
       </button>
     </div>
   </form>
-  {% if termo %}<a href="{% url 'usuarios:lista' %}">Limpar pesquisa</a>{% endif %}
+  {% if termo %}<a class="btn btn-outline-secondary" href="{% url 'usuarios:lista' %}">Limpar pesquisa</a>{% endif %}
   <a class="btn btn-nci ms-auto" href="{% url 'usuarios:cadastrar' %}">+ Novo Colaborador</a>
 </div>
 <p class="small mb-2" aria-live="polite">{% if termo %}{{ pagina.paginator.count }} encontrado{{ pagina.paginator.count|pluralize }} para “{{ termo }}”{% else %}{{ pagina.paginator.count }} colaborador{{ pagina.paginator.count|pluralize:"es" }} cadastrado{{ pagina.paginator.count|pluralize }}{% endif %}</p>

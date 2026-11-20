@@ -9,7 +9,9 @@ from .services import autorizar_administrador
 
 ROTULOS = {"username": "Usuário", "first_name": "Nome", "last_name": "Sobrenome", "email": "E-mail",
            "perfil": "Perfil", "senha": "Senha"}
-ACOES = {"cadastro": "Cadastro", "correcao": "Correção", "senha": "Nova senha"}
+ACOES = {"cadastro": "Cadastro", "correcao": "Correção", "senha": "Nova senha",
+         "ativacao": "Reativação", "desativacao": "Desativação"}
+ROTULOS["is_active"] = "Conta ativa"
 
 
 def pesquisar_colaboradores(termo, *, usuario):
@@ -30,6 +32,8 @@ def historico(conta, *, usuario):
 
 
 def _exibir(campo, valor):
+    if isinstance(valor, bool):
+        return "Sim" if valor else "Não"
     if campo == "perfil" and valor == "":
         return "Sem perfil"
     return valor

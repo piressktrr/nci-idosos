@@ -20,10 +20,10 @@
     <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="4" aria-hidden="true"><rect x="12" y="10" width="40" height="48" rx="4"/><rect x="24" y="5" width="16" height="9" rx="2"/><path d="M20 26h4M30 26h14M20 37h4M30 37h14M20 48h4M30 48h14"/></svg>
     <span>Atividades</span>
   </a>{% endif %}
-  <div class="nci-modulo desativado">
+  {% if pode_consultar_fmr %}<a class="nci-modulo" href="{% url 'relatorios:fmr' %}">{% else %}<div class="nci-modulo desativado">{% endif %}
     <svg viewBox="0 0 64 64" aria-hidden="true"><text x="32" y="40" text-anchor="middle" font-size="20" fill="currentColor" font-family="Questrial, sans-serif">FMR</text></svg>
-    <span>Formulário Mensal<br><small class="nci-em-breve">(em breve)</small></span>
-  </div>
+    <span>Formulário Mensal</span>
+  {% if pode_consultar_fmr %}</a>{% else %}</div>{% endif %}
   {% if e_administrador %}
   <a class="nci-modulo" href="{% url 'usuarios:lista' %}">
     <svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><circle cx="32" cy="20" r="11"/><path d="M12 56c0-12 9-21 20-21s20 9 20 21z"/></svg>

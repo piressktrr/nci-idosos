@@ -17,5 +17,6 @@ urlpatterns = [
     path('atividades/', include('atividades.urls')),
     path('participantes/', include('participantes.urls')),
     path('colaboradores/', include('usuarios.urls')),
+    path('fmr/', include('relatorios.urls')),
     path('admin/', admin.site.urls),
 ]

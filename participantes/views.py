@@ -14,6 +14,7 @@ from .exportacao import PERMISSAO_EXPORTAR, exportar_participantes_csv
 from .forms import ParticipanteForm, SituacaoSocialForm
 from .models import Participante, SituacaoSocial
 from .provedor import ProvedorParticipantes
+from core.perfis import e_administrador
 from .services import (cadastrar_participante, corrigir_participante, pesquisar_participantes,
                        registrar_situacao_social)
 
@@ -54,6 +55,7 @@ def _formulario(request, participante=None):
                 messages.success(request, "Participante cadastrado com sucesso.")
             else:
                 corrigir_participante(usuario=request.user, participante_id=participante.pk,
+                                      perfil_vigente_desde=form.cleaned_data.get("perfil_vigente_desde"),
                                       confirmar_duplicidade=confirmar, **dados)
                 messages.success(request, "Cadastro atualizado.")
         except ValidationError as erro:
@@ -73,7 +75,7 @@ def _formulario(request, participante=None):
 def lista(request):
     termo = request.GET.get("q", "").strip()[:200]
     pagina = Paginator(pesquisar_participantes(termo), 20).get_page(request.GET.get("page"))
-    return render(request, "participantes/lista.html", {"pagina": pagina, "termo": termo})
+    return render(request, "participantes/lista.html", {"pagina": pagina, "termo": termo, "administrador": e_administrador(request.user)})
 
 
 @login_required

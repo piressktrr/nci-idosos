@@ -28,7 +28,7 @@ INDICADORES_FALSOS = {"mora_sozinho": False, "tem_apoio": False, "possui_deficie
 
 def _dados(**extra):
     return {"nome_completo": "Ana Ficticia Exportacao", "data_nascimento": date(1948, 6, 1), "sexo": "F",
-            "raca_cor": "parda", "identidade_genero": "mulher_cis", "telefone_celular": "61912345678",
+            "raca_cor": "parda", "identidade_genero": "cisgenero", "telefone_celular": "61912345678",
             "telefone_residencial": "6131234567", "origem_encaminhamento": "cras", "endereco": "Rua Ficticia, 1",
             "ensino_medio_completo": True, "observacao_encaminhamento": "Encaminhada pelo CRAS ficticio",
             "data_entrada": date(2024, 2, 1), **extra}
@@ -156,20 +156,20 @@ class ConteudoTests(Base):
         self.assertEqual(quantidade, 1)
         _, linhas = _ler(texto)
         self.assertEqual(linhas, [[
-            str(ana.pk), "Ana Ficticia Exportacao", "01/06/1948", "Feminino", "Parda", "Mulher cisgênero",
+            str(ana.pk), "Ana Ficticia Exportacao", "01/06/1948", "Feminino", "Parda", "Cisgênero",
             "Rua Ficticia, 1", "(61) 91234-5678", "(61) 3123-4567", "CRAS", "Encaminhada pelo CRAS ficticio",
             "Sim", "Ativo", "01/02/2024", "Não", "Sim", "Não", "Sim", "Não", "10/06/2025"]])
 
     def test_sem_situacao_social_os_indicadores_ficam_vazios(self):
         cadastrar_participante(usuario=self.admin, **_dados(
-            nome_completo="Benedito Ficticio Sem Situacao", sexo="M", identidade_genero="homem_cis",
+            nome_completo="Benedito Ficticio Sem Situacao", sexo="M", identidade_genero="cisgenero",
             raca_cor="nao_informado", telefone_residencial="", ensino_medio_completo=False,
             origem_encaminhamento="rede", observacao_encaminhamento=""))
         _, linhas = _ler(_exportar(self.admin)[1])
         linha = dict(zip(CABECALHO, linhas[0], strict=True))
         self.assertEqual(linha["Sexo"], "Masculino")
         self.assertEqual(linha["Raça/cor"], "Não informado")
-        self.assertEqual(linha["Identidade de gênero"], "Homem cisgênero")
+        self.assertEqual(linha["Identidade de gênero"], "Cisgênero")
         self.assertEqual(linha["Origem do encaminhamento"], "Outro serviço da rede")
         self.assertEqual(linha["Telefone residencial"], "")
         self.assertEqual(linha["Ensino médio completo"], "Não")
