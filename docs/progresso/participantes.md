@@ -12,7 +12,7 @@
 | [ ] | RF-PAR-07 | Confirmado | Não iniciado | — | — | Bloqueado: motivos de desligamento (Q3) |
 | [ ] | RF-PAR-08 | Confirmado | Não iniciado | — | — | Bloqueado: reativação na equação do FMR (Q4) |
 | [x] | RF-PAR-09 | Confirmado | Implementado, sem commit | participantes/tests/test_services.py (PesquisaTests), test_views.py (ListaTests) | — | Pesquisa no banco por `nome_busca` |
-| [ ] | RF-PAR-10 | Confirmado | Parcial, sem commit | participantes/tests/test_integracao_atividades.py, test_views.py (cartão de frequência) | — | Frequência por atividade e data de entrada prontas; desligamentos/reativações aguardam Q3/Q4 |
+| [x] | RF-PAR-10 | Confirmado | Implementado | participantes/tests/test_views.py (MovimentacoesNoDetalheTests), test_integracao_atividades.py | — | Entradas, saídas e afastamentos e frequência por atividade no detalhe |
 | [ ] | RF-PAR-11 | Pendente (P05) | Não iniciado | — | — | — |
 | [ ] | RF-PAR-12 | Pendente (P02) | Não iniciado | — | — | — |
 | [ ] | RF-PAR-13 | Pendente (P18) | Não iniciado | — | — | — |

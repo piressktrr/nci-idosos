@@ -438,3 +438,24 @@ class SituacaoSocialViewTests(Base):
         self.assertEqual(resposta.status_code, 200)
         self.assertContains(resposta, "A data de início não pode estar no futuro.")
         self.assertFalse(SituacaoSocial.objects.filter(participante=self.participante).exists())
+
+
+@override_settings(DEBUG=True, SECURE_SSL_REDIRECT=False)
+class MovimentacoesNoDetalheTests(Base):
+    """RF-PAR-10: o histórico de entradas e saídas aparece para quem só consulta o cadastro."""
+
+    def test_leitor_ve_entrada_no_detalhe(self):
+        self.client.force_login(_usuario("leitor_movimentos_ficticio", "view_participante"))
+        resposta = self.client.get(reverse("participantes:detalhe", args=[self.participante.pk]))
+        self.assertContains(resposta, "Entradas e saídas")
+        self.assertContains(resposta, "<td>01/02/2024</td><td>Entrada</td>", html=True)
+        self.assertNotContains(resposta, reverse("participantes:movimentar", args=[self.participante.pk]))
+
+    def test_sem_movimentacao_mostra_aviso(self):
+        avulso = Participante.objects.create(
+            nome_completo="Avulso Ficticio", data_nascimento=date(1950, 1, 1), sexo="M", raca_cor="parda",
+            identidade_genero="cisgenero", endereco="Rua", telefone_celular="11912345678",
+            origem_encaminhamento="cras")
+        self.client.force_login(self.gestor)
+        resposta = self.client.get(reverse("participantes:detalhe", args=[avulso.pk]))
+        self.assertContains(resposta, "Sem movimentações registradas.")
