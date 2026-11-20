@@ -38,7 +38,7 @@ class OrigemEncaminhamento(models.TextChoices):
     CRAS = "cras", "CRAS"
     CREAS = "creas", "CREAS"
     REDE = "rede", "Outro serviço da rede"
-    OUTRA = "outra", "Outra origem"
+    OUTRA = "outra", "Outros"  # RF-PAR-14: exige a descrição em `origem_descricao`
 
 
 

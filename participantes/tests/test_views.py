@@ -459,3 +459,25 @@ class MovimentacoesNoDetalheTests(Base):
         self.client.force_login(self.gestor)
         resposta = self.client.get(reverse("participantes:detalhe", args=[avulso.pk]))
         self.assertContains(resposta, "Sem movimentações registradas.")
+
+
+@override_settings(DEBUG=True, SECURE_SSL_REDIRECT=False)
+class OrigemOutrosViewTests(Base):
+    """RF-PAR-14: cadastro com origem "Outros" pela tela."""
+
+    def setUp(self):
+        self.client.force_login(self.gestor)
+        self.url = reverse("participantes:cadastrar")
+
+    def test_outros_sem_descricao_mostra_erro(self):
+        resposta = self.client.post(self.url, {**POST_FICTICIO, "origem_encaminhamento": "outra"})
+        self.assertEqual(resposta.status_code, 200)
+        self.assertContains(resposta, "Descreva a origem do encaminhamento.")
+        self.assertFalse(Participante.objects.filter(nome_completo="Josefa Exemplo Ficticia").exists())
+
+    def test_outros_com_descricao_cadastra_e_mostra_no_detalhe(self):
+        resposta = self.client.post(self.url, {**POST_FICTICIO, "origem_encaminhamento": "outra",
+                                               "origem_descricao": "Indicação de vizinha"})
+        participante = Participante.objects.get(nome_completo="Josefa Exemplo Ficticia")
+        self.assertEqual(participante.origem_descricao, "Indicação de vizinha")
+        self.assertContains(self.client.get(resposta["Location"]), "Outros: Indicação de vizinha")

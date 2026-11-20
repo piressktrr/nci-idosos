@@ -113,7 +113,7 @@ class CadastroTests(TestCase):
         self.assertEqual(evento.acao, "cadastro")
         self.assertEqual(evento.usuario, self.usuario)
         self.assertIsNone(evento.anteriores)
-        esperado = DADOS | {"data_nascimento": "1950-03-10", "status": StatusParticipante.ATIVO,
+        esperado = DADOS | {"origem_descricao": "", "data_nascimento": "1950-03-10", "status": StatusParticipante.ATIVO,
                             "data_entrada": ENTRADA.isoformat()}
         self.assertEqual(evento.novos, esperado)
 

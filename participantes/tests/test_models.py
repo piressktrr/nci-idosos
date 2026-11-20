@@ -191,7 +191,10 @@ class ParticipanteApresentacaoTests(TestCase):
         self.assertEqual(participante.idade(date(2025, 4, 19)), 69)
         self.assertEqual(participante.faixa_etaria(date(2025, 4, 19)), "65 a 69 anos")
         self.assertEqual(participante.idade(date(2025, 4, 20)), 70)
-        self.assertEqual(participante.faixa_etaria(date(2025, 4, 20)), "70 a 74 anos")
+        # RN-PAR-07: no mês do aniversário vale a idade do dia 1º; a faixa só muda no mês seguinte.
+        self.assertEqual(participante.faixa_etaria(date(2025, 4, 20)), "65 a 69 anos")
+        self.assertEqual(participante.faixa_etaria(date(2025, 4, 30)), "65 a 69 anos")
+        self.assertEqual(participante.faixa_etaria(date(2025, 5, 1)), "70 a 74 anos")
 
     def test_faixa_etaria_sem_referencia_usa_data_de_hoje(self):
         hoje = timezone.localdate()
@@ -340,3 +343,33 @@ class SituacaoSocialTests(TestCase):
         self.nova(date(2024, 1, 1)).save()
         with self.assertRaises(ProtectedError):
             self.participante.delete()
+
+
+class OrigemOutrosTests(TestCase):
+    """RF-PAR-14 (P14, NCI 20/11/2026): origem "Outros" exige descrição em texto livre."""
+
+    def test_outros_sem_descricao_e_recusado_no_formulario(self):
+        from participantes.forms import ParticipanteForm
+        base = {"nome_completo": "Zuleica Ficticia", "endereco": "Rua Inventada, 1", "identidade_genero": "cisgenero",
+                "origem_encaminhamento": "outra", "telefone_celular": "61900000001", "data_nascimento": "1955-04-20",
+                "raca_cor": "parda", "sexo": "F", "ensino_medio_completo": "False", "data_entrada": "2024-01-15"}
+        for descricao in ("", "   "):
+            with self.subTest(descricao=repr(descricao)):
+                form = ParticipanteForm({**base, "origem_descricao": descricao})
+                self.assertFalse(form.is_valid())
+                self.assertIn("origem_descricao", form.errors)
+        self.assertTrue(ParticipanteForm({**base, "origem_descricao": "Indicação de vizinha"}).is_valid())
+
+    def test_outros_com_descricao_e_aceito_e_normalizado(self):
+        participante = novo_participante(origem_encaminhamento=OrigemEncaminhamento.OUTRA,
+                                         origem_descricao="  Indicação   de vizinha  ")
+        participante.full_clean()
+        self.assertEqual(participante.origem_descricao, "Indicação de vizinha")
+        self.assertEqual(participante.origem_formatada(), "Outros: Indicação de vizinha")
+
+    def test_descricao_e_descartada_fora_de_outros(self):
+        participante = novo_participante(origem_encaminhamento=OrigemEncaminhamento.CRAS,
+                                         origem_descricao="Texto que não se aplica")
+        participante.full_clean()
+        self.assertEqual(participante.origem_descricao, "")
+        self.assertEqual(participante.origem_formatada(), "CRAS")

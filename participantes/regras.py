@@ -17,11 +17,22 @@ def idade_em(data_nascimento, referencia):
 def faixa_etaria_fmr(data_nascimento, referencia):
     """RN-PAR-06: faixa derivada da data de nascimento, nunca armazenada.
 
-    Retorna None abaixo de 60 anos, idade sem faixa no FMR. A data de referência para quem
-    faz aniversário no mês do relatório ainda depende do NCI (RN-PAR-07 / P01).
+    Retorna None abaixo de 60 anos, idade sem faixa no FMR. Usa a idade exatamente em `referencia`;
+    para o mês do FMR use `faixa_etaria_fmr_no_mes` (RN-PAR-07).
     """
     idade = idade_em(data_nascimento, referencia)
     return next((rotulo for minimo, rotulo in FAIXAS_ETARIAS_FMR if idade >= minimo), None)
+
+
+def inicio_do_mes(data):
+    """RN-PAR-07 (P01, NCI 20/11/2026): a faixa etária do mês usa a idade no dia 1º desse mês."""
+    return data.replace(day=1)
+
+
+def faixa_etaria_fmr_no_mes(data_nascimento, data_no_mes):
+    """RN-PAR-07: faixa do FMR no mês de `data_no_mes`, pela idade no dia 1º; quem faz aniversário durante o
+    mês só muda de faixa no mês seguinte."""
+    return faixa_etaria_fmr(data_nascimento, inicio_do_mes(data_no_mes))
 
 
 def normalizar_espacos(texto):

@@ -11,6 +11,8 @@ OUTRA_SENHA_VALIDA = "Jabuticaba-Ficticia-77"
 
 
 def conta(username, *grupos, **extra):
+    # RF-USR-05: toda conta tem e-mail (fictício), para poder recuperar a senha.
+    extra.setdefault("email", f"{username}@example.org")
     usuario = get_user_model().objects.create_user(username=username, **extra)
     if grupos:
         usuario.groups.add(*Group.objects.filter(name__in=grupos))

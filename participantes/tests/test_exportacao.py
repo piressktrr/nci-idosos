@@ -141,7 +141,7 @@ class ConteudoTests(Base):
         self.assertEqual(primeira.split(";"), list(CABECALHO))
         self.assertEqual(list(CABECALHO), [
             "Código", "Nome completo", "Data de nascimento", "Sexo", "Raça/cor", "Identidade de gênero", "Endereço",
-            "Telefone celular", "Telefone residencial", "Origem do encaminhamento",
+            "Telefone celular", "Telefone residencial", "Origem do encaminhamento", "Descrição da origem",
             "Observação sobre o encaminhamento", "Ensino médio completo", "Status", "Data de entrada",
             "Mora sozinho", "Tem apoio familiar ou comunitário", "Possui deficiência", "Recebe BPC",
             "Imigrante ou refugiado", "Situação social vigente desde"])
@@ -157,7 +157,7 @@ class ConteudoTests(Base):
         _, linhas = _ler(texto)
         self.assertEqual(linhas, [[
             str(ana.pk), "Ana Ficticia Exportacao", "01/06/1948", "Feminino", "Parda", "Cisgênero",
-            "Rua Ficticia, 1", "(61) 91234-5678", "(61) 3123-4567", "CRAS", "Encaminhada pelo CRAS ficticio",
+            "Rua Ficticia, 1", "(61) 91234-5678", "(61) 3123-4567", "CRAS", "", "Encaminhada pelo CRAS ficticio",
             "Sim", "Ativo", "01/02/2024", "Não", "Sim", "Não", "Sim", "Não", "10/06/2025"]])
 
     def test_sem_situacao_social_os_indicadores_ficam_vazios(self):
@@ -173,7 +173,7 @@ class ConteudoTests(Base):
         self.assertEqual(linha["Origem do encaminhamento"], "Outro serviço da rede")
         self.assertEqual(linha["Telefone residencial"], "")
         self.assertEqual(linha["Ensino médio completo"], "Não")
-        for rotulo in CABECALHO[14:]:
+        for rotulo in CABECALHO[CABECALHO.index("Data de entrada") + 1:]:
             with self.subTest(coluna=rotulo):
                 self.assertEqual(linha[rotulo], "")
 

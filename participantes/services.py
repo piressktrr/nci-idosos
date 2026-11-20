@@ -14,7 +14,7 @@ from .models import Movimentacao, Participante, PerfilDemografico, SituacaoSocia
 
 # Status é alterado somente no serviço de movimentações. Entrada fica na Movimentacao.
 CAMPOS_CADASTRO = ("nome_completo", "data_nascimento", "sexo", "raca_cor", "identidade_genero",
-                   "telefone_celular", "telefone_residencial", "origem_encaminhamento",
+                   "telefone_celular", "telefone_residencial", "origem_encaminhamento", "origem_descricao",
                    "endereco", "ensino_medio_completo", "observacao_encaminhamento")
 CAMPOS_DEMOGRAFICOS = ("sexo", "raca_cor", "identidade_genero")
 
@@ -30,6 +30,7 @@ def _dados(participante, entrada=None):
         "telefone_celular": participante.telefone_celular,
         "telefone_residencial": participante.telefone_residencial,
         "origem_encaminhamento": participante.origem_encaminhamento,
+        "origem_descricao": participante.origem_descricao,
         "endereco": participante.endereco,
         "ensino_medio_completo": participante.ensino_medio_completo,
         "observacao_encaminhamento": participante.observacao_encaminhamento,
@@ -98,6 +99,7 @@ def cadastrar_participante(*, usuario, data_entrada, confirmar_duplicidade=False
     """
     autor = autorizar(usuario, "participantes.add_participante",
                       mensagem="Você não tem permissão para cadastrar participantes.")
+    dados.setdefault("origem_descricao", "")  # RF-PAR-14: opcional fora da origem "Outros"
     if set(dados) != set(CAMPOS_CADASTRO):
         raise ValidationError("Dados de cadastro incompletos ou inválidos.")
     participante = Participante(**dados, status=StatusParticipante.ATIVO)
@@ -124,6 +126,7 @@ def corrigir_participante(*, usuario, participante_id, data_entrada, perfil_vige
     """
     autor = autorizar(usuario, "participantes.change_participante",
                       mensagem="Você não tem permissão para corrigir participantes.")
+    dados.setdefault("origem_descricao", "")  # RF-PAR-14: opcional fora da origem "Outros"
     if set(dados) != set(CAMPOS_CADASTRO):
         raise ValidationError("Dados de cadastro incompletos ou inválidos.")
     participante = Participante.objects.select_for_update().get(pk=participante_id)

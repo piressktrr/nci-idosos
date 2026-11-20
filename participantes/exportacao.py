@@ -33,7 +33,8 @@ INDICADORES = (
 # "Código", não "ID": o Excel toma por SYLK um arquivo que começa com "ID".
 CABECALHO = (
     "Código", "Nome completo", "Data de nascimento", "Sexo", "Raça/cor", "Identidade de gênero", "Endereço",
-    "Telefone celular", "Telefone residencial", "Origem do encaminhamento", "Observação sobre o encaminhamento",
+    "Telefone celular", "Telefone residencial", "Origem do encaminhamento", "Descrição da origem",
+    "Observação sobre o encaminhamento",
     "Ensino médio completo", "Status", "Data de entrada", *(rotulo for _, rotulo in INDICADORES),
     "Situação social vigente desde",
 )
@@ -58,7 +59,7 @@ def _linha(participante, situacao):
         participante.pk, participante.nome_completo, _data(participante.data_nascimento),
         participante.get_sexo_display(), participante.get_raca_cor_display(),
         participante.get_identidade_genero_display(), participante.endereco, participante.celular_formatado(),
-        participante.residencial_formatado(), participante.get_origem_encaminhamento_display(),
+        participante.residencial_formatado(), participante.get_origem_encaminhamento_display(), participante.origem_descricao,
         participante.observacao_encaminhamento, _sim_nao(participante.ensino_medio_completo),
         participante.get_status_display(), _data(participante.data_entrada_exportacao),
         *(_sim_nao(getattr(situacao, campo) if situacao else None) for campo, _ in INDICADORES),

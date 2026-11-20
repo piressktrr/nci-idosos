@@ -58,6 +58,8 @@ def _erros_dados(conta, **opcoes):
         erros.update(erro.message_dict)
     if not conta.first_name:
         erros.setdefault("first_name", []).append("Informe o nome.")
+    if not conta.email:  # RF-USR-05: sem e-mail não há como recuperar a senha
+        erros.setdefault("email", []).append("Informe o e-mail.")
     return erros
 
 
