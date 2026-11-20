@@ -1,10 +1,43 @@
 {% extends "nci/base.html" %}
+{% load static %}
+{% block title %}Administrar categorias FMR · NCI{% endblock %}
 {% block content %}
-<p><a href="{% url 'atividades:lista' %}">Voltar às atividades</a></p>
-<h1>Categorias do FMR</h1>
-<h2>{% if categoria %}Editar categoria{% else %}Criar categoria{% endif %}</h2>
-<form method="post">{% csrf_token %}{{ form.as_p }}<button type="submit">Salvar categoria</button></form>
-<p>Desativar impede novos vínculos. Renomear preserva os nomes guardados nas classificações anteriores.</p>
-<ul>{% for item in categorias %}<li>{{ item.nome }} — {{ item.ativa|yesno:"Ativa,Inativa" }} · <a href="{% url 'atividades:editar_categoria_fmr' item.pk %}">Editar</a></li>{% empty %}<li>Nenhuma categoria cadastrada.</li>{% endfor %}</ul>
-{% if categoria %}<a href="{% url 'atividades:categorias_fmr' %}">Criar outra categoria</a>{% endif %}
+<p><a class="btn btn-outline-secondary" href="{% url 'atividades:lista' %}">Voltar às atividades</a></p>
+<h1>Administrar categorias FMR</h1>
+<div class="row g-4">
+<div class="col-lg-5"><section id="formulario-categoria" aria-labelledby="catalogo-categoria">
+<h2 id="catalogo-categoria">{% if categoria %}Editar categoria{% else %}Criar categoria{% endif %}</h2>
+<form method="post" action="{% if categoria %}{% url 'atividades:editar_categoria_fmr' categoria.pk %}{% else %}{% url 'atividades:categorias_fmr' %}{% endif %}">
+{% csrf_token %}{{ form.non_field_errors }}
+{% for campo in form %}<div class="field">{{ campo.label_tag }}{{ campo }}{{ campo.errors }}</div>{% endfor %}
+<button type="submit">Salvar categoria</button>
+{% if categoria %}<a class="btn btn-outline-secondary ms-2" href="{% url 'atividades:categorias_fmr' %}">Cancelar edição</a>{% endif %}
+</form>
+<p class="mt-3 mb-0">Desativar impede novas atribuições. As classificações anteriores são preservadas.</p>
+</section></div>
+<div class="col-lg-7"><section id="lista-categorias" class="categorias-lista" aria-labelledby="categorias-cadastradas">
+<h2 id="categorias-cadastradas">Categorias cadastradas</h2>
+<div class="table-scroll" tabindex="0" role="region" aria-label="Categorias cadastradas, lista com rolagem"><table><thead><tr><th>Categoria</th><th>Situação</th><th>Ação</th></tr></thead>
+<tbody>{% for item in categorias %}<tr><td>{{ item.nome }}</td><td>{{ item.ativa|yesno:"Ativa,Inativa" }}</td><td><a href="{% url 'atividades:editar_categoria_fmr' item.pk %}">Editar</a></td></tr>{% empty %}<tr><td colspan="3">Nenhuma categoria cadastrada.</td></tr>{% endfor %}</tbody></table></div>
+</section></div></div>
+<section id="categoria-atividade" aria-labelledby="registrar-categoria-atividade">
+<h2 id="registrar-categoria-atividade">Registrar categoria de atividades</h2>
+<form method="get" action="{% url 'atividades:categorias_fmr' %}#categoria-atividade">
+{% for campo in selecao %}<div class="field">{{ campo.label_tag }}{{ campo }}{{ campo.errors }}</div>{% endfor %}
+<button type="submit">Selecionar atividade</button></form>
+{% if atividade %}
+<hr>
+<h3 class="h5">{% if atividade.classificacao_atual_id %}Editar categoria{% else %}Atribuir categoria{% endif %} — {{ atividade.nome }}</h3>
+<p>Categoria atual: {{ atividade.categoria_atual_nome|default:"Sem categoria" }}</p>
+<form method="post" action="{% url 'atividades:categorias_fmr' %}#categoria-atividade">
+{% csrf_token %}<input type="hidden" name="acao" value="classificar"><input type="hidden" name="atividade" value="{{ atividade.pk }}">
+{{ form_classificacao.non_field_errors }}
+{% for campo in form_classificacao %}<div class="field">{{ campo.label_tag }}{{ campo }}{{ campo.errors }}</div>{% endfor %}
+<p>A mudança vale a partir da data escolhida. As aulas anteriores mantêm a categoria de seu período.</p>
+<button type="submit">{% if atividade.classificacao_atual_id %}Salvar alteração{% else %}Atribuir categoria{% endif %}</button>
+</form>
+{% if classificacoes %}<details class="mt-3"><summary>Histórico de categorias da atividade</summary><ul>{% for item in classificacoes %}<li>Desde {{ item.inicio|date:"d/m/Y" }}: {{ item.categoria_nome }}</li>{% endfor %}</ul></details>{% endif %}
+{% endif %}
+</section>
+<script src="{% static 'atividades/categorias.js' %}?v=2" defer></script>
 {% endblock %}

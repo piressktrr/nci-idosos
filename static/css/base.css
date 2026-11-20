@@ -168,7 +168,37 @@ main button.secondary { background: #e9eef3; color: #243041; }
 .category-badge { display: inline-block; background: #e5f3e9; color: #18532a; border: 1px solid #297144; border-radius: 4px; padding: 3px 8px; font-weight: 600; margin: 6px 0; }
 .category-badge.missing { background: #fff3d6; color: #754700; border-color: #956000; }
 .table-scroll { overflow-x: auto; }
+.categorias-lista { display: flex; flex-direction: column; max-height: 52rem; overflow: hidden; }
+.categorias-lista > h2 { flex-shrink: 0; }
+.categorias-lista .table-scroll { overflow: auto; min-height: 0; flex: 1 1 auto; }
+.categorias-lista thead { position: sticky; top: 0; background: #fff; }
+.table-scroll input[type="radio"] { width: 22px; height: 22px; accent-color: var(--nci-verde-escuro); vertical-align: middle; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 main table:not(.table) { width: 100%; border-collapse: collapse; text-align: left; }
 main table:not(.table) th, main table:not(.table) td { border-bottom: 1px solid #e3e7e1; padding: .7rem; vertical-align: top; overflow-wrap: anywhere; }
+main table.atividades-lista th:first-child, main table.atividades-lista td:first-child {
+  width: 100%; min-width: 15rem; padding-right: 3rem;
+}
+main table.atividades-lista th:not(:first-child), main table.atividades-lista td:not(:first-child) {
+  width: 1%; white-space: nowrap; padding-left: 1.625rem; padding-right: 1.625rem;
+}
 :focus-visible { outline: 3px solid #b46a00; outline-offset: 3px; }
 [x-cloak] { display: none !important; }
+.frequencia-resumo { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; margin: 0 0 1rem; }
+.frequencia-resumo > div { background: #fff; border: 1px solid #e3e7e1; border-radius: 1rem; padding: 1rem 1.25rem; }
+.frequencia-resumo dt { font-size: .95rem; font-weight: 400; }
+.frequencia-resumo dd { font: 700 1.8rem "Poppins", sans-serif; color: var(--nci-verde-escuro); margin: .35rem 0 0; }
+.frequencia-mensal-tabela { min-width: 680px; }
+.frequencia-mensal-tabela th, .frequencia-mensal-tabela td { padding: .9rem 1rem; vertical-align: middle; }
+.frequencia-mensal-tabela th:not(:first-child), .frequencia-mensal-tabela td { text-align: center; font-variant-numeric: tabular-nums; }
+.frequencia-mensal-tabela th:first-child { min-width: 12rem; }
+.frequencia-mensal-tabela tbody th { font-weight: 400; }
+.frequencia-mensal-tabela tfoot > tr > * { background: var(--nci-verde-claro); font-weight: 700; color: var(--nci-verde-texto); }
+@media (max-width: 991.98px) { .frequencia-resumo { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 399.98px) { .frequencia-resumo { grid-template-columns: 1fr; } }
+.historico-frequencia { min-width: 760px; }
+.historico-frequencia th, .historico-frequencia td, .lista-espera-tabela th, .lista-espera-tabela td { padding: .9rem 1rem; vertical-align: middle; }
+.historico-frequencia td:nth-child(-n+4) { white-space: nowrap; }
+.historico-frequencia td:nth-child(n+5) { min-width: 12rem; overflow-wrap: anywhere; }
+.lista-espera-tabela { min-width: 650px; }
+.lista-espera-tabela td:first-child { min-width: 12rem; }

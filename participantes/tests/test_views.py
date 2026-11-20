@@ -14,7 +14,7 @@ PERMISSOES_ATIVIDADES = ("view_atividade", "view_aula", "view_inscricao", "view_
 # Dados fictícios (RN-SEG-02).
 POST_FICTICIO = {
     "nome_completo": "Josefa Exemplo Ficticia", "endereco": "Rua Ficticia, 10",
-    "identidade_genero": "mulher_cis", "origem_encaminhamento": "cras", "observacao_encaminhamento": "",
+    "identidade_genero": "cisgenero", "origem_encaminhamento": "cras", "observacao_encaminhamento": "",
     "telefone_residencial": "", "telefone_celular": "(11) 91234-5678", "data_nascimento": "1950-03-10",
     "raca_cor": "parda", "sexo": "F", "ensino_medio_completo": "True", "data_entrada": "2024-01-15",
 }
@@ -22,7 +22,7 @@ POST_FICTICIO = {
 
 def _dados_servico(**extra):
     return {"nome_completo": "Ana Ficticia Souza", "data_nascimento": date(1948, 6, 1), "sexo": "F",
-            "raca_cor": "branca", "identidade_genero": "mulher_cis", "telefone_celular": "11912345678",
+            "raca_cor": "branca", "identidade_genero": "cisgenero", "telefone_celular": "11912345678",
             "telefone_residencial": "", "origem_encaminhamento": "cras", "endereco": "Rua Ficticia, 1",
             "ensino_medio_completo": True, "observacao_encaminhamento": "", "data_entrada": date(2024, 2, 1),
             **extra}
@@ -138,7 +138,7 @@ class ListaTests(Base):
 
     def test_busca_ignora_acento_e_caixa(self):
         Participante.objects.create(nome_completo="José Ficticio Conceição", data_nascimento=date(1945, 1, 1),
-                                    sexo="M", raca_cor="preta", identidade_genero="homem_cis", endereco="Rua X",
+                                    sexo="M", raca_cor="preta", identidade_genero="cisgenero", endereco="Rua X",
                                     telefone_celular="11912345678", origem_encaminhamento="cras")
         url = reverse("participantes:lista")
         for termo in ("jose", "JOSÉ", "conceicao", "  CONCEIÇÃO   jose ", "conceicao jose"):
@@ -165,7 +165,7 @@ class ListaTests(Base):
     def test_paginacao_de_20(self):
         for i in range(24):
             Participante.objects.create(nome_completo=f"Pessoa Ficticia {i:02d}", data_nascimento=date(1950, 1, 1),
-                                        sexo="F", raca_cor="parda", identidade_genero="mulher_cis", endereco="Rua",
+                                        sexo="F", raca_cor="parda", identidade_genero="cisgenero", endereco="Rua",
                                         telefone_celular="11912345678", origem_encaminhamento="cras")
         url = reverse("participantes:lista")
         primeira = self.client.get(url)
@@ -182,7 +182,7 @@ class ListaTests(Base):
     def test_paginacao_preserva_termo(self):
         for i in range(21):
             Participante.objects.create(nome_completo=f"Lúcia Ficticia {i:02d}", data_nascimento=date(1950, 1, 1),
-                                        sexo="F", raca_cor="parda", identidade_genero="mulher_cis", endereco="Rua",
+                                        sexo="F", raca_cor="parda", identidade_genero="cisgenero", endereco="Rua",
                                         telefone_celular="11912345678", origem_encaminhamento="cras")
         resposta = self.client.get(reverse("participantes:lista"), {"q": "lucia"})
         self.assertContains(resposta, "21 encontrados")
@@ -310,7 +310,7 @@ class DetalheTests(Base):
     def test_sem_entrada_mostra_traco(self):
         sem_entrada = Participante.objects.create(
             nome_completo="Sem Entrada Ficticia", data_nascimento=date(1950, 1, 1), sexo="F", raca_cor="parda",
-            identidade_genero="mulher_cis", endereco="Rua", telefone_celular="11912345678",
+            identidade_genero="cisgenero", endereco="Rua", telefone_celular="11912345678",
             origem_encaminhamento="cras")
         self.client.force_login(self.gestor)
         resposta = self.client.get(reverse("participantes:detalhe", args=[sem_entrada.pk]))

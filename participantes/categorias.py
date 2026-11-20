@@ -1,8 +1,6 @@
 """Categorias autodeclaradas do cadastro (RF-PAR-01).
 
-PROVISÓRIO: raça/cor segue as cinco categorias do IBGE e identidade de gênero é uma
-lista de trabalho. As duas devem ser conferidas com o formulário FMR antes de produção.
-Trocar as opções aqui exige apenas uma migration de alteração de choices.
+Raça/cor e identidade de gênero seguem as categorias do FMR fornecidas pelo responsável.
 """
 
 from django.db import models
@@ -25,13 +23,14 @@ class RacaCor(models.TextChoices):
 
 
 class IdentidadeGenero(models.TextChoices):
-    MULHER_CIS = "mulher_cis", "Mulher cisgênero"
-    HOMEM_CIS = "homem_cis", "Homem cisgênero"
-    MULHER_TRANS = "mulher_trans", "Mulher transgênero"
-    HOMEM_TRANS = "homem_trans", "Homem transgênero"
-    TRAVESTI = "travesti", "Travesti"
-    NAO_BINARIA = "nao_binaria", "Pessoa não binária"
-    OUTRA = "outra", "Outra"
+    CISGENERO = "cisgenero", "Cisgênero"
+    TRANSGENERO = "transgenero", "Transgênero"
+    AGENERO = "agenero", "Agênero"
+    NAO_DECLARADO = "nao_declarado", "Não declarado"
+
+
+# Mantidos somente para não apagar autodeclarações antigas sem correspondência confirmada.
+IDENTIDADES_GENERO_LEGADAS = ("travesti", "nao_binaria", "outra")
 
 
 class OrigemEncaminhamento(models.TextChoices):
@@ -44,17 +43,21 @@ class OrigemEncaminhamento(models.TextChoices):
 
 
 class StatusParticipante(models.TextChoices):
-    """D13: status do protótipo. Provisório até o NCI definir afastado/inativo/cancelado (RN-PAR-09, P02)
-    e até existir o desligamento com motivo (RF-PAR-07)."""
+    """Situação operacional; afastamento e desligamento definidos pelo responsável.
+
+    Inativo/cancelado são opções legadas ainda sem equivalência de negócio.
+    """
     ATIVO = "ativo", "Ativo"
     INATIVO = "inativo", "Inativo"
     CANCELADO = "cancelado", "Cancelado"
+    DESLIGADO = "desligado", "Desligado"
+    AFASTADO = "afastado", "Afastado"
 
 
 class TipoMovimentacao(models.TextChoices):
-    """Eventos de entrada e saída do participante no serviço (RF-PAR-07, 08 e 10).
-
-    Por enquanto só a entrada (Q5: o cadastro registra a data de entrada). O desligamento depende da lista de
-    motivos do FMR (Q3, RF-PAR-07) e a reativação de como ela entra na equação do FMR (Q4, RF-PAR-08, RN-PAR-08).
-    """
+    """Eventos por vigência; somente entrada é ingresso, retornos preservam a identidade."""
     ENTRADA = "entrada", "Entrada"
+    DESLIGAMENTO = "desligamento", "Desligamento"
+    REATIVACAO = "reativacao", "Reativação"
+    AFASTAMENTO = "afastamento", "Afastamento"
+    RETORNO = "retorno", "Retorno de afastamento"

@@ -19,7 +19,7 @@ from participantes.models import Participante, RegistroParticipante
 def criar_participante(nome="Pessoa Fictícia Auditoria"):
     return Participante.objects.create(
         nome_completo=nome, data_nascimento=date(1950, 3, 15), sexo="F", raca_cor="parda",
-        identidade_genero="mulher_cis", endereco="Rua Fictícia, 100", ensino_medio_completo=True,
+        identidade_genero="cisgenero", endereco="Rua Fictícia, 100", ensino_medio_completo=True,
         telefone_celular="61912345678", origem_encaminhamento="cras",
     )
 

@@ -4,16 +4,44 @@ from django.test import TestCase
 
 from participantes.forms import ParticipanteForm, SituacaoSocialForm
 from participantes.models import SituacaoSocial
+from participantes.tests.test_models import novo_participante
 
 DADOS_FICTICIOS = {
     "nome_completo": "Maria Exemplo Ficticia", "endereco": "Rua Ficticia, 100",
-    "identidade_genero": "mulher_cis", "origem_encaminhamento": "cras", "observacao_encaminhamento": "",
+    "identidade_genero": "cisgenero", "origem_encaminhamento": "cras", "observacao_encaminhamento": "",
     "telefone_residencial": "", "telefone_celular": "(11) 91234-5678", "data_nascimento": "1950-03-10",
     "raca_cor": "parda", "sexo": "F", "ensino_medio_completo": "True", "data_entrada": "2024-01-15",
 }
 
 
 class ParticipanteFormTests(TestCase):
+    def test_categoria_legada_exige_confirmacao_sem_presumir_nao_declarado(self):
+        pessoa = novo_participante(identidade_genero="travesti")
+        pessoa.save()
+        form = ParticipanteForm(instance=pessoa)
+        self.assertIn("Confirme a autodeclaração", form.fields["identidade_genero"].help_text)
+        self.assertNotIn(("travesti", "Travesti"), list(form.fields["identidade_genero"].choices))
+        preenchido = ParticipanteForm(DADOS_FICTICIOS | {"identidade_genero": "travesti"}, instance=pessoa)
+        self.assertFalse(preenchido.is_valid())
+        pessoa.refresh_from_db()
+        self.assertEqual(pessoa.identidade_genero, "travesti")
+
+    def test_identidade_genero_oferece_apenas_as_quatro_opcoes_do_fmr(self):
+        form = ParticipanteForm()
+        self.assertEqual(list(form.fields["identidade_genero"].choices), [
+            ("", "Selecione"), ("cisgenero", "Cisgênero"), ("transgenero", "Transgênero"),
+            ("agenero", "Agênero"), ("nao_declarado", "Não declarado"),
+        ])
+        for codigo in ("cisgenero", "transgenero", "agenero", "nao_declarado"):
+            with self.subTest(codigo=codigo):
+                preenchido = ParticipanteForm(DADOS_FICTICIOS | {"identidade_genero": codigo})
+                self.assertTrue(preenchido.is_valid(), preenchido.errors)
+        for codigo in ("travesti", "nao_binaria", "outra", "mulher_cis", ""):
+            with self.subTest(codigo=codigo):
+                preenchido = ParticipanteForm(DADOS_FICTICIOS | {"identidade_genero": codigo})
+                self.assertFalse(preenchido.is_valid())
+                self.assertIn("identidade_genero", preenchido.errors)
+
     def test_sem_campo_status(self):
         form = ParticipanteForm()
         self.assertNotIn("status", form.fields)

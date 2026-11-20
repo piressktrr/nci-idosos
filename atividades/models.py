@@ -15,6 +15,7 @@ class Atividade(ProtegidoPorAuditoria, models.Model):
         return RegistroCadastroAtividade.objects.get(atividade=self)
 
     nome = models.CharField("identificação", max_length=150)
+    ativa = models.BooleanField("ativa", default=True)
     local = models.CharField("local", max_length=150)
     monitor = models.CharField("monitor/oficineiro responsável", max_length=150)
 
@@ -163,6 +164,7 @@ class MotivoFalta(ProtegidoPorAuditoria, models.Model):
 
 
 class Frequencia(ProtegidoPorAuditoria, models.Model):
+    justificada_por_afastamento = models.BooleanField(default=False, editable=False)
     @property
     def registro_lancamento(self):
         return RegistroLancamentoFrequencia.objects.filter(frequencia=self).first()
@@ -334,6 +336,14 @@ class RegistroCategoriaFMR(EventoAuditoria):
 
 class RegistroClassificacaoAtividade(EventoAuditoria):
     alvo, modelo_alvo = "classificacao", ClassificacaoAtividade
+
+    class Meta:
+        proxy = True
+        default_permissions = ()
+
+
+class RegistroSituacaoAtividade(EventoAuditoria):
+    alvo, modelo_alvo = "atividade", Atividade
 
     class Meta:
         proxy = True

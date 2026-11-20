@@ -22,7 +22,12 @@ def adicionar_espera(*, usuario, atividade_id, participante_referencia):
     if not isinstance(participante_referencia, str) or not participante_referencia or len(participante_referencia) > 64:
         raise ValidationError("Selecione um participante cadastrado.")
     atividade = Atividade.objects.select_for_update().get(pk=atividade_id)
+    from .situacao import exigir_atividade_ativa
+    exigir_atividade_ativa(atividade)
     provedor = obter_provedor()
+    from django.utils import timezone
+    if getattr(provedor, "situacoes_em", lambda data: {})(timezone.localdate()).get(participante_referencia) == "desligamento":
+        raise ValidationError("Reative o participante desligado antes de adicionar à espera.")
     participante = provedor.obter(participante_referencia)
     if participante is None:
         raise ValidationError("Participante não encontrado no cadastro.")

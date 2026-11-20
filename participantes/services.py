@@ -1,19 +1,22 @@
 """Serviços do cadastro de participantes (RF-PAR-01, RN-PAR-01), com autorização e auditoria."""
 
+from datetime import date
+
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.utils import timezone
 
 from core.permissoes import autorizar
 
 from .auditoria import registrar
 from .categorias import StatusParticipante, TipoMovimentacao
-from .models import Movimentacao, Participante, SituacaoSocial, chave_busca
+from .models import Movimentacao, Participante, PerfilDemografico, SituacaoSocial, chave_busca
 
-# Sem "status": todo cadastro nasce ativo e o status fica só leitura até a definição de afastado/inativo/cancelado
-# (RN-PAR-09, P02) e dos motivos do desligamento (RF-PAR-07, Q3). A data de entrada (Q5) vai à parte, na Movimentacao.
+# Status é alterado somente no serviço de movimentações. Entrada fica na Movimentacao.
 CAMPOS_CADASTRO = ("nome_completo", "data_nascimento", "sexo", "raca_cor", "identidade_genero",
                    "telefone_celular", "telefone_residencial", "origem_encaminhamento",
                    "endereco", "ensino_medio_completo", "observacao_encaminhamento")
+CAMPOS_DEMOGRAFICOS = ("sexo", "raca_cor", "identidade_genero")
 
 
 def _dados(participante, entrada=None):
@@ -98,18 +101,22 @@ def cadastrar_participante(*, usuario, data_entrada, confirmar_duplicidade=False
     if set(dados) != set(CAMPOS_CADASTRO):
         raise ValidationError("Dados de cadastro incompletos ou inválidos.")
     participante = Participante(**dados, status=StatusParticipante.ATIVO)
-    entrada = Movimentacao(participante=participante, tipo=TipoMovimentacao.ENTRADA, data=data_entrada, usuario=autor)
+    entrada = Movimentacao(participante=participante, tipo=TipoMovimentacao.ENTRADA, data=data_entrada,
+                          usuario=autor, origem_entrada=participante.origem_encaminhamento)
     _validar(participante, entrada)
     _verificar_duplicidade(participante, confirmar_duplicidade)
     participante.save()
     entrada.participante = participante
     entrada.save()
+    PerfilDemografico.objects.create(participante=participante, vigente_desde=data_entrada,
+                                    **{campo: dados[campo] for campo in CAMPOS_DEMOGRAFICOS})
     registrar(participante=participante, acao="cadastro", usuario=autor, novos=_dados(participante, entrada))
     return participante
 
 
 @transaction.atomic
-def corrigir_participante(*, usuario, participante_id, data_entrada, confirmar_duplicidade=False, **dados):
+def corrigir_participante(*, usuario, participante_id, data_entrada, perfil_vigente_desde=None,
+                         confirmar_duplicidade=False, **dados):
     """Corrige o cadastro (inclusive raça/cor, identidade de gênero e data de entrada), guardando antes e depois.
 
     O status não é corrigido aqui (RN-PAR-09, P02). Cadastro sem entrada (feito fora dos serviços) ganha a entrada
@@ -124,20 +131,38 @@ def corrigir_participante(*, usuario, participante_id, data_entrada, confirmar_d
                .order_by("-data", "-pk").first())
     anteriores = _dados(participante, entrada)
     if entrada is None:
+        # Entrada histórica ausente: não presumir sua origem a partir do cadastro atual.
         entrada = Movimentacao(participante=participante, tipo=TipoMovimentacao.ENTRADA, usuario=autor)
     else:
         entrada.participante = participante  # a validação usa a data de nascimento corrigida
     for campo, valor in dados.items():
         setattr(participante, campo, valor)
     entrada.data = data_entrada
+    posteriores = participante.movimentacoes.exclude(tipo=TipoMovimentacao.ENTRADA)
+    if posteriores.filter(data__lt=data_entrada).exists():
+        raise ValidationError({"data_entrada": "A entrada não pode ser posterior a desligamentos ou reativações registrados."})
+    if posteriores.filter(data__lt=participante.data_nascimento).exists():
+        raise ValidationError({"data_nascimento": "O nascimento não pode ser posterior a movimentações registradas."})
     _validar(participante, entrada)
-    if _dados(participante, entrada) == anteriores:
+    novos = _dados(participante, entrada)
+    if perfil_vigente_desde is not None or any(novos[campo] != anteriores[campo] for campo in CAMPOS_DEMOGRAFICOS):
+        vigencia = timezone.localdate() if perfil_vigente_desde is None else perfil_vigente_desde
+        ultimo = participante.perfis_demograficos.order_by("-vigente_desde").first()
+        if (type(vigencia) is not date or not data_entrada <= vigencia <= timezone.localdate()
+                or (ultimo is not None and vigencia < ultimo.vigente_desde)):
+            raise ValidationError({"perfil_vigente_desde":
+                "Informe uma data entre a entrada e hoje, igual ou posterior à última vigência do perfil."})
+        perfil = {campo: novos[campo] for campo in CAMPOS_DEMOGRAFICOS}
+        anteriores["perfil_vigente_desde"] = ultimo.vigente_desde.isoformat() if ultimo else None
+        novos["perfil_vigente_desde"] = vigencia.isoformat()
+        PerfilDemografico.objects.update_or_create(participante=participante, vigente_desde=vigencia, defaults=perfil)
+    if novos == anteriores:
         return participante
     _verificar_duplicidade(participante, confirmar_duplicidade, excluir_id=participante.pk)
     participante.save(update_fields=list(CAMPOS_CADASTRO))
     entrada.save()
     registrar(participante=participante, acao="correcao", usuario=autor,
-              anteriores=anteriores, novos=_dados(participante, entrada))
+              anteriores=anteriores, novos=novos)
     return participante
 
 

@@ -56,9 +56,10 @@ def classificar_atividade(*, usuario, atividade_id, categoria_id, inicio):
     categoria = CategoriaFMR.objects.select_for_update().filter(pk=categoria_id).first()
     if categoria is None:
         raise ValidationError("Categoria inexistente.")
+    vigente = ClassificacaoAtividade.objects.filter(atividade=atividade, inicio__lte=inicio).first()
+    if vigente and vigente.categoria_id == categoria.pk:
+        raise ValidationError("Esta atividade já pertence a essa categoria na data escolhida. Selecione outra categoria.")
     classificacao = ClassificacaoAtividade.objects.filter(atividade=atividade, inicio=inicio).first()
-    if classificacao and classificacao.categoria_id == categoria.pk:
-        return classificacao
     if not categoria.ativa:
         raise ValidationError("Selecione uma categoria ativa para o novo vínculo.")
     anteriores = None if classificacao is None else {

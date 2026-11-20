@@ -1,0 +1,27 @@
+<section aria-labelledby="tempo-permanencia">
+  <h2 id="tempo-permanencia">Tempo de permanência dos usuários que saíram do serviço</h2>
+  {% if tempo_permanencia.aviso %}
+  <p class="mb-0" role="status">{{ tempo_permanencia.aviso }}</p>
+  {% else %}
+  <p id="legenda-tempo-permanencia">Considera a entrada ou última reativação até cada desligamento no mês. Períodos anteriores à reativação não são somados. Afastamentos não reiniciam o vínculo. Cada saída é contada uma vez; a mesma pessoa pode ter mais de uma saída em ciclos diferentes.</p>
+  <p>Meses de calendário: exatamente 6 meses entram na primeira faixa; exatamente 1 ano na segunda; exatamente 3 anos na terceira. Se o dia correspondente não existir no mês de destino, considera-se o último dia desse mês.</p>
+  {% if tempo_permanencia.pendencia %}
+  <div class="alert alert-warning" role="status">
+    <span tabindex="0" title="{{ tempo_permanencia.pendencia.explicacao }}" aria-describedby="tempo-pendencia-vinculo" style="cursor: help;">{{ tempo_permanencia.pendencia.aviso }}</span>
+    <small class="d-block">Passe o mouse sobre o aviso para ver qual informação está faltando.</small>
+    <span id="tempo-pendencia-vinculo" class="visually-hidden">{{ tempo_permanencia.pendencia.explicacao }}</span>
+  </div>
+  <p>Saídas sem período completo: {{ tempo_permanencia.sem_periodo }}. Total de desligamentos no mês: {{ tempo_permanencia.total_desligamentos }}. — indica informação não calculada, diferente de zero.</p>
+  {% endif %}
+  <div class="nci-tabela verde table-responsive">
+    <table class="table table-hover" id="tabela-tempo-permanencia" aria-describedby="legenda-tempo-permanencia">
+      <caption>Número de pessoas que saíram por tempo de permanência em {{ tempo_permanencia.periodo.inicio|date:"m/Y" }}.</caption>
+      <thead><tr><th scope="col">Tempo de permanência</th><th scope="col">Quantidade</th></tr></thead>
+      <tbody>{% for linha in tempo_permanencia.linhas %}
+        <tr><th scope="row">{{ linha.faixa }}</th><td>{% include "relatorios/_valor_contagem.html" with valor=linha.quantidade only %}</td></tr>
+      {% endfor %}</tbody>
+      <tfoot><tr><th scope="row">Total</th><td>{% include "relatorios/_valor_contagem.html" with valor=tempo_permanencia.total only %}</td></tr></tfoot>
+    </table>
+  </div>
+  {% endif %}
+</section>

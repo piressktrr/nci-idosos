@@ -10,7 +10,7 @@ DADOS = {
     "data_nascimento": date(1950, 3, 10),
     "sexo": "F",
     "raca_cor": "parda",
-    "identidade_genero": "mulher_cis",
+    "identidade_genero": "cisgenero",
     "telefone_celular": "61912345678",
     "origem_encaminhamento": "cras",
     "endereco": "Rua Fictícia, 100",

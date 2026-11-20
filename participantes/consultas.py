@@ -5,6 +5,30 @@ from django.db.models import QuerySet
 from .models import Participante, SituacaoSocial
 
 
+def permanentes_em(*, usuario, data_referencia):
+    """Situação no fechamento pela última movimentação na data (inclusive).
+
+    None sinaliza acervo incompleto/ambíguo; nunca pressupõe permanência a partir
+    de status atual, presença ou ausência de registros de saída.
+    """
+    from datetime import date
+    from django.core.exceptions import ValidationError
+    from django.db.models import OuterRef, Subquery
+    from core.integracoes import ParticipanteResumo
+    from core.permissoes import autorizar
+    from .models import Movimentacao
+    autorizar(usuario, "participantes.view_participante")
+    if type(data_referencia) is not date:
+        raise ValidationError("Informe uma data de referência válida.")
+    if (Participante.objects.exclude(status__in=("ativo", "desligado", "afastado")).exists()
+            or Participante.objects.exclude(movimentacoes__tipo="entrada").exists()):
+        return None
+    ultimas = Movimentacao.objects.filter(participante_id=OuterRef("pk"), data__lte=data_referencia).order_by("-data", "-pk")
+    pessoas = Participante.objects.annotate(ultima_situacao=Subquery(ultimas.values("tipo")[:1])).filter(
+        ultima_situacao__in=("entrada", "reativacao", "afastamento", "retorno")).order_by("nome_completo", "pk")
+    return tuple(ParticipanteResumo(str(pk), nome) for pk, nome in pessoas.values_list("pk", "nome_completo"))
+
+
 def _pks(participantes):
     if participantes is None:
         return list(Participante.objects.values_list("pk", flat=True))

@@ -57,13 +57,17 @@ class ParticipanteForm(forms.ModelForm):
     # Q5: o cadastro registra a data de entrada (Movimentacao); o serviço valida (não futura, não antes do nascimento).
     data_entrada = forms.DateField(label="Data de entrada",
                                    widget=forms.DateInput(format="%Y-%m-%d", attrs={"type": "date"}))
+    perfil_vigente_desde = forms.DateField(label="Vigência do perfil no FMR", required=False,
+        widget=forms.DateInput(format="%Y-%m-%d", attrs={"type": "date"}),
+        help_text="Informe desde quando valem sexo, raça/cor e identidade de gênero. "
+                  "Uma alteração sem data vale a partir de hoje. Use a última data para corrigi-la.")
 
     class Meta:
         model = Participante
         fields = ("nome_completo", "endereco", "identidade_genero", "origem_encaminhamento",
                   "observacao_encaminhamento", "telefone_residencial", "telefone_celular", "data_nascimento",
                   "raca_cor", "sexo", "ensino_medio_completo")
-        # Sem "status": só leitura até RN-PAR-09/P02 e o desligamento com motivo (RF-PAR-07, Q3).
+        # Sem status: desligamento, reativação e afastamento passam pelos serviços de movimentação.
         labels = {"telefone_residencial": "Telefone fixo", "raca_cor": "Raça/cor"}
         field_classes = {"telefone_celular": TelefoneField, "telefone_residencial": TelefoneField}
         widgets = {
@@ -78,7 +82,18 @@ class ParticipanteForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.mostrar_confirmacao = mostrar_confirmacao
         entrada = self.instance.data_entrada if self.instance.pk else None
+        if not self.instance.pk:
+            del self.fields["perfil_vigente_desde"]
+        else:
+            ultima = self.instance.perfis_demograficos.order_by("-vigente_desde").first()
+            if ultima:
+                self.fields["perfil_vigente_desde"].help_text += f" Última vigência: {ultima.vigente_desde:%d/%m/%Y}."
         self.fields["data_entrada"].initial = entrada or timezone.localdate()
+        from .categorias import IDENTIDADES_GENERO_LEGADAS
+        if self.instance.identidade_genero in IDENTIDADES_GENERO_LEGADAS:
+            self.fields["identidade_genero"].help_text = (
+                "O cadastro possui uma categoria anterior. Confirme a autodeclaração e selecione uma das opções do FMR."
+            )
         if not mostrar_confirmacao:
             # Só existe depois do alerta de duplicidade; antes disso, nunca confirma.
             del self.fields["confirmar_duplicidade"]

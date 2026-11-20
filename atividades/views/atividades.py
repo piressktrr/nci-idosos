@@ -11,6 +11,11 @@ from ..classificacao import com_categoria_vigente
 from ..forms import AtividadeForm, FiltroCategoriaForm
 from ..models import Atividade
 from ..services import cadastrar_atividade
+from core.perfis import e_administrador
+from usuarios.decorators import administrador_required
+from ..situacao import alterar_situacao_atividade
+from usuarios.forms import SituacaoContaForm
+from django.shortcuts import get_object_or_404
 
 
 @login_required
@@ -45,4 +50,21 @@ def lista(request):
     else:
         atividades = atividades.none()
     pagina = Paginator(atividades, 20).get_page(request.GET.get("page"))
-    return render(request, "atividades/lista.html", {"form": form, "pagina": pagina, "filtro_categoria": filtro_categoria})
+    return render(request, "atividades/lista.html", {"form": form, "pagina": pagina, "filtro_categoria": filtro_categoria, "administrador": e_administrador(request.user)})
+
+
+@administrador_required
+@require_http_methods(["GET", "POST"])
+def situacao(request, atividade_id):
+    atividade = get_object_or_404(Atividade, pk=atividade_id)
+    form = SituacaoContaForm(request.POST if request.method == "POST" else None,
+                             initial={"ativo": "0" if atividade.ativa else "1"})
+    if request.method == "POST" and form.is_valid():
+        try:
+            alterar_situacao_atividade(usuario=request.user, atividade_id=atividade.pk, ativa=form.cleaned_data["ativo"])
+        except ValidationError as erro:
+            form.add_error(None, erro.messages)
+        else:
+            messages.success(request, "Situação da atividade atualizada. Histórico preservado.")
+            return redirect("atividades:lista")
+    return render(request, "atividades/situacao.html", {"form": form, "atividade": atividade})

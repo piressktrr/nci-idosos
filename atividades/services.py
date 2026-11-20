@@ -14,6 +14,7 @@ from .models import (
     Frequencia, RegistroLancamentoFrequencia, MotivoFalta, RegistroMotivoFalta, RegistroCorrecaoFrequencia,
 )
 from .integracoes.participantes import obter_provedor
+from .situacao import exigir_atividade_ativa
 
 
 def consultar_frequencia_mensal(*, usuario, ano, mes, atividade_id=None):
@@ -129,7 +130,8 @@ def registrar_aula(*, usuario, atividade_id, data, inicio, fim, tipo=Aula.Tipo.N
     autor = get_user_model().objects.filter(pk=usuario.pk, is_active=True).first()
     if autor is None or not autor.has_perm("atividades.add_aula"):
         raise PermissionDenied("Você não tem permissão para registrar aulas.")
-    atividade = Atividade.objects.get(pk=atividade_id)
+    atividade = Atividade.objects.select_for_update().get(pk=atividade_id)
+    exigir_atividade_ativa(atividade)
     aula = Aula(atividade=atividade, data=data, inicio=inicio, fim=fim, tipo=tipo)
     aula.full_clean()
     aula.save()
@@ -180,7 +182,8 @@ def cancelar_aula(*, usuario, atividade_id, aula_id):
 def registrar_aula_cancelada(*, usuario, atividade_id, data, inicio, fim, tipo=Aula.Tipo.NAO_INFORMADO):
     """Registra diretamente uma aula que não ocorreu; horários indicam o previsto."""
     autor = _autorizar_cancelamento(usuario, cadastro=True)
-    atividade = Atividade.objects.get(pk=atividade_id)
+    atividade = Atividade.objects.select_for_update().get(pk=atividade_id)
+    exigir_atividade_ativa(atividade)
     aula = Aula(atividade=atividade, data=data, inicio=inicio, fim=fim, tipo=tipo, situacao=Aula.Situacao.CANCELADA)
     aula.full_clean()
     aula.save()
@@ -202,7 +205,12 @@ def inscrever_participante(*, usuario, atividade_id, participante_referencia, es
         raise ValidationError({"participante_referencia": "Selecione um participante cadastrado."})
     # Serializa inscrições da mesma atividade, inclusive a verificação de duplicação.
     atividade = Atividade.objects.select_for_update().get(pk=atividade_id)
+    exigir_atividade_ativa(atividade)
     provedor = obter_provedor()
+    from django.utils import timezone
+    estados = getattr(provedor, "situacoes_em", lambda data: {})(timezone.localdate())
+    if estados.get(participante_referencia) == "desligamento":
+        raise ValidationError("Participante desligado. Registre a reativação antes de inscrever.")
     participante = provedor.obter(participante_referencia)
     if participante is None:
         raise ValidationError({"participante_referencia": "Participante não encontrado no cadastro."})
@@ -236,12 +244,17 @@ def obter_lista_chamada(*, usuario, atividade_id, aula_id):
         raise ValidationError("Esta aula está cancelada e não possui chamada.")
     provedor = obter_provedor()
     nomes = {item.referencia: item.nome for item in provedor.listar()}
+    estados = getattr(provedor, "situacoes_em", lambda data: {})(aula.data)
+    inscricoes_com_registro = set(aula.frequencias.values_list("inscricao_id", flat=True))
     participantes = [{
         "inscricao_id": inscricao.pk,
         "referencia": inscricao.participante_referencia,
         "nome": nomes.get(inscricao.participante_referencia, "Participante indisponível"),
         "disponivel": inscricao.participante_referencia in nomes,
-    } for inscricao in aula.atividade.inscricoes.filter(origem_participante=provedor.origem)]
+        "afastado": estados.get(inscricao.participante_referencia) == "afastamento",
+    } for inscricao in aula.atividade.inscricoes.filter(origem_participante=provedor.origem)
+       if estados.get(inscricao.participante_referencia) not in ("desligamento", "nao_ingressou")
+       or inscricao.pk in inscricoes_com_registro]
     participantes.sort(key=lambda item: (item["nome"].casefold(), item["referencia"]))
     pode_ver = autor.has_perm("atividades.view_frequencia")
     frequencias = {item.inscricao_id: item for item in aula.frequencias.all()} if pode_ver else {}
@@ -279,6 +292,10 @@ def registrar_frequencias(*, usuario, atividade_id, aula_id, registros, justific
     ).order_by("pk"))
     if len(inscricoes) != len(registros):
         raise ValidationError("Há inscrição inválida para esta atividade ou origem de participantes.")
+    getattr(provedor, "bloquear", lambda referencias: None)([i.participante_referencia for i in inscricoes])
+    estados = getattr(provedor, "situacoes_em", lambda data: {})(aula.data)
+    if any(estados.get(i.participante_referencia) in ("desligamento", "nao_ingressou") for i in inscricoes):
+        raise ValidationError("Há participante desligado ou ainda não ingressante na data desta aula.")
     if aula.frequencias.filter(inscricao_id__in=registros).exists():
         raise ValidationError("Há frequência já lançada. Use a ação de correção do registro.")
     for inscricao in inscricoes:
@@ -313,8 +330,15 @@ def registrar_frequencias(*, usuario, atividade_id, aula_id, registros, justific
     resultado = []
     for inscricao in inscricoes:
         motivo, observacao = detalhes.get(inscricao.pk, (None, ""))
-        frequencia = Frequencia(aula=aula, inscricao=inscricao, situacao=registros[inscricao.pk],
+        situacao = registros[inscricao.pk]
+        afastado = estados.get(inscricao.participante_referencia) == "afastamento"
+        if afastado and situacao == Frequencia.Situacao.AUSENTE:
+            situacao = Frequencia.Situacao.JUSTIFICADO
+        frequencia = Frequencia(aula=aula, inscricao=inscricao, situacao=situacao,
                                 motivo=motivo, motivo_descricao=motivo.descricao if motivo else "", observacao=observacao)
+        if afastado and situacao == Frequencia.Situacao.JUSTIFICADO and motivo is None:
+            frequencia.motivo_descricao = "Afastamento"
+            frequencia.justificada_por_afastamento = True
         frequencia.full_clean()
         frequencia.save()
         RegistroLancamentoFrequencia.objects.create(frequencia=frequencia, usuario=autor, dados={
@@ -390,7 +414,7 @@ def consultar_historico_participante(*, usuario, atividade_id, inscricao_id):
 def _snapshot_frequencia(frequencia):
     return {"situacao": frequencia.situacao, "motivo_id": frequencia.motivo_id,
             "motivo_descricao": frequencia.motivo_descricao, "observacao": frequencia.observacao,
-            "versao": frequencia.versao}
+            "versao": frequencia.versao} | ({"justificada_por_afastamento": True} if frequencia.justificada_por_afastamento else {})
 
 
 @transaction.atomic
@@ -401,6 +425,9 @@ def corrigir_frequencia(*, usuario, atividade_id, aula_id, frequencia_id, versao
         raise PermissionDenied("Você não tem permissão para corrigir frequência.")
     # Mesmo bloqueio/ordem de lançamento e cancelamento; IDs do vínculo não são editáveis.
     Aula.objects.select_for_update().get(pk=aula_id, atividade_id=atividade_id)
+    provedor = obter_provedor()
+    referencia = contexto["frequencia"].inscricao.participante_referencia
+    getattr(provedor, "bloquear", lambda referencias: None)([referencia])
     frequencia = Frequencia.objects.select_for_update().get(pk=frequencia_id, aula_id=aula_id)
     if type(versao_esperada) is not int or versao_esperada != frequencia.versao:
         raise ValidationError("Este registro foi alterado. Atualize a página e confira o histórico antes de salvar.")
@@ -412,6 +439,12 @@ def corrigir_frequencia(*, usuario, atividade_id, aula_id, frequencia_id, versao
     if motivo_id is not None and type(motivo_id) is not int:
         raise ValidationError("Motivo inválido.")
     anteriores = _snapshot_frequencia(frequencia)
+    afastado = getattr(provedor, "situacoes_em", lambda data: {})(frequencia.aula.data).get(referencia) == "afastamento"
+    automatica = afastado and (situacao == Frequencia.Situacao.AUSENTE or (
+        situacao == Frequencia.Situacao.JUSTIFICADO and motivo_id is None and not observacao
+        and frequencia.justificada_por_afastamento))
+    if automatica:
+        situacao = Frequencia.Situacao.JUSTIFICADO
     if motivo_id != frequencia.motivo_id:
         motivo = MotivoFalta.objects.select_for_update().filter(pk=motivo_id, ativo=True).first() if motivo_id is not None else None
         if motivo_id is not None and motivo is None:
@@ -419,11 +452,16 @@ def corrigir_frequencia(*, usuario, atividade_id, aula_id, frequencia_id, versao
         frequencia.motivo = motivo
         frequencia.motivo_descricao = motivo.descricao if motivo else ""
     frequencia.situacao, frequencia.observacao = situacao, observacao
+    if frequencia.justificada_por_afastamento and not automatica and motivo_id is None:
+        frequencia.motivo_descricao = ""
+    frequencia.justificada_por_afastamento = automatica
+    if automatica:
+        frequencia.motivo_descricao = "Afastamento"
     frequencia.full_clean()
     if _snapshot_frequencia(frequencia) == anteriores:
         return frequencia
     frequencia.versao += 1
-    frequencia.save(update_fields=["situacao", "motivo", "motivo_descricao", "observacao", "versao"])
+    frequencia.save(update_fields=["situacao", "motivo", "motivo_descricao", "observacao", "versao", "justificada_por_afastamento"])
     RegistroCorrecaoFrequencia.objects.create(frequencia=frequencia, usuario=usuario,
                                              anteriores=anteriores, novos=_snapshot_frequencia(frequencia))
     return frequencia
