@@ -68,6 +68,7 @@ A coleta e o armazenamento de dados pessoais devem se limitar aos dados necessá
 - **Prioridade:** MVP
 - **Fonte:** §8; §15; §17.4; confirmação da equipe (06/11/2026)
 - **Status da definição:** Confirmado
+- **Resposta do NCI (20/11/2026):** endereço completo é necessário (preenchido pela equipe, sem consulta a serviço externo; região de moradia não será registrada por ora); ensino médio completo atende campo do relatório FMR a ser ampliado; a observação do encaminhamento registra detalhes relevantes para os gestores (pode conter informação sensível; acesso restrito à equipe autorizada).
 
 ### RNF-SEG-09 — Confirmado
 
@@ -76,6 +77,7 @@ Os dados necessários à operação do NCI e à prestação de contas devem ser 
 - **Prioridade:** MVP
 - **Fonte:** P12; §15; confirmação da equipe (revisão 06/11/2026)
 - **Status da definição:** Confirmado
+- **Resposta do NCI (20/11/2026):** os dados ficam guardados enquanto a pessoa estiver no serviço; após o desligamento, devem ser anonimizados. O momento e o procedimento da anonimização (inclusive no histórico de auditoria) ainda serão detalhados.
 
 ### RNF-SEG-10 — Confirmado
 
