@@ -1,0 +1,46 @@
+{% extends "nci/base.html" %}
+{% load static %}
+{% block title %}Aulas de {{ atividade.nome }} · NCI Idade Dourada{% endblock %}
+{% block content %}
+<p><a class="btn btn-outline-secondary" href="{% url 'atividades:lista' %}">Voltar às atividades</a></p>
+<h1>Aulas de {{ atividade.nome }}</h1>
+{% if not atividade.ativa %}<p class="alert alert-warning">Atividade inativa: novas aulas estão bloqueadas. O histórico permanece disponível.</p>{% endif %}
+{% if atividade.ativa and perms.atividades.add_aula and perms.atividades.add_frequencia %}<p><a class="btn btn-nci" href="{% url 'atividades:registro_diario' %}?atividade={{ atividade.pk }}">Realizar chamada</a></p>{% endif %}
+{% if modo_cancelamento %}<p>Registre a data e os horários previstos da aula que foi cancelada.</p>
+<p><a class="btn btn-outline-secondary" href="{% url 'atividades:aulas' atividade.pk %}">Voltar às aulas</a></p>
+{% else %}<p>Consulte as aulas registradas ou use Realizar chamada para registrar uma nova aula com suas presenças.</p>
+{% if atividade.ativa and perms.atividades.cancelar_aula and perms.atividades.add_aula %}<p><a class="btn btn-nci" href="{% url 'atividades:nova_aula_cancelada' atividade.pk %}">Registrar aula cancelada</a></p>{% endif %}{% endif %}
+{% if atividade.ativa and perms.atividades.add_aula and modo_cancelamento %}
+<section aria-labelledby="registrar-aula">
+  <h2 id="registrar-aula">{% if modo_cancelamento %}Registrar aula cancelada{% else %}Registrar aula realizada{% endif %}</h2>
+  <p>A data começa em hoje. Para aulas regulares, os horários da grade são sugestões e podem ser ajustados.</p>
+  <form method="post" id="form-aula" data-bound="{{ form.is_bound|yesno:'true,false' }}">
+    {% csrf_token %}{{ form.non_field_errors }}
+    {% for field in form %}<div class="field">{{ field.label_tag }}{{ field }}{{ field.errors }}</div>{% endfor %}
+    <div class="field" id="selecao-grade" hidden>
+      <label for="horario-sugerido">Horário da grade (opcional)</label>
+      <select id="horario-sugerido"></select>
+    </div>
+    <p id="aviso-sugestao" role="status" aria-live="polite"></p>
+    <button type="submit">{% if modo_cancelamento %}Registrar cancelamento{% else %}Registrar aula{% endif %}</button>
+  </form>
+  {{ sugestoes|json_script:"sugestoes-aula" }}
+  <script src="{% static 'atividades/aulas.js' %}" defer></script>
+</section>
+{% endif %}
+<section aria-labelledby="aulas-registradas">
+  <h2 id="aulas-registradas">Aulas registradas ({{ pagina.paginator.count }})</h2>
+  <p>Realizadas: {{ total_realizadas }} · Canceladas: {{ total_canceladas }}</p>
+  {% if pagina %}<div class="table-scroll"><table>
+    <thead><tr><th scope="col">Tipo</th><th scope="col">Data da aula</th><th scope="col">Início</th><th scope="col">Término</th><th scope="col">Situação</th><th scope="col">Categoria FMR na data</th><th scope="col">Chamada</th>{% if perms.atividades.cancelar_aula %}<th scope="col">Ação</th>{% endif %}</tr></thead>
+    <tbody>{% for aula in pagina %}<tr><td>{{ aula.get_tipo_display }}</td><td>{{ aula.data|date:"d/m/Y" }}</td><td>{{ aula.inicio|time:"H:i" }}</td><td>{{ aula.fim|time:"H:i" }}</td><td>{{ aula.get_situacao_display }}</td><td>{{ aula.categoria_fmr_nome|default:"Não classificada" }}</td><td>{% if perms.atividades.view_inscricao and aula.situacao == 'realizada' %}<a href="{% url 'atividades:chamada' atividade.pk aula.pk %}">Ver chamada</a>{% else %}—{% endif %}</td>{% if perms.atividades.cancelar_aula %}<td>{% if aula.situacao == 'realizada' %}<a href="{% url 'atividades:cancelar_aula' atividade.pk aula.pk %}">Cancelar aula</a>{% else %}—{% endif %}</td>{% endif %}</tr>{% endfor %}</tbody>
+  </table></div>
+  {% if pagina.has_other_pages %}<nav aria-label="Páginas de aulas">
+    {% if pagina.has_previous %}<a class="btn btn-outline-secondary" href="?page={{ pagina.previous_page_number }}">Anterior</a>{% endif %}
+    <span>Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+    {% if pagina.has_next %}<a class="btn btn-outline-secondary" href="?page={{ pagina.next_page_number }}">Próxima</a>{% endif %}
+  </nav>{% endif %}
+  {% else %}<p>Nenhuma aula registrada para esta atividade.</p>{% endif %}
+</section>
+<p>Nas aulas canceladas, os horários identificam a ocorrência prevista ou originalmente registrada.</p>
+{% endblock %}

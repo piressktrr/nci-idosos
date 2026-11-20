@@ -1,0 +1,33 @@
+{% extends "nci/base.html" %}
+{% block title %}Início · NCI Idade Dourada{% endblock %}
+{% block content %}
+<div class="text-center mt-4">
+  <h1 class="display-6 nci-titulo">NCI Idade Dourada de Pinheiros</h1>
+  <p class="h3 nci-titulo nci-titulo-dourado">Olá, {{ user.first_name|default:user.get_username }}!</p>
+</div>
+<nav class="nci-modulos" aria-label="Módulos do sistema">
+  {% if perms.participantes.view_participante %}
+  <a class="nci-modulo" href="{% url 'participantes:lista' %}">
+    <svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><circle cx="32" cy="18" r="9"/><path d="M16 50c0-10 7-17 16-17s16 7 16 17z"/><circle cx="14" cy="22" r="6"/><path d="M2 48c0-7 5-12 12-12 3 0 5 1 7 2-4 3-6 7-6 10z"/><circle cx="50" cy="22" r="6"/><path d="M62 48c0-7-5-12-12-12-3 0-5 1-7 2 4 3 6 7 6 10z"/></svg>
+    <span>Gestão de Participantes</span>
+  </a>{% endif %}
+  {% if perms.atividades.view_atividade %}
+  <a class="nci-modulo" href="{% url 'atividades:frequencia_mensal' %}">
+    <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="4" aria-hidden="true"><rect x="8" y="8" width="48" height="48" rx="14"/><path d="M20 33l9 9 16-18" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span>Frequência</span>
+  </a>
+  <a class="nci-modulo" href="{% url 'atividades:lista' %}">
+    <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="4" aria-hidden="true"><rect x="12" y="10" width="40" height="48" rx="4"/><rect x="24" y="5" width="16" height="9" rx="2"/><path d="M20 26h4M30 26h14M20 37h4M30 37h14M20 48h4M30 48h14"/></svg>
+    <span>Atividades</span>
+  </a>{% endif %}
+  {% if pode_consultar_fmr %}<a class="nci-modulo" href="{% url 'relatorios:fmr' %}">{% else %}<div class="nci-modulo desativado">{% endif %}
+    <svg viewBox="0 0 64 64" aria-hidden="true"><text x="32" y="40" text-anchor="middle" font-size="20" fill="currentColor" font-family="Questrial, sans-serif">FMR</text></svg>
+    <span>Formulário Mensal</span>
+  {% if pode_consultar_fmr %}</a>{% else %}</div>{% endif %}
+  {% if e_administrador %}
+  <a class="nci-modulo" href="{% url 'usuarios:lista' %}">
+    <svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><circle cx="32" cy="20" r="11"/><path d="M12 56c0-12 9-21 20-21s20 9 20 21z"/></svg>
+    <span>Gestão de Colaboradores</span>
+  </a>{% endif %}
+</nav>
+{% endblock %}

@@ -1,0 +1,29 @@
+<section aria-labelledby="ingressantes-encaminhamento">
+  <h2 id="ingressantes-encaminhamento">Ingressantes por encaminhamento</h2>
+  {% if ingressantes_encaminhamento.aviso %}
+  <p class="mb-0" role="status">{{ ingressantes_encaminhamento.aviso }}</p>
+  {% else %}
+  <p>A origem é preservada no registro de entrada. Correções posteriores no cadastro não alteram a classificação do ingresso original.</p>
+  {% for pendencia in ingressantes_encaminhamento.pendencias %}
+  <div class="alert alert-warning">
+    <span tabindex="0" title="{{ pendencia.explicacao }}" aria-describedby="encaminhamento-pendencia-{{ pendencia.codigo }}" style="cursor: help;">{{ pendencia.aviso }}</span>
+    <small class="d-block">Passe o mouse sobre o aviso para ver qual informação está faltando.</small>
+    <span id="encaminhamento-pendencia-{{ pendencia.codigo }}" class="visually-hidden">{{ pendencia.explicacao }}</span>
+  </div>
+  {% endfor %}
+  {% if ingressantes_encaminhamento.total != None %}
+  <p id="legenda-ingressantes-encaminhamento">Novos ingressantes cuja data de entrada está no mês selecionado, mesmo que tenham saído depois. Cada pessoa conta uma vez; reativações e retornos de afastamento não são novos ingressos.</p>
+  <div class="nci-tabela verde table-responsive">
+    <table class="table table-hover" id="tabela-ingressantes-encaminhamento" aria-describedby="legenda-ingressantes-encaminhamento">
+      <caption>Encaminhamentos dos ingressantes do mês {{ ingressantes_encaminhamento.periodo.inicio|date:"m/Y" }}.</caption>
+      <thead><tr><th scope="col">Origem do encaminhamento</th><th scope="col">Quantidade</th></tr></thead>
+      <tbody>{% for linha in ingressantes_encaminhamento.linhas %}
+        <tr><th scope="row">{% if linha.codigo == "rede" %}Outros serviços da rede socioassistencial{% else %}{{ linha.origem }}{% endif %}</th><td>{{ linha.quantidade }}</td></tr>
+      {% endfor %}</tbody>
+    </table>
+  </div>
+  <p>Outras origens: {{ ingressantes_encaminhamento.outras_origens }}.</p>
+  {% endif %}
+  {% if ingressantes_encaminhamento.sem_origem %}<p>Ingressantes sem origem histórica informada: {{ ingressantes_encaminhamento.sem_origem }}.</p>{% endif %}
+  {% endif %}
+</section>

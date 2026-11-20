@@ -1,0 +1,28 @@
+<section aria-labelledby="desligamentos-motivo">
+  <h2 id="desligamentos-motivo">Desligamentos por motivo</h2>
+  {% if desligamentos_motivo.aviso %}
+  <p class="mb-0" role="status">{{ desligamentos_motivo.aviso }}</p>
+  {% else %}
+  <p id="legenda-desligamentos-motivo">São contadas as saídas registradas no mês, inclusive se houve reativação depois. Uma pessoa pode ter mais de um desligamento. Afastamentos não são saídas.</p>
+  <p>O motivo mantém a descrição da época do desligamento. Alterações posteriores no catálogo não modificam o histórico; descrições diferentes aparecem em linhas separadas.</p>
+  {% for pendencia in desligamentos_motivo.pendencias %}
+  <div class="alert alert-warning">
+    <span tabindex="0" title="{{ pendencia.explicacao }}" aria-describedby="motivo-pendencia-{{ pendencia.codigo }}" style="cursor: help;">{{ pendencia.aviso }}</span>
+    <small class="d-block">Passe o mouse sobre o aviso para ver qual informação está faltando.</small>
+    <span id="motivo-pendencia-{{ pendencia.codigo }}" class="visually-hidden">{{ pendencia.explicacao }}</span>
+  </div>
+  {% endfor %}
+  <div class="nci-tabela verde table-responsive">
+    <table class="table table-hover" id="tabela-desligamentos-motivo" aria-describedby="legenda-desligamentos-motivo">
+      <caption>Desligamentos do mês {{ desligamentos_motivo.periodo.inicio|date:"m/Y" }}.</caption>
+      <thead><tr><th scope="col">Motivo do desligamento</th><th scope="col">Quantidade</th></tr></thead>
+      <tbody>{% for linha in desligamentos_motivo.linhas %}
+        <tr><th scope="row">{% if linha.descricao.strip %}{{ linha.descricao }}{% else %}Descrição histórica ausente{% endif %}</th><td>{{ linha.quantidade }}</td></tr>
+      {% empty %}
+        <tr><td colspan="2">Nenhum desligamento registrado neste mês.</td></tr>
+      {% endfor %}</tbody>
+      <tfoot><tr><th scope="row">Total de desligamentos</th><td>{{ desligamentos_motivo.total }}</td></tr></tfoot>
+    </table>
+  </div>
+  {% endif %}
+</section>

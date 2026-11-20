@@ -1,0 +1,43 @@
+{% extends "nci/base.html" %}
+{% block title %}Frequência mensal · NCI{% endblock %}
+{% block content %}
+<h1>Frequência mensal</h1>
+<p><a class="btn btn-outline-secondary" href="{% url 'atividades:lista' %}">Voltar às atividades</a></p>
+<section aria-labelledby="filtros-frequencia">
+<h2 id="filtros-frequencia">Consultar período</h2>
+<form method="get" class="row g-3 align-items-end">
+  {{ form.non_field_errors }}
+  <div class="col-sm-5 col-lg-3"><div class="field mb-0">{{ form.mes.label_tag }}{{ form.mes }}{{ form.mes.errors }}</div></div>
+  <div class="col-sm-7 col-lg-5"><div class="field mb-0">{{ form.atividade.label_tag }}{{ form.atividade }}{{ form.atividade.errors }}</div></div>
+  <div class="col-lg-4 d-flex flex-wrap align-items-center gap-3">
+    <button type="submit" class="btn btn-nci">Consultar</button>
+    <a class="btn btn-outline-secondary" href="{% url 'atividades:frequencia_mensal' %}">Limpar filtros</a>
+  </div>
+</form>
+</section>
+{% if mes_consultado %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+<h2>Frequência em {{ mes_consultado|date:"m/Y" }}</h2>
+<span>{% if form.cleaned_data.atividade %}{{ form.cleaned_data.atividade.nome }}{% else %}Todas as atividades{% endif %}</span>
+</div>
+{% if demonstracao %}<p role="status">Demonstração com participantes fictícios. Contrato provisório; integração real pendente.</p>{% endif %}
+<dl class="frequencia-resumo">
+  <div><dt>Aulas realizadas</dt><dd>{{ totais.aulas_realizadas }}</dd></div>
+  <div><dt>Presenças</dt><dd>{{ totais.presentes }}</dd></div>
+  <div><dt>Ausências</dt><dd>{{ totais.ausentes }}</dd></div>
+  <div><dt>Ausências justificadas</dt><dd>{{ totais.justificados }}</dd></div>
+</dl>
+<p class="small">Totais de lançamentos por aula, pela data de ocorrência. Uma pessoa pode ter várias presenças no mês. Aulas canceladas estão excluídas. Ausência de lançamento não é contabilizada como falta.</p>
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+<h2 class="mb-0">Frequência por atividade</h2><span>{{ totais.total_registros }} lançamento{{ totais.total_registros|pluralize }}</span>
+</div>
+<div class="nci-tabela verde table-responsive"><table class="table table-hover frequencia-mensal-tabela mb-0">
+  <caption class="visually-hidden">Frequência por atividade em {{ mes_consultado|date:"m/Y" }}</caption>
+  <thead><tr><th scope="col">Atividade</th><th scope="col">Aulas realizadas</th><th scope="col">Presente</th><th scope="col">Ausente</th><th scope="col">Ausente justificado</th><th scope="col">Lançamentos</th></tr></thead>
+  <tbody>{% for item in linhas %}<tr><th scope="row">{{ item.nome }}</th><td>{{ item.aulas_realizadas }}</td><td>{{ item.presentes }}</td><td>{{ item.ausentes }}</td><td>{{ item.justificados }}</td><td>{{ item.total_registros }}</td></tr>
+  {% empty %}<tr><td colspan="6">Nenhuma atividade cadastrada.</td></tr>{% endfor %}</tbody>
+  <tfoot><tr><th scope="row">Total</th><td>{{ totais.aulas_realizadas }}</td><td>{{ totais.presentes }}</td><td>{{ totais.ausentes }}</td><td>{{ totais.justificados }}</td><td>{{ totais.total_registros }}</td></tr></tfoot>
+</table></div>
+{% if not totais.total_registros %}<p class="mt-3" role="status">Nenhuma frequência lançada neste mês para a seleção.</p>{% endif %}
+{% endif %}
+{% endblock %}

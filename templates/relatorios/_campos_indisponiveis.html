@@ -1,0 +1,16 @@
+<section aria-labelledby="campos-indisponiveis">
+  <h2 id="campos-indisponiveis">Campos pendentes ou fora do MVP</h2>
+  <p>Confira o motivo de cada pendência. Campos parcialmente disponíveis mantêm seus resultados nas seções correspondentes. Um resultado igual a zero nos indicadores disponíveis é diferente de informação ausente.</p>
+  <div class="nci-tabela verde table-responsive">
+    <table class="table table-hover" id="tabela-campos-indisponiveis">
+      <thead><tr><th scope="col">Campo do FMR</th><th scope="col">Situação</th><th scope="col">Motivo</th></tr></thead>
+      <tbody>{% for campo in campos_indisponiveis %}
+        <tr><th scope="row">{{ campo.campo }}</th><td>{{ campo.situacao }}</td><td>
+          <span tabindex="0" title="{{ campo.explicacao }}" aria-describedby="campo-fmr-explicacao-{{ forloop.counter }}" style="cursor: help;">{{ campo.motivo }}</span>
+          <span id="campo-fmr-explicacao-{{ forloop.counter }}" class="visually-hidden">{{ campo.explicacao }}</span>
+        </td></tr>
+      {% endfor %}</tbody>
+    </table>
+  </div>
+  <p class="mb-0">Passe o mouse sobre o motivo para ver a explicação completa.</p>
+</section>

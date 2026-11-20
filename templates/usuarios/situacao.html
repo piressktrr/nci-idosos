@@ -1,0 +1,9 @@
+{% extends "nci/base.html" %}
+{% block content %}
+<h1>Alterar situação de {{ conta.get_username }}</h1>
+<section><p>Desativar impede o acesso e encerra as sessões existentes. O histórico é preservado. Reativar permite um novo login.</p>
+<form method="post">{% csrf_token %}{{ form.non_field_errors }}
+<div class="field">{{ form.ativo.label_tag }}{{ form.ativo }}{{ form.ativo.errors }}</div>
+<button class="btn btn-nci" type="submit">Confirmar alteração</button>
+<a class="btn btn-outline-secondary" href="{% url 'usuarios:editar' conta.pk %}">Voltar</a></form></section>
+{% endblock %}

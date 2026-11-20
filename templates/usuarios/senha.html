@@ -1,0 +1,19 @@
+{% extends "nci/base.html" %}
+{% block title %}Nova senha · NCI Idade Dourada{% endblock %}
+{% block content %}
+<h1>Gestão de Colaboradores - Nova senha</h1>
+<form method="post" class="nci-cartao mt-3" novalidate style="max-width: 640px">
+  <div class="nci-cartao-titulo">Definir nova senha: {{ conta.get_full_name|default:conta.get_username }} ({{ conta.get_username }})</div>
+  <div class="nci-cartao-corpo">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert alert-warning">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+    <p>Informe a nova senha ao colaborador por um meio seguro. As outras sessões abertas desta conta serão encerradas.</p>
+    {% include "usuarios/_campo.html" with campo=form.senha %}
+    {% include "usuarios/_campo.html" with campo=form.confirmacao_senha %}
+    <div class="d-flex justify-content-end gap-2 mt-4">
+      <a class="btn btn-nci-sec" href="{% url 'usuarios:editar' conta.pk %}">Cancelar</a>
+      <button type="submit" class="btn btn-nci">Salvar nova senha</button>
+    </div>
+  </div>
+</form>
+{% endblock %}

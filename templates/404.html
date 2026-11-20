@@ -1,0 +1,10 @@
+{% extends "nci/base.html" %}
+{% block title %}Página não encontrada · NCI Idade Dourada{% endblock %}
+{% block content %}
+<div class="nci-erro">
+  <p class="nci-erro-codigo" aria-hidden="true">404</p>
+  <h1>Página não encontrada</h1>
+  <p>O endereço acessado não existe ou foi removido. Confira o link ou volte ao início.</p>
+  <a class="btn btn-nci" href="{% url 'inicio' %}">Voltar ao início</a>
+</div>
+{% endblock %}
