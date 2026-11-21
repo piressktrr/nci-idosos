@@ -7,7 +7,7 @@
 | [x] | RF-PAR-01 | Confirmado | Implementado, sem commit | participantes/tests/test_models.py, test_services.py, test_views.py | — | Categorias de raça/cor e identidade de gênero provisórias (Q1/Q2) |
 | [x] | RF-PAR-02 | Confirmado | Implementado, sem commit | participantes/tests/test_regras.py (TelefoneTests), test_models.py, test_views.py | — | Pelo menos um telefone do próprio participante (Q10) |
 | [x] | RF-PAR-04 | Confirmado | Implementado, sem commit | participantes/tests/test_models.py (SituacaoSocialTests), test_services.py | — | Situação social opcional no cadastro (Q12) |
-| [x] | RF-PAR-05 | Confirmado | Implementado, sem commit | participantes/tests/test_models.py (vigente_em), test_services.py, test_views.py | — | Vigência por data de início |
+| [x] | RF-PAR-05 | Confirmado | Implementado, sem commit Perfil demográfico vale desde a entrada, inclusive quando ela é antecipada; vigência pode ser inserida entre perfis. | participantes/tests/test_models.py (vigente_em), test_services.py, test_views.py; test_services.py (PerfilDemograficoRetroativoTests) | — | Vigência por data de início |
 | [x] | RF-PAR-06 | Confirmado | Implementado, sem commit | participantes/tests/test_models.py, test_services.py | — | Categorias provisórias até a lista do FMR (Q11) |
 | [x] | RF-PAR-07 | Confirmado | Implementado (PR #8) | participantes/tests/test_movimentacoes.py | — | Motivos cadastrados pelo administrador; resposta da Q3 a registrar nos requisitos |
 | [x] | RF-PAR-08 | Confirmado | Implementado (PR #8) | participantes/tests/test_movimentacoes.py (reativação preserva identidade) | — | Resposta da Q4 a registrar nos requisitos |
