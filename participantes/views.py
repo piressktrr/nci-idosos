@@ -55,6 +55,7 @@ def _formulario(request, participante=None):
             else:
                 corrigir_participante(usuario=request.user, participante_id=participante.pk,
                                       perfil_vigente_desde=form.cleaned_data.get("perfil_vigente_desde"),
+                                      origem_entrada=form.cleaned_data.get("origem_entrada") or None,
                                       confirmar_duplicidade=confirmar, **dados)
                 messages.success(request, "Cadastro atualizado.")
         except ValidationError as erro:
@@ -79,9 +80,13 @@ def lista(request):
 
 @login_required
 @permission_required(PERMISSAO_EXPORTAR, raise_exception=True)
-@require_http_methods(["GET"])
+@require_http_methods(["POST"])
 def exportar(request):
-    """RNF-SEG-11: todos os participantes em CSV, como download; o serviço autoriza de novo e audita."""
+    """RNF-SEG-11: todos os participantes em CSV, como download; o serviço autoriza de novo e audita.
+
+    Só por POST com CSRF: um link externo não consegue disparar uma exportação (e o registro de auditoria) no
+    navegador de um administrador logado.
+    """
     nome = f"participantes_{timezone.localdate():%Y-%m-%d}.csv"
     # Dados sensíveis: nada de cache no navegador ou em proxies.
     resposta = HttpResponse(content_type="text/csv; charset=utf-8", headers={

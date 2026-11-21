@@ -1,6 +1,7 @@
 from django import forms
 from django.utils import timezone
 
+from .categorias import OrigemEncaminhamento
 from .models import Participante, SituacaoSocial
 
 SIM_NAO = ((True, "Sim"), (False, "Não"))
@@ -62,6 +63,13 @@ class ParticipanteForm(forms.ModelForm):
         help_text="Informe desde quando valem sexo, raça/cor e identidade de gênero. "
                   "Uma alteração sem data vale a partir de hoje. Use a última data para corrigi-la.")
 
+    # RF-FMR-07 / Q13: origem registrada no ingresso. Só aparece na correção quando a entrada está sem origem
+    # (cadastro antigo ou entrada criada na correção); a equipe informa, o sistema não presume.
+    origem_entrada = forms.ChoiceField(
+        label="Origem do encaminhamento no ingresso", required=False,
+        choices=[("", "Selecione"), *OrigemEncaminhamento.choices],
+        help_text="De onde a pessoa veio quando entrou no serviço. Usada no FMR do mês da entrada.")
+
     class Meta:
         model = Participante
         fields = ("nome_completo", "endereco", "identidade_genero", "origem_encaminhamento", "origem_descricao",
@@ -90,6 +98,11 @@ class ParticipanteForm(forms.ModelForm):
             if ultima:
                 self.fields["perfil_vigente_desde"].help_text += f" Última vigência: {ultima.vigente_desde:%d/%m/%Y}."
         self.fields["data_entrada"].initial = entrada or timezone.localdate()
+        entrada_registrada = self.instance.entrada if self.instance.pk else None
+        if entrada_registrada is not None and entrada_registrada.origem_entrada:
+            del self.fields["origem_entrada"]
+        elif not self.instance.pk:
+            del self.fields["origem_entrada"]  # no cadastro, o ingresso usa a origem do próprio cadastro
         from .categorias import IDENTIDADES_GENERO_LEGADAS
         if self.instance.identidade_genero in IDENTIDADES_GENERO_LEGADAS:
             self.fields["identidade_genero"].help_text = (
