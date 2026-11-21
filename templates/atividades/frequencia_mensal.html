@@ -1,15 +1,17 @@
 {% extends "nci/base.html" %}
 {% block title %}Frequência mensal · NCI{% endblock %}
+{% block cabecalho_pagina %}<h1>Frequência mensal</h1>{% endblock %}
 {% block content %}
-<h1>Frequência mensal</h1>
+<div class="nci-titulo-reserva" aria-hidden="true"></div>
+
 <p><a class="btn btn-outline-secondary" href="{% url 'atividades:lista' %}">Voltar às atividades</a></p>
 <section aria-labelledby="filtros-frequencia">
 <h2 id="filtros-frequencia">Consultar período</h2>
-<form method="get" class="row g-3 align-items-end">
+<form method="get" class="nci-filtros-mensais">
   {{ form.non_field_errors }}
-  <div class="col-sm-5 col-lg-3"><div class="field mb-0">{{ form.mes.label_tag }}{{ form.mes }}{{ form.mes.errors }}</div></div>
-  <div class="col-sm-7 col-lg-5"><div class="field mb-0">{{ form.atividade.label_tag }}{{ form.atividade }}{{ form.atividade.errors }}</div></div>
-  <div class="col-lg-4 d-flex flex-wrap align-items-center gap-3">
+  <div><div class="field mb-0">{{ form.mes.label_tag }}{{ form.mes }}{{ form.mes.errors }}</div></div>
+  <div><div class="field mb-0">{{ form.atividade.label_tag }}{{ form.atividade }}{{ form.atividade.errors }}</div></div>
+  <div class="nci-filtros-acoes d-flex flex-wrap align-items-center gap-3">
     <button type="submit" class="btn btn-nci">Consultar</button>
     <a class="btn btn-outline-secondary" href="{% url 'atividades:frequencia_mensal' %}">Limpar filtros</a>
   </div>
@@ -24,7 +26,7 @@
 <dl class="frequencia-resumo">
   <div><dt>Aulas realizadas</dt><dd>{{ totais.aulas_realizadas }}</dd></div>
   <div><dt>Presenças</dt><dd>{{ totais.presentes }}</dd></div>
-  <div><dt>Ausências</dt><dd>{{ totais.ausentes }}</dd></div>
+  <div class="status-ausente"><dt>Ausências</dt><dd>{{ totais.ausentes }}</dd></div>
   <div><dt>Ausências justificadas</dt><dd>{{ totais.justificados }}</dd></div>
 </dl>
 <p class="small">Totais de lançamentos por aula, pela data de ocorrência. Uma pessoa pode ter várias presenças no mês. Aulas canceladas estão excluídas. Ausência de lançamento não é contabilizada como falta.</p>

@@ -1,5 +1,7 @@
 {% extends "nci/base.html" %}
-{% block content %}<h1>Movimentações de {{ participante.nome_completo }}</h1>
+{% block cabecalho_pagina %}<h1>Movimentações de {{ participante.nome_completo }}</h1>{% endblock %}
+{% block content %}
+<div class="nci-titulo-reserva" aria-hidden="true"></div>
 <section><p>Situação atual: {{ participante.get_status_display }}. A movimentação vale a partir da data informada; no fechamento desse dia vale a última movimentação registrada. Reativar mantém o mesmo cadastro e não cria nova entrada. Afastamento mantém a pessoa no serviço: ausências lançadas nesse período são justificadas automaticamente. Presenças continuam permitidas. O retorno encerra o afastamento.</p>
 {% if sem_motivos %}<p class="alert alert-warning">Não há motivos ativos cadastrados. Um administrador deve cadastrar os motivos do FMR para permitir desligamentos.</p>{% endif %}
 {% if e_administrador %}<p><a class="btn btn-outline-secondary" href="{% url 'participantes:motivos_desligamento' %}">Administrar motivos de desligamento</a></p>{% endif %}

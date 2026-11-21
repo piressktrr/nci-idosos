@@ -75,7 +75,7 @@ class AcessoTests(TestCase):
 
 @override_settings(DEBUG=True, SECURE_SSL_REDIRECT=False)
 class MenuTests(TestCase):
-    def test_menu_e_cartao_so_para_administrador(self):
+    def test_cartao_home_so_para_administrador_sem_menu_lateral(self):
         url = reverse("usuarios:lista")
         casos = {
             "admin": (administrador(), True),
@@ -90,13 +90,14 @@ class MenuTests(TestCase):
                 self.client.force_login(usuario)
                 resposta = self.client.get(reverse("inicio"))
                 if aparece:
-                    self.assertContains(resposta, "Gestão de Colaboradores", count=2)  # menu e cartão
+                    self.assertContains(resposta, "Gestão de Colaboradores", count=1)  # só cartão na home
                     self.assertContains(resposta, f'<a class="nci-modulo" href="{url}">')
-                    self.assertContains(resposta, f'<a href="{url}">Gestão de Colaboradores</a>')
+                    self.assertNotContains(resposta, f'<a href="{url}">Gestão de Colaboradores</a>')
                 else:
                     self.assertNotContains(resposta, "Gestão de Colaboradores")
                     self.assertNotContains(resposta, url)
                 self.assertNotContains(resposta, "/admin/auth/user/")
+                self.assertNotContains(resposta, 'aria-label="Menu principal"')
 
     def test_menu_marca_colaboradores_como_ativo(self):
         self.client.force_login(administrador())

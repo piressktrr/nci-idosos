@@ -13,8 +13,8 @@
   </div>
   {% endfor %}
   <div class="nci-tabela verde table-responsive">
-    <table class="table table-hover" id="tabela-desligamentos-motivo" aria-describedby="legenda-desligamentos-motivo">
-      <caption>Desligamentos do mês {{ desligamentos_motivo.periodo.inicio|date:"m/Y" }}.</caption>
+    <table class="table table-hover" id="tabela-desligamentos-motivo" aria-describedby="legenda-desligamentos-motivo nota-desligamentos-motivo">
+
       <thead><tr><th scope="col">Motivo do desligamento</th><th scope="col">Quantidade</th></tr></thead>
       <tbody>{% for linha in desligamentos_motivo.linhas %}
         <tr><th scope="row">{% if linha.descricao.strip %}{{ linha.descricao }}{% else %}Descrição histórica ausente{% endif %}</th><td>{{ linha.quantidade }}</td></tr>
@@ -24,5 +24,6 @@
       <tfoot><tr><th scope="row">Total de desligamentos</th><td>{{ desligamentos_motivo.total }}</td></tr></tfoot>
     </table>
   </div>
+  <p class="nci-legenda-tabela" id="nota-desligamentos-motivo">Desligamentos do mês {{ desligamentos_motivo.periodo.inicio|date:"m/Y" }}.</p>
   {% endif %}
 </section>

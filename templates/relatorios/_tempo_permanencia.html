@@ -14,8 +14,8 @@
   <p>Saídas sem período completo: {{ tempo_permanencia.sem_periodo }}. Total de desligamentos no mês: {{ tempo_permanencia.total_desligamentos }}. — indica informação não calculada, diferente de zero.</p>
   {% endif %}
   <div class="nci-tabela verde table-responsive">
-    <table class="table table-hover" id="tabela-tempo-permanencia" aria-describedby="legenda-tempo-permanencia">
-      <caption>Número de pessoas que saíram por tempo de permanência em {{ tempo_permanencia.periodo.inicio|date:"m/Y" }}.</caption>
+    <table class="table table-hover" id="tabela-tempo-permanencia" aria-describedby="legenda-tempo-permanencia nota-tempo-permanencia">
+
       <thead><tr><th scope="col">Tempo de permanência</th><th scope="col">Quantidade</th></tr></thead>
       <tbody>{% for linha in tempo_permanencia.linhas %}
         <tr><th scope="row">{{ linha.faixa }}</th><td>{% include "relatorios/_valor_contagem.html" with valor=linha.quantidade only %}</td></tr>
@@ -23,5 +23,6 @@
       <tfoot><tr><th scope="row">Total</th><td>{% include "relatorios/_valor_contagem.html" with valor=tempo_permanencia.total only %}</td></tr></tfoot>
     </table>
   </div>
+  <p class="nci-legenda-tabela" id="nota-tempo-permanencia">Número de pessoas que saíram por tempo de permanência em {{ tempo_permanencia.periodo.inicio|date:"m/Y" }}.</p>
   {% endif %}
 </section>

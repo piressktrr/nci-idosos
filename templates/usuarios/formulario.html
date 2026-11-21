@@ -1,8 +1,11 @@
 {% extends "nci/base.html" %}
 {% block title %}{% if conta %}Editar colaborador{% else %}Novo colaborador{% endif %} · NCI Idade Dourada{% endblock %}
+{% block body_class %}nci-usuarios{% endblock %}
+{% block cabecalho_pagina %}<h1>Gestão de Colaboradores - {% if conta %}Edição{% else %}Cadastro{% endif %}</h1>{% endblock %}
 {% block content %}
-<h1>Gestão de Colaboradores - {% if conta %}Edição{% else %}Cadastro{% endif %}</h1>
-<form method="post" class="nci-cartao mt-3" novalidate>
+<div class="nci-titulo-reserva" aria-hidden="true"></div>
+
+<form method="post" class="nci-cartao mt-3{% if conta %} nci-colaborador-edicao{% endif %}" novalidate>
   <div class="nci-cartao-titulo">{% if conta %}Editar colaborador: {{ conta.get_username }}{% else %}Novo colaborador{% endif %}</div>
   <div class="nci-cartao-corpo">
     {% csrf_token %}

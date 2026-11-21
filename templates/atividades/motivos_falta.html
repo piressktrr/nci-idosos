@@ -1,8 +1,10 @@
 {% extends "nci/base.html" %}
 {% block title %}Motivos de falta · NCI Idade Dourada{% endblock %}
+{% block cabecalho_pagina %}<h1>Motivos de falta</h1>{% endblock %}
 {% block content %}
 <p><a class="btn btn-outline-secondary" href="{% url 'atividades:lista' %}">Voltar às atividades</a></p>
-<h1>Motivos de falta</h1>
+<div class="nci-titulo-reserva" aria-hidden="true"></div>
+
 {% if motivo or perms.atividades.add_motivofalta %}<section>
   <h2>{% if motivo %}Editar motivo{% else %}Cadastrar motivo{% endif %}</h2>
   <form method="post">{% csrf_token %}{{ form.non_field_errors }}

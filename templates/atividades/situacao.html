@@ -1,4 +1,6 @@
-{% extends "nci/base.html" %}{% block content %}<h1>Situação de {{ atividade.nome }}</h1>
+{% extends "nci/base.html" %}{% block cabecalho_pagina %}<h1>Situação de {{ atividade.nome }}</h1>{% endblock %}
+{% block content %}
+<div class="nci-titulo-reserva" aria-hidden="true"></div>
 <section><p>Desativar impede novas aulas, inscrições e entradas na espera. O histórico continua disponível para consulta e correção. Reativar permite novos registros novamente.</p>
 <form method="post">{% csrf_token %}{{ form.non_field_errors }}{% for campo in form %}<div class="field">{{ campo.label_tag }}{{ campo }}{{ campo.errors }}</div>{% endfor %}
 <button class="btn btn-nci" type="submit">Confirmar alteração</button> <a class="btn btn-outline-secondary" href="{% url 'atividades:lista' %}">Voltar</a></form></section>{% endblock %}

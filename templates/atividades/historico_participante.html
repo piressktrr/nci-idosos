@@ -1,10 +1,13 @@
 {% extends "nci/base.html" %}
 {% block title %}{% if nome %}Frequência de {{ nome }}{% else %}Histórico de frequência{% endif %} · NCI{% endblock %}
+{% block cabecalho_pagina %}{% if indisponivel %}<h1>Histórico de frequência</h1>{% else %}<h1>Frequência de {{ nome }}</h1>{% endif %}{% endblock %}
 {% block content %}
-{% if indisponivel %}<h1>Histórico de frequência</h1><p role="alert">Integração de participantes indisponível.</p>
+{% if indisponivel %}
+<div class="nci-titulo-reserva" aria-hidden="true"></div><p role="alert">Integração de participantes indisponível.</p>
 {% else %}
 <p><a class="btn btn-outline-secondary" href="{% url 'atividades:inscricoes' atividade.pk %}">Voltar às inscrições</a></p>
-<h1>Frequência de {{ nome }}</h1>
+<div class="nci-titulo-reserva" aria-hidden="true"></div>
+
 <h2 class="h3 mt-3 mb-4">Atividade: {{ atividade.nome }}</h2>
 {% if demonstracao %}<p role="status">Participante fictício. Contrato provisório; integração real pendente.</p>{% endif %}
 <section class="d-flex flex-wrap align-items-center justify-content-between gap-3" aria-labelledby="total-presencas">
