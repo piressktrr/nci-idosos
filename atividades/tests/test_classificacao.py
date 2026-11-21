@@ -2,7 +2,7 @@ from datetime import date, time
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Permission
+from django.contrib.auth.models import Group, Permission
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import IntegrityError, transaction
 from django.test import Client, TestCase
@@ -40,13 +40,26 @@ class ClassificacaoTests(TestCase):
         self.assertEqual(evento.usuario, self.admin)
         self.assertIsNotNone(evento.registrado_em)
 
-    def test_somente_superusuario_ativo_administra_catalogo(self):
+    def test_sem_perfil_admin_e_superusuario_inativo_nao_administram_catalogo(self):
         with self.assertRaises(PermissionDenied):
             salvar_categoria(usuario=self.equipe, nome="Proibida")
         self.admin.is_active = False
         self.admin.save()
         with self.assertRaises(PermissionDenied):
             salvar_categoria(usuario=self.admin, nome="Proibida")
+
+    def test_administrador_comum_administra_catalogo_com_auditoria(self):
+        usuario = get_user_model().objects.create_user(username="admin_catalogo_ficticio")
+        usuario.groups.add(Group.objects.get(name="Administrador"))
+        self.assertFalse(usuario.is_superuser)
+        categoria = salvar_categoria(usuario=usuario, nome="Categoria do administrador")
+        self.assertEqual(RegistroCategoriaFMR.objects.get(categoria=categoria).usuario_id, usuario.pk)
+        self.client.force_login(usuario)
+        self.assertEqual(self.client.get(reverse("atividades:categorias_fmr")).status_code, 200)
+        self.assertContains(self.client.get(reverse("atividades:lista")), "Administrar categorias FMR")
+        usuario.groups.clear()
+        with self.assertRaises(PermissionDenied):
+            salvar_categoria(usuario=usuario, nome="Revogado")
 
     def test_vigencias_limites_e_aula_digitada_depois(self):
         self.classificar()

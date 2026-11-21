@@ -10,6 +10,8 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.db.models import OuterRef, Subquery
 
+from core.permissoes import autorizar_administrador
+
 from .models import (Atividade, CategoriaFMR, ClassificacaoAtividade,
                      RegistroCategoriaFMR, RegistroClassificacaoAtividade)
 
@@ -22,10 +24,12 @@ def com_categoria_vigente(atividades, data):
 
 
 def autorizar(usuario, *, catalogo=False):
+    if catalogo:
+        return autorizar_administrador(usuario)
     if not usuario or not usuario.is_authenticated or usuario.pk is None:
         raise PermissionDenied
     autor = get_user_model().objects.filter(pk=usuario.pk, is_active=True).first()
-    if autor is None or (not autor.is_superuser if catalogo else not autor.has_perm("atividades.change_atividade")):
+    if autor is None or not autor.has_perm("atividades.change_atividade"):
         raise PermissionDenied
     return autor
 
