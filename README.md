@@ -120,3 +120,5 @@ Documentação para manter o sistema depois do projeto acadêmico, em [`docs/ope
   teste de restauração periódico e cuidados com a LGPD.
 - [Operação, manutenção e transferência](docs/operacao/manutencao.md) (RNF-SEG-12): arquitetura,
   atualização do código, variáveis do `.env`, CI, logs e checklist de entrega ao NCI.
+- [Deploy do ambiente de teste no Render](docs/operacao/deploy-teste.md): `render.yaml`, variáveis de
+  produção, primeiro administrador e limitações do plano gratuito (somente dados fictícios).

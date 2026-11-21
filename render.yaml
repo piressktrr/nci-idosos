@@ -1,0 +1,54 @@
+# Blueprint do Render: ambiente de TESTE do NCI Idade Dourada (somente dados fictícios, RN-SEG-02).
+# Cria o banco PostgreSQL e o serviço web, e liga um ao outro. Guia: docs/operacao/deploy-teste.md.
+#
+# Plano gratuito: o banco expira 30 dias após a criação e não tem backup; o serviço "dorme" após ~15 min
+# sem acesso (o próximo acesso demora até 1 minuto). Não usar com dados reais.
+
+databases:
+  - name: nci-idosos-db
+    plan: free
+    region: virginia          # mais perto do Brasil entre as regiões do Render
+    postgresMajorVersion: "17"
+    databaseName: nci_teste
+    user: nci_teste
+
+services:
+  - type: web
+    name: nci-idosos
+    runtime: python
+    plan: free
+    region: virginia          # mesma região do banco (conexão pela rede interna)
+    branch: main              # publica a cada merge na main
+    autoDeploy: true
+    healthCheckPath: /entrar/
+    buildCommand: >-
+      pip install -r requirements.txt &&
+      python manage.py collectstatic --noinput
+    # As migrations rodam na partida (o plano gratuito não tem "pre-deploy command").
+    # Os grupos Equipe e Administrador são criados no post_migrate.
+    startCommand: >-
+      python manage.py migrate --noinput &&
+      gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 60
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.14.6"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: nci-idosos-db
+          property: connectionString   # endereço interno do Render
+      - key: DJANGO_DB_CONN_MAX_AGE
+        value: "60"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true            # o Render gera uma chave aleatória e guarda como segredo
+      - key: DJANGO_DEBUG
+        value: "False"
+      # O domínio *.onrender.com entra em ALLOWED_HOSTS/CSRF_TRUSTED_ORIGINS pela RENDER_EXTERNAL_HOSTNAME.
+      - key: DJANGO_SECURE_PROXY_SSL_HEADER
+        value: HTTP_X_FORWARDED_PROTO  # o Render recebe o HTTPS e repassa ao Django
+      - key: DJANGO_STATIC_MANIFEST
+        value: "True"
+      # Sem serviço de e-mail por enquanto: os e-mails só aparecem no log (RF-USR-05 fica para depois).
+      - key: DJANGO_EMAIL_BACKEND
+        value: django.core.mail.backends.console.EmailBackend
+      - key: DJANGO_SESSION_COOKIE_AGE
+        value: "28800"
