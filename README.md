@@ -72,8 +72,16 @@ Há dois grupos, criados automaticamente a cada `migrate`:
 As contas são cadastradas e administradas em **Gestão de Colaboradores** (`/colaboradores/`), visível só para
 administradores (membros de "Administrador" ou superusuários): cadastro com perfil e senha inicial, edição de nome,
 e-mail e perfil, e definição de nova senha. Tudo fica no histórico da conta (a senha nunca é gravada na auditoria).
-Ninguém altera o próprio perfil e o sistema não fica sem administrador ativo. Contas não são excluídas; desativação
-e recuperação de acesso ainda estão pendentes de definição. Conta sem grupo não acessa nenhum módulo.
+Ninguém altera o próprio perfil e o sistema não fica sem administrador ativo. Contas não são excluídas: para tirar
+o acesso, **desative** a conta na mesma tela (RF-USR-04). Só um superusuário altera a conta de outro superusuário.
+Conta sem grupo não acessa nenhum módulo. Contas e grupos não aparecem no `/admin/` do Django (assim toda mudança
+de conta fica na auditoria).
+
+**Esqueci minha senha** (RF-USR-05): o link na tela de entrada envia um e-mail com um link de redefinição, válido
+por 2 horas e de uso único, para o e-mail cadastrado na conta (cada conta precisa de um e-mail próprio). Fora do
+ambiente local é preciso configurar o serviço de e-mail no `.env` (`DJANGO_EMAIL_BACKEND`, `DJANGO_EMAIL_HOST`,
+`DJANGO_EMAIL_PORT`, `DJANGO_EMAIL_HOST_USER`, `DJANGO_EMAIL_HOST_PASSWORD`, `DJANGO_DEFAULT_FROM_EMAIL`); em
+desenvolvimento o e-mail aparece no console.
 Para recriar os grupos ou repor permissões mínimas removidas (por exemplo, em produção), rode:
 
 ```powershell

@@ -2,7 +2,7 @@
 
 ## Estado dos contratos
 
-**Proposto — alinhar entre os dois desenvolvedores antes de implementar modelos/migrations.** Os nomes de classes abaixo são sugestões de arquitetura, não requisitos confirmados pela instituição.
+**Em uso (atualizado em 21/11/2026).** Os contratos da tabela "Registro de interface acordada" já estão implementados; mudanças incompatíveis precisam ser combinadas entre os dois desenvolvedores. A tabela logo abaixo é a proposta original e fica como histórico.
 
 **Decisão atual sobre usuários:** por orientação explícita do responsável nesta sessão, utilizar o modelo padrão do Django (`AUTH_USER_MODEL = 'auth.User'`). Essa escolha libera as migrations nativas de autenticação. Os contratos restantes continuam propostos; perfis de negócio, autorização e auditoria ainda precisam de implementação. Relações futuras devem usar `settings.AUTH_USER_MODEL`, e consultas ao modelo devem usar `get_user_model()`.
 
@@ -39,9 +39,12 @@ Preencher em conjunto **antes** da implementação dependente:
 | Contrato | Responsável | Consumidor | Assinatura/modelo aprovado | Versão/data | Estado |
 |---|---|---|---|---|---|
 | Modelo de usuário | Área de usuários | Todos | `auth.User`; FK por `settings.AUTH_USER_MODEL`, consultas por `get_user_model()` | Decisão desta sessão | Padrão Django adotado no momento; perfis e fluxos ainda pendentes |
-| Identidade de participante | A definir | Atividades/FMR | A definir | — | A combinar |
-| Consulta de situação mensal | A definir | FMR | A definir | — | A combinar |
-| Registro de aula/frequência | A definir | FMR | A definir | — | A combinar |
-| Consulta agregada FMR | A definir | Relatórios | A definir | — | A combinar |
+| Perfis e administrador | `core` | Todos | Grupos Equipe/Administrador em `core/perfis.py` (garantidos no `post_migrate` e por `manage.py garantir_perfis`); critério `core.perfis.e_administrador`; telas com `core.decorators.administrador_required`, serviços com `core.permissoes.autorizar_administrador` | PRs #4 e #13 | Em uso. Atividades ainda não concede permissões aos grupos e o catálogo FMR usa `is_superuser` |
+| Auditoria | `core` | Todos | Tabela única `core.EventoAuditoria` (tipo + `alvo_id`, imutável); cada app declara proxies com `alvo`/`modelo_alvo`; objeto com eventos não é excluído | PR #2 | Em uso |
+| Identidade de participante | `participantes` | Atividades/FMR | Protocol `core.integracoes.ProvedorParticipantes` (`listar`, `obter` → `ParticipanteResumo(referencia, nome)`), implementado em `participantes.provedor.ProvedorParticipantes` e escolhido por `NCI_PARTICIPANTES_PROVIDER`; atividades guarda (origem, referência), sem FK | PR #2 | Em uso |
+| Situação do participante | `participantes` | Atividades/FMR | `ProvedorParticipantes.situacoes_em(data)` e `bloquear(referencias)`; `participantes.consultas.permanentes_em` e `permanentes_com_pendencias` | PRs #8 e #13 | Em uso (`permanentes_com_pendencias` ainda não adotada pelo FMR) |
+| Frequência do participante | `atividades` | Participantes | `atividades.consultas_participante.frequencia_do_participante(usuario, origem, referencia)`, chamada por `NCI_CONSULTA_FREQUENCIA_PARTICIPANTE` | PR #2 | Em uso |
+| Ajuste de afastamento | `atividades` | Participantes | `atividades.ajustes_afastamento.atualizar_ausencias`, chamada por `NCI_AJUSTE_AFASTAMENTO` | PR #8 | Em uso |
+| Consultas do FMR | `participantes`, `atividades` | Relatórios | `participantes.relatorios.*_mensal(usuario, ano, mes)`, `perfil_demografico_em`; `atividades.consultas_fmr.consultar_presencas_mensais` | PR #8 | Em uso |
 
 **Regra:** alterações incompatíveis em um contrato acordado precisam ser combinadas e integradas em uma branch compartilhada antes de avançar em dependências. Não modificar a implementação do colega para destravar sua tarefa sem coordenação.

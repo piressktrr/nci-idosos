@@ -16,12 +16,16 @@ nos computadores do NCI (RNF-SEG-01). Em desenvolvimento só o banco roda no Doc
 | `config/` | Configurações (`settings.py`, lidas do `.env`), rotas principais (`urls.py`) e ponto de entrada WSGI (`config.wsgi.application`). |
 | `core/` | Núcleo comum: tela inicial, auditoria (`EventoAuditoria`, que registra quem mudou o quê e quando e impede apagar registros auditados), verificação de permissões e contratos de leitura entre apps. |
 | `participantes/` | Cadastro de participantes, situação social, movimentações (entrada, desligamento, retorno) e o histórico de auditoria do cadastro. |
+| `usuarios/` | Gestão de colaboradores (contas, perfis, nova senha, desativação) e o "esqueci minha senha", com auditoria das contas. |
 | `atividades/` | Atividades, grade de horários, aulas, inscrições, chamada/frequência e os dados usados no FMR. Documentados à parte, em `docs/requisitos/` e `docs/progresso/`. |
+| `relatorios/` | Tela do FMR mensal (`/fmr/`): junta os dados de participantes e atividades para a transcrição no portal da SMADS. |
 | `templates/`, `static/` | Telas (HTML) e arquivos de estilo, scripts e imagens. |
 | `docs/` | Requisitos, progresso por área, contratos entre apps, fluxo Git e este guia. |
 
-Rotas: `/` (início), `/entrar/` e `/sair/`, `/participantes/`, `/atividades/` e `/admin/` (administração
-do Django: contas, grupos e permissões). Todas as telas exigem login (RNF-SEG-03).
+Rotas: `/` (início), `/entrar/` (com "Esqueci minha senha") e `/sair/`, `/participantes/`, `/atividades/`,
+`/colaboradores/` (contas, só administradores), `/fmr/` e `/admin/` (administração do Django, só leitura para os
+dados do sistema; contas e grupos não aparecem nele). Todas as telas exigem login (RNF-SEG-03), exceto a entrada e
+a recuperação de senha.
 
 ## Subir o ambiente
 
@@ -90,9 +94,10 @@ Num banco novo não há contas. Crie a primeira conta administrativa pelo termin
 ```
 
 O comando pede usuário, e-mail e senha (mínimo de 10 caracteres, não pode ser comum, só numérica ou
-parecida com o usuário). As demais contas são criadas por esse administrador em `/admin/` → Usuários. Os
-perfis de acesso por grupos (RF-USR-02) ainda estão em desenvolvimento; até lá, as permissões são dadas
-por usuário no admin.
+parecida com o usuário). Entre no sistema com essa conta e cadastre as demais em **Gestão de Colaboradores**
+(`/colaboradores/`), escolhendo o perfil **Equipe** (usuário comum) ou **Administrador** (também administra as
+contas). Os grupos e suas permissões são criados automaticamente a cada `migrate`; para recriá-los à mão, use
+`manage.py garantir_perfis`. Cada conta precisa de um e-mail próprio (é por ele que chega o "esqueci minha senha").
 
 Outros comandos úteis:
 
@@ -101,8 +106,8 @@ Outros comandos úteis:
 .\.venv\Scripts\python.exe manage.py showmigrations                   # migrations aplicadas
 ```
 
-Para tirar o acesso de alguém, **desative a conta** (em `/admin/`, desmarque "Ativo") em vez de apagá-la:
-a auditoria aponta para quem fez cada alteração.
+Para tirar o acesso de alguém, **desative a conta** em `/colaboradores/` → a conta → "Situação" em vez de
+apagá-la: a auditoria aponta para quem fez cada alteração, e a desativação encerra as sessões abertas daquela conta.
 
 ## Variáveis do `.env`
 
@@ -161,7 +166,8 @@ Os mesmos testes rodam localmente (com o container no ar): veja "Testes e verifi
 - **Banco de dados:** `docker logs nci-postgres` (use `--since 1h` ou `--tail 100` para limitar).
 - **Quem alterou o quê:** não é log, fica no banco. Alterações em cadastros e frequências ficam na
   auditoria do sistema (tabela `core_eventoauditoria`, mostrada no histórico do participante e nas telas
-  de atividades); ações feitas pelo `/admin/` ficam no histórico do admin (`django_admin_log`).
+  de atividades), e mudanças de conta ficam no histórico do colaborador em `/colaboradores/`; ações feitas pelo
+  `/admin/` ficam no histórico do admin (`django_admin_log`).
 
 Logs podem conter dados pessoais (ex.: endereços de páginas): trate-os com o mesmo cuidado dos backups.
 
@@ -209,7 +215,7 @@ item.
 - [ ] Lista nominal de quem acessa: servidor, banco, hospedagem, GitHub, cofre de senhas, backups e
       contas de administrador do sistema.
 - [ ] Desenvolvedores e voluntários do projeto acadêmico removidos (ou rebaixados) em cada serviço acima.
-- [ ] Contas do sistema de quem saiu desativadas em `/admin/` (não apagadas).
+- [ ] Contas do sistema de quem saiu desativadas em `/colaboradores/` (não apagadas).
 - [ ] Pelo menos duas pessoas do NCI com conta de administrador, para não haver ponto único de falha.
 
 **Troca de segredos (depois que os desenvolvedores perderem o acesso)**
@@ -218,7 +224,7 @@ item.
       Efeito esperado: todos precisam entrar de novo e links de redefinição de senha antigos deixam de
       valer. As senhas dos usuários **não** são afetadas.
 - [ ] Nova senha do usuário do banco (veja abaixo) e `POSTGRES_PASSWORD` atualizada no `.env`.
-- [ ] Senhas das contas de administrador do sistema trocadas (`manage.py changepassword` ou pelo admin).
+- [ ] Senhas das contas de administrador do sistema trocadas (`manage.py changepassword` ou em `/colaboradores/`).
 - [ ] Senha do SMTP, das contas de hospedagem, domínio e GitHub trocadas; autenticação em dois fatores
       ligada onde houver.
 - [ ] Nova senha para criptografar os backups a partir de agora.
@@ -249,5 +255,5 @@ docker exec -it nci-postgres psql -U nci_dev -d nci_dev
 Django. Não é preciso recriar o container. No banco hospedado, use a opção de troca de senha do painel do
 provedor, ou o mesmo `\password` conectado pelo `psql`.
 
-**Contas do sistema:** `manage.py changepassword nome_do_usuario` ou `/admin/` → Usuários → "alterar a
-senha".
+**Contas do sistema:** em `/colaboradores/` → a conta → "Nova senha" (por um administrador), pelo "Esqueci minha
+senha" da tela de entrada, ou `manage.py changepassword nome_do_usuario` no servidor.

@@ -246,9 +246,10 @@ Depois rode `manage.py migrate --check` com o `.env` do servidor.
 
 ## Frequência e retenção (sugestão)
 
-> **Sugestão a confirmar com o NCI.** A política de retenção e eliminação de dados (RNF-SEG-09, questão
-> Q9) ainda está em aberto; os prazos abaixo são só um ponto de partida e devem ser ajustados quando ela
-> for definida.
+> **Sugestão a confirmar com o NCI.** Pela resposta do NCI à Q9 (20/11/2026), os dados ficam guardados
+> enquanto a pessoa está no serviço e devem ser anonimizados após o desligamento (RNF-SEG-09). O prazo e o
+> procedimento da anonimização ainda não foram definidos, e os backups precisam seguir a mesma regra; os prazos
+> abaixo são só um ponto de partida.
 
 | Tipo | Quando | Manter por |
 |---|---|---|
