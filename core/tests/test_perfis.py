@@ -69,7 +69,7 @@ class GruposAposMigrateTests(TestCase):
         equipe = Group.objects.get(name=GRUPO_EQUIPE)
         administrador = Group.objects.get(name=GRUPO_ADMINISTRADOR)
         self.assertEqual(como_texto(nomes(equipe)), set(PERMISSOES_EQUIPE))
-        esperadas_admin = como_texto(todas_do_app("participantes")) | set(PERMISSOES_ADMINISTRADOR)
+        esperadas_admin = como_texto(todas_do_app("participantes") | todas_do_app("atividades")) | set(PERMISSOES_ADMINISTRADOR)
         self.assertEqual(como_texto(nomes(administrador)), esperadas_admin)
 
     def test_equipe_tem_exatamente_ver_cadastrar_corrigir_participante(self):
@@ -87,11 +87,11 @@ class GruposAposMigrateTests(TestCase):
         self.assertFalse({"delete_user", "delete_group"} & auth)
         self.assertFalse(any(app == "auth" and codename.endswith("_permission") for app, codename in pares))
 
-    def test_admin_tem_apenas_consulta_de_atividade_para_gerenciar_situacao(self):
+    def test_admin_tem_todas_de_atividades_sem_ampliar_equipe(self):
         for nome in (GRUPO_EQUIPE, GRUPO_ADMINISTRADOR):
             with self.subTest(grupo=nome):
                 grupo = Group.objects.get(name=nome)
-                esperadas = {"view_atividade"} if nome == GRUPO_ADMINISTRADOR else set()
+                esperadas = {codename for _, codename in todas_do_app("atividades")} if nome == GRUPO_ADMINISTRADOR else set()
                 self.assertEqual(set(grupo.permissions.filter(content_type__app_label="atividades").values_list("codename", flat=True)), esperadas)
 
     def test_post_migrate_recria_grupos_apagados(self):
@@ -137,7 +137,7 @@ class IdempotenciaTests(TestCase):
         Group.objects.filter(name=GRUPO_ADMINISTRADOR).delete()
         criado, acrescentadas = garantir_perfis()[GRUPO_ADMINISTRADOR]
         self.assertTrue(criado)
-        self.assertEqual(acrescentadas, len(todas_do_app("participantes")) + len(PERMISSOES_ADMINISTRADOR))
+        self.assertEqual(acrescentadas, len(todas_do_app("participantes") | todas_do_app("atividades")) + len(PERMISSOES_ADMINISTRADOR))
 
     def test_comando_garantir_perfis(self):
         Group.objects.filter(name=GRUPO_EQUIPE).delete()
