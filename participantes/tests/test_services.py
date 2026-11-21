@@ -401,3 +401,89 @@ class HistoricoTests(TestCase):
         self.assertTrue(all(evento.tipo == "RegistroParticipante" for evento in historico))
         momentos = [(evento.registrado_em, evento.pk) for evento in historico]
         self.assertEqual(momentos, sorted(momentos))
+
+
+class PerfilDemograficoRetroativoTests(TestCase):
+    """RF-PAR-05 / RN-FMR-12: o perfil demográfico vale desde a entrada, também depois de corrigi-la."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.usuario = criar_usuario("equipe_perfil_ficticia", "add_participante", "change_participante")
+
+    def setUp(self):
+        self.participante = cadastrar_participante(usuario=self.usuario, data_entrada=date(2024, 3, 10), **DADOS)
+
+    def corrigir(self, **extra):
+        dados = DADOS | {k: v for k, v in extra.items() if k in DADOS}
+        opcoes = {k: v for k, v in extra.items() if k not in DADOS}
+        return corrigir_participante(usuario=self.usuario, participante_id=self.participante.pk, **dados,
+                                     **({"data_entrada": date(2024, 3, 10)} | opcoes))
+
+    def perfis(self):
+        return list(self.participante.perfis_demograficos.order_by("vigente_desde")
+                    .values_list("vigente_desde", "raca_cor"))
+
+    def test_antecipar_a_entrada_leva_o_inicio_do_perfil_junto(self):
+        self.corrigir(data_entrada=date(2024, 1, 15))
+        self.assertEqual(self.perfis(), [(date(2024, 1, 15), "parda")])
+        correcao = RegistroParticipante.objects.filter(participante=self.participante, acao="correcao").get()
+        self.assertEqual(correcao.anteriores["perfil_inicio"], "2024-03-10")
+        self.assertEqual(correcao.novos["perfil_inicio"], "2024-01-15")
+
+    def test_vigencia_entre_perfis_existentes_e_aceita(self):
+        self.corrigir(raca_cor="preta", perfil_vigente_desde=date(2024, 6, 1))
+        self.corrigir(raca_cor="branca", perfil_vigente_desde=date(2024, 4, 1))
+        self.assertEqual(self.perfis(), [(date(2024, 3, 10), "parda"), (date(2024, 4, 1), "branca"),
+                                         (date(2024, 6, 1), "preta")])
+
+    def test_vigencia_antes_da_entrada_ou_no_futuro_e_recusada(self):
+        for vigencia in (date(2024, 3, 9), timezone.localdate() + timedelta(days=1)):
+            with self.subTest(vigencia=vigencia), self.assertRaises(ValidationError) as erro:
+                self.corrigir(raca_cor="preta", perfil_vigente_desde=vigencia)
+            self.assertIn("perfil_vigente_desde", erro.exception.message_dict)
+
+    def test_cadastro_sem_perfil_ganha_perfil_desde_a_entrada_com_os_valores_anteriores(self):
+        self.participante.perfis_demograficos.all().delete()
+        self.corrigir(raca_cor="preta")
+        self.assertEqual(self.perfis(), [(date(2024, 3, 10), "parda"), (timezone.localdate(), "preta")])
+
+
+class OrigemNoIngressoTests(TestCase):
+    """RF-FMR-07 / Q13: a origem do ingresso que faltava pode ser informada na correção, nunca sobrescrita."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.usuario = criar_usuario("equipe_origem_ingresso_ficticia", "add_participante", "change_participante")
+
+    def corrigir(self, participante, **extra):
+        return corrigir_participante(usuario=self.usuario, participante_id=participante.pk,
+                                     data_entrada=date(2024, 1, 10), **DADOS, **extra)
+
+    def test_entrada_criada_na_correcao_recebe_a_origem_informada(self):
+        avulso = Participante.objects.create(**DADOS)
+        self.corrigir(avulso, origem_entrada="creas")
+        entrada = Movimentacao.objects.get(participante=avulso, tipo=TipoMovimentacao.ENTRADA)
+        self.assertEqual(entrada.origem_entrada, "creas")
+        evento = RegistroParticipante.objects.get(participante=avulso, acao="correcao")
+        self.assertEqual((evento.anteriores["origem_entrada"], evento.novos["origem_entrada"]), ("", "creas"))
+
+    def test_origem_ja_registrada_nao_e_sobrescrita(self):
+        participante = cadastrar_participante(usuario=self.usuario, data_entrada=date(2024, 1, 10), **DADOS)
+        with self.assertRaises(ValidationError) as erro:
+            self.corrigir(participante, origem_entrada="creas")
+        self.assertIn("origem_entrada", erro.exception.message_dict)
+        self.assertEqual(participante.entrada.origem_entrada, "cras")
+
+    def test_origem_invalida_e_recusada(self):
+        avulso = Participante.objects.create(**DADOS)
+        with self.assertRaises(ValidationError):
+            self.corrigir(avulso, origem_entrada="escola")
+
+    def test_formulario_so_mostra_o_campo_quando_falta_origem(self):
+        from participantes.forms import ParticipanteForm
+        com_origem = cadastrar_participante(usuario=self.usuario, data_entrada=date(2024, 1, 10),
+                                            **(DADOS | {"nome_completo": "Com Origem Ficticia"}))
+        sem_entrada = Participante.objects.create(**(DADOS | {"nome_completo": "Sem Entrada Ficticia"}))
+        self.assertNotIn("origem_entrada", ParticipanteForm().fields)
+        self.assertNotIn("origem_entrada", ParticipanteForm(instance=com_origem).fields)
+        self.assertIn("origem_entrada", ParticipanteForm(instance=sem_entrada).fields)

@@ -11,6 +11,7 @@ from core.models import AuditoriaImutavel, tipos_do_modelo
 from core.perfis import GRUPO_ADMINISTRADOR, GRUPO_EQUIPE, e_administrador
 from usuarios.models import RegistroConta
 from usuarios.services import (
+    alterar_situacao_conta,
     cadastrar_colaborador,
     corrigir_colaborador,
     definir_senha,
@@ -227,3 +228,41 @@ class AuditoriaContaTests(TestCase):
             self.assertEqual(resposta.status_code, 404)
             self.assertEqual(self.client.get("/admin/auth/user/").status_code, 404)
         self.assertTrue(get_user_model().objects.filter(pk=self.colab.pk).exists())
+
+
+class ProtecaoSuperusuarioTests(TestCase):
+    """RN-USR-01: membro do grupo Administrador não altera a conta de um superusuário."""
+
+    def setUp(self):
+        self.admin = administrador()
+        self.super = get_user_model().objects.create_superuser(username="super_ficticio", password=SENHA_VALIDA,
+                                                              email="super.ficticio@example.org")
+
+    def test_administrador_comum_nao_altera_superusuario(self):
+        tentativas = {
+            "senha": lambda: definir_senha(usuario=self.admin, conta_id=self.super.pk, senha=OUTRA_SENHA_VALIDA),
+            "dados": lambda: corrigir_colaborador(usuario=self.admin, conta_id=self.super.pk, first_name="Outro",
+                                                  last_name="", email="tomada@example.org", perfil=""),
+            "situacao": lambda: alterar_situacao_conta(usuario=self.admin, conta_id=self.super.pk, ativo=False),
+        }
+        for nome, tentativa in tentativas.items():
+            with self.subTest(acao=nome), self.assertRaises(PermissionDenied):
+                tentativa()
+        self.super.refresh_from_db()
+        self.assertTrue(self.super.check_password(SENHA_VALIDA))
+        self.assertTrue(self.super.is_active)
+        self.assertEqual(self.super.email, "super.ficticio@example.org")
+        self.assertFalse(RegistroConta.objects.filter(alvo_id=self.super.pk).exists())
+
+    def test_superusuario_altera_outro_superusuario(self):
+        outro = get_user_model().objects.create_superuser(username="super_dois_ficticio", password=SENHA_VALIDA,
+                                                          email="super.dois@example.org")
+        definir_senha(usuario=self.super, conta_id=outro.pk, senha=OUTRA_SENHA_VALIDA)
+        outro.refresh_from_db()
+        self.assertTrue(outro.check_password(OUTRA_SENHA_VALIDA))
+
+    def test_administrador_comum_continua_alterando_contas_comuns(self):
+        colab = equipe()
+        definir_senha(usuario=self.admin, conta_id=colab.pk, senha=OUTRA_SENHA_VALIDA)
+        colab.refresh_from_db()
+        self.assertTrue(colab.check_password(OUTRA_SENHA_VALIDA))

@@ -188,3 +188,7 @@ staticfiles/
 # Backups do banco (contêm dados pessoais; guardar fora do repositório)
 *.dump
 *.backup
+
+# Instruções pessoais do Claude Code (não versionadas)
+CLAUDE.md
+CLAUDE.local.md

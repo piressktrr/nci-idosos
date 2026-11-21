@@ -1,3 +1,6 @@
 Django==6.1.3
 psycopg[binary]==3.3.8
 python-dotenv==1.2.4
+# Produção (deploy): servidor de aplicação e arquivos estáticos servidos pelo próprio Django.
+gunicorn==26.2.0
+whitenoise==6.12.0

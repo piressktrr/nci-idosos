@@ -28,6 +28,7 @@
           <div class="col-sm-6">{% include "participantes/_campo.html" with campo=form.sexo obrigatorio=True %}</div>
           <div class="col-sm-6">{% include "participantes/_campo.html" with campo=form.data_entrada obrigatorio=True %}</div>
           {% if participante %}<div class="col-12">{% include "participantes/_campo.html" with campo=form.perfil_vigente_desde %}</div>{% endif %}
+          {% if form.origem_entrada %}<div class="col-12">{% include "participantes/_campo.html" with campo=form.origem_entrada %}</div>{% endif %}
           <div class="col-12">
             <fieldset>
               <legend class="form-label fs-6 mb-1">{{ form.ensino_medio_completo.label }} <span class="text-danger" aria-hidden="true">*</span></legend>

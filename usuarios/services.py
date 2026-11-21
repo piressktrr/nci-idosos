@@ -10,7 +10,7 @@ Recuperação de acesso (RF-USR-05) permanece pendente. Desativação autorizada
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.contrib.auth.password_validation import validate_password
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.db.models import Q
 
@@ -27,6 +27,16 @@ CAMPOS_CORRECAO = ("first_name", "last_name", "email", "perfil")
 def autorizar_administrador(usuario):
     """RN-USR-01: devolve o autor reconsultado no banco se for administrador ativo (critério do core)."""
     return _autorizar_administrador(usuario, "Somente administradores podem gerenciar contas de acesso.")
+
+
+def _proteger_superusuario(conta, autor):
+    """RN-USR-01: só um superusuário altera dados, senha ou situação de outro superusuário.
+
+    Sem isso, um membro do grupo Administrador poderia definir a senha de um superusuário, entrar como ele e ganhar
+    o /admin/ e o catálogo do FMR, com as ações atribuídas ao superusuário.
+    """
+    if conta.is_superuser and not autor.is_superuser:
+        raise PermissionDenied("Somente um superusuário pode alterar a conta de outro superusuário.")
 
 
 def perfil_de(conta):
@@ -60,6 +70,9 @@ def _erros_dados(conta, **opcoes):
         erros.setdefault("first_name", []).append("Informe o nome.")
     if not conta.email:  # RF-USR-05: sem e-mail não há como recuperar a senha
         erros.setdefault("email", []).append("Informe o e-mail.")
+    elif get_user_model().objects.filter(email__iexact=conta.email).exclude(pk=conta.pk).exists():
+        # RF-USR-01/05: o link de recuperação vai ao e-mail; e-mail compartilhado deixaria um redefinir a conta do outro.
+        erros.setdefault("email", []).append("Já existe uma conta com este e-mail. Cada pessoa precisa do seu.")
     return erros
 
 
@@ -126,10 +139,12 @@ def corrigir_colaborador(*, usuario, conta_id, first_name, last_name, email, per
 
     O administrador não altera o próprio perfil, e nenhuma mudança pode deixar o sistema sem administrador ativo.
     """
-    autor = autorizar_administrador(usuario)
+    autorizar_administrador(usuario)
     Usuario = get_user_model()
     Group.objects.select_for_update().get(name=GRUPO_ADMINISTRADOR)
     conta = Usuario.objects.select_for_update().get(pk=conta_id)
+    autor = autorizar_administrador(usuario)  # de novo sob o lock: o autor pode ter sido rebaixado nesse meio-tempo
+    _proteger_superusuario(conta, autor)
     perfil_atual = perfil_de(conta)
     anteriores = _dados(conta, perfil_atual)
     conta.first_name, conta.last_name = first_name.strip(), last_name.strip()
@@ -162,8 +177,11 @@ def definir_senha(*, usuario, conta_id, senha):
 
     Trocar a senha encerra as outras sessões da conta (o Django invalida o hash de sessão antigo).
     """
-    autor = autorizar_administrador(usuario)
+    autorizar_administrador(usuario)
+    Group.objects.select_for_update().get(name=GRUPO_ADMINISTRADOR)
     conta = get_user_model().objects.select_for_update().get(pk=conta_id)
+    autor = autorizar_administrador(usuario)  # de novo sob o lock
+    _proteger_superusuario(conta, autor)
     _validar_senha(senha, conta)
     conta.set_password(senha)
     conta.save(update_fields=["password"])
@@ -183,6 +201,7 @@ def alterar_situacao_conta(*, usuario, conta_id, ativo):
     Group.objects.select_for_update().get(name=GRUPO_ADMINISTRADOR)
     conta = get_user_model().objects.select_for_update().get(pk=conta_id)
     autor = autorizar_administrador(usuario)
+    _proteger_superusuario(conta, autor)
     if conta.pk == autor.pk and not ativo:
         raise ValidationError("Você não pode desativar a própria conta.")
     anterior = conta.is_active
