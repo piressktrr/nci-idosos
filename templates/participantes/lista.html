@@ -1,10 +1,12 @@
 {% extends "nci/base.html" %}
 {% block title %}Participantes · NCI Idade Dourada{% endblock %}
+{% block cabecalho_pagina %}<h1>Gestão de Participantes</h1>{% endblock %}
 {% block content %}
-<h1>Gestão de Participantes</h1>
+<div class="nci-titulo-reserva" aria-hidden="true"></div>
+
 {% if e_administrador %}<p><a class="btn btn-outline-secondary" href="{% url 'participantes:motivos_desligamento' %}">Administrar motivos de desligamento</a></p>{% endif %}
-<div class="d-flex flex-wrap align-items-center gap-3 my-3">
-  <form method="get" role="search" aria-label="Pesquisar participantes" class="flex-grow-1" style="max-width: 420px">
+<div class="d-flex flex-wrap align-items-center gap-3 my-3 nci-ferramentas">
+  <form method="get" role="search" aria-label="Pesquisar participantes" class="nci-busca-form">
     <div class="input-group nci-busca">
       <label class="visually-hidden" for="pesquisa-nome">Buscar pelo nome</label>
       <input type="search" id="pesquisa-nome" name="q" value="{{ termo }}" maxlength="200" autocomplete="off" class="form-control" placeholder="Buscar pelo nome">
@@ -21,8 +23,9 @@
 </div>
 <p class="small mb-2" aria-live="polite">{% if termo %}{{ pagina.paginator.count }} encontrado{{ pagina.paginator.count|pluralize }} para “{{ termo }}”{% else %}{{ pagina.paginator.count }} participante{{ pagina.paginator.count|pluralize }} cadastrado{{ pagina.paginator.count|pluralize }}{% endif %}</p>
 {% if pagina %}
-<div class="nci-tabela table-responsive">
+<div class="nci-tabela table-responsive nci-participantes-lista">
   <table class="table table-hover mb-0">
+    <colgroup><col><col><col><col></colgroup>
     <thead><tr><th scope="col">Participante</th><th scope="col">Contato principal</th><th scope="col">Status</th><th scope="col"><span class="visually-hidden">Abrir</span></th></tr></thead>
     <tbody>{% for participante in pagina %}<tr>
       <td><a class="link-body-emphasis text-decoration-none" href="{% url 'participantes:detalhe' participante.pk %}">{{ participante.nome_completo }}</a></td>

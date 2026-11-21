@@ -1,8 +1,10 @@
 {% extends "nci/base.html" %}
 {% load static %}
 {% block title %}Realizar chamada · NCI{% endblock %}
+{% block cabecalho_pagina %}<h1>Realizar chamada</h1>{% endblock %}
 {% block content %}
-<h1>Realizar chamada</h1>
+<div class="nci-titulo-reserva" aria-hidden="true"></div>
+
 {% if atividade %}
 <p><a class="btn btn-nci" href="{% url 'atividades:aulas' atividade.pk %}">Ver aulas de {{ atividade.nome }}</a></p>
 <p>Confira a lista física assinada. A aula e as presenças só serão registradas ao salvar esta chamada.</p>
@@ -34,7 +36,7 @@
 <button type="button" id="recarregar-participantes" class="btn btn-outline-secondary mb-3">Recarregar participantes para a data escolhida</button>
 {{ form.non_field_errors }}
 {% include "atividades/_participantes_chamada.html" %}
-{% if participantes %}<button type="submit">Salvar chamada</button>{% else %}<p><a class="btn btn-nci" href="{% url 'atividades:inscricoes' atividade.pk %}">Inscrever participantes</a></p>{% endif %}
+{% if participantes %}<div class="mt-4"><button type="submit">Salvar chamada</button></div>{% else %}<p><a class="btn btn-nci" href="{% url 'atividades:inscricoes' atividade.pk %}">Inscrever participantes</a></p>{% endif %}
 </section>
 </form>
 {{ sugestoes|json_script:"sugestoes-aula" }}

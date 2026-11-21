@@ -1,9 +1,11 @@
 {% extends "nci/base.html" %}
 {% load static %}
 {% block title %}Aulas de {{ atividade.nome }} · NCI Idade Dourada{% endblock %}
+{% block cabecalho_pagina %}<h1>Aulas de {{ atividade.nome }}</h1>{% endblock %}
 {% block content %}
 <p><a class="btn btn-outline-secondary" href="{% url 'atividades:lista' %}">Voltar às atividades</a></p>
-<h1>Aulas de {{ atividade.nome }}</h1>
+<div class="nci-titulo-reserva" aria-hidden="true"></div>
+
 {% if not atividade.ativa %}<p class="alert alert-warning">Atividade inativa: novas aulas estão bloqueadas. O histórico permanece disponível.</p>{% endif %}
 {% if atividade.ativa and perms.atividades.add_aula and perms.atividades.add_frequencia %}<p><a class="btn btn-nci" href="{% url 'atividades:registro_diario' %}?atividade={{ atividade.pk }}">Realizar chamada</a></p>{% endif %}
 {% if modo_cancelamento %}<p>Registre a data e os horários previstos da aula que foi cancelada.</p>
@@ -33,7 +35,7 @@
   <p>Realizadas: {{ total_realizadas }} · Canceladas: {{ total_canceladas }}</p>
   {% if pagina %}<div class="table-scroll"><table>
     <thead><tr><th scope="col">Tipo</th><th scope="col">Data da aula</th><th scope="col">Início</th><th scope="col">Término</th><th scope="col">Situação</th><th scope="col">Categoria FMR na data</th><th scope="col">Chamada</th>{% if perms.atividades.cancelar_aula %}<th scope="col">Ação</th>{% endif %}</tr></thead>
-    <tbody>{% for aula in pagina %}<tr><td>{{ aula.get_tipo_display }}</td><td>{{ aula.data|date:"d/m/Y" }}</td><td>{{ aula.inicio|time:"H:i" }}</td><td>{{ aula.fim|time:"H:i" }}</td><td>{{ aula.get_situacao_display }}</td><td>{{ aula.categoria_fmr_nome|default:"Não classificada" }}</td><td>{% if perms.atividades.view_inscricao and aula.situacao == 'realizada' %}<a href="{% url 'atividades:chamada' atividade.pk aula.pk %}">Ver chamada</a>{% else %}—{% endif %}</td>{% if perms.atividades.cancelar_aula %}<td>{% if aula.situacao == 'realizada' %}<a href="{% url 'atividades:cancelar_aula' atividade.pk aula.pk %}">Cancelar aula</a>{% else %}—{% endif %}</td>{% endif %}</tr>{% endfor %}</tbody>
+    <tbody>{% for aula in pagina %}<tr><td>{{ aula.get_tipo_display }}</td><td>{{ aula.data|date:"d/m/Y" }}</td><td>{{ aula.inicio|time:"H:i" }}</td><td>{{ aula.fim|time:"H:i" }}</td><td>{{ aula.get_situacao_display }}</td><td>{{ aula.categoria_fmr_nome|default:"Não classificada" }}</td><td>{% if perms.atividades.view_inscricao and aula.situacao == 'realizada' %}<a href="{% url 'atividades:chamada' atividade.pk aula.pk %}">Ver chamada</a>{% else %}—{% endif %}</td>{% if perms.atividades.cancelar_aula %}<td>{% if aula.situacao == 'realizada' %}<a class="nci-acao-excluir" href="{% url 'atividades:cancelar_aula' atividade.pk aula.pk %}">Cancelar aula</a>{% else %}—{% endif %}</td>{% endif %}</tr>{% endfor %}</tbody>
   </table></div>
   {% if pagina.has_other_pages %}<nav aria-label="Páginas de aulas">
     {% if pagina.has_previous %}<a class="btn btn-outline-secondary" href="?page={{ pagina.previous_page_number }}">Anterior</a>{% endif %}

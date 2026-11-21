@@ -1,8 +1,10 @@
 {% extends "nci/base.html" %}
 {% block title %}Inscrições de {{ atividade.nome }} · NCI Idade Dourada{% endblock %}
+{% block cabecalho_pagina %}<h1>Inscrições de {{ atividade.nome }}</h1>{% endblock %}
 {% block content %}
 <p><a class="btn btn-outline-secondary" href="{% url 'atividades:lista' %}">Voltar às atividades</a></p>
-<h1>Inscrições de {{ atividade.nome }}</h1>
+<div class="nci-titulo-reserva" aria-hidden="true"></div>
+
 {% if not atividade.ativa %}<p class="alert alert-warning">Atividade inativa. As inscrições existentes são preservadas; novas inscrições estão bloqueadas até a reativação.</p>{% endif %}
 {% if perms.atividades.view_esperaatividade %}<p><a class="btn btn-nci" href="{% url 'atividades:lista_espera' atividade.pk %}">Ver lista de espera</a></p>{% endif %}
 {% if indisponivel %}<p role="alert">Cadastro de participantes indisponível. Tente novamente após a integração ser configurada.</p>

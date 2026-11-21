@@ -1,11 +1,13 @@
 {% extends "nci/base.html" %}
+{% load static %}
 {% block title %}Início · NCI Idade Dourada{% endblock %}
+{% block body_class %}nci-boas-vindas{% endblock %}
 {% block content %}
-<div class="text-center mt-4">
+<div class="text-center nci-boas-vindas-cabecalho">
   <h1 class="display-6 nci-titulo">NCI Idade Dourada de Pinheiros</h1>
   <p class="h3 nci-titulo nci-titulo-dourado">Olá, {{ user.first_name|default:user.get_username }}!</p>
 </div>
-<nav class="nci-modulos" aria-label="Módulos do sistema">
+<nav class="nci-modulos{% if e_administrador %} nci-modulos-administrador{% endif %}" aria-label="Módulos do sistema">
   {% if perms.participantes.view_participante %}
   <a class="nci-modulo" href="{% url 'participantes:lista' %}">
     <svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><circle cx="32" cy="18" r="9"/><path d="M16 50c0-10 7-17 16-17s16 7 16 17z"/><circle cx="14" cy="22" r="6"/><path d="M2 48c0-7 5-12 12-12 3 0 5 1 7 2-4 3-6 7-6 10z"/><circle cx="50" cy="22" r="6"/><path d="M62 48c0-7-5-12-12-12-3 0-5 1-7 2 4 3 6 7 6 10z"/></svg>
@@ -30,4 +32,13 @@
     <span>Gestão de Colaboradores</span>
   </a>{% endif %}
 </nav>
+{% endblock %}
+{% block rodape %}
+<footer class="nci-rodape">
+  <div class="nci-rodape-instituicao">
+    <div class="nci-rodape-logo"><img src="{% static 'img/logo-nci.png' %}" alt="Logo NCI Idade Dourada" width="80" height="80"></div>
+    <p class="nci-rodape-copyright">© {% now "Y" %} Associação Idade Dourada de Pinheiros</p>
+  </div>
+  <p class="nci-rodape-apoio">Apoio FATEC São Paulo</p>
+</footer>
 {% endblock %}
