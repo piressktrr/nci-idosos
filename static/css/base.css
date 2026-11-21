@@ -380,7 +380,7 @@ section[aria-labelledby="filtros-frequencia"] { background: var(--nci-branco); }
 
 /* Proporções dos componentes existentes; tabelas continuam rolando no contêiner. */
 .nci-tabela, .table-scroll { max-width: 100%; }
-.table-responsive > table, .table-scroll > table { min-width: 620px; }
+.nci-tabela > table, .table-responsive > table, .table-scroll > table { min-width: 620px; }
 .nci-tabela thead tr { height: 41px; }
 .nci-tabela tbody tr { height: 54px; }
 .nci-tabela th, .nci-tabela td { padding-inline: 18px; overflow-wrap: anywhere; }
@@ -420,6 +420,8 @@ main table.atividades-lista th:not(:first-child), main table.atividades-lista td
 .nci-filtros-mensais .nci-filtros-acoes { grid-column: 1 / -1; }
 .nci-filtros-mensais input, .nci-filtros-mensais select { max-width: none; }
 .table-responsive > .frequencia-mensal-tabela { min-width: 650px; }
+.table-responsive > .historico-frequencia { min-width: 760px; }
+.table-responsive > .lista-espera-tabela { min-width: 650px; }
 .nci-fmr-controles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: stretch; margin-block: 24px; }
 .nci-fmr-controles > section { min-width: 0; margin: 0; }
 .nci-fmr-controles > section:only-child { grid-column: 1 / -1; }
@@ -533,7 +535,11 @@ section, .nci-cartao, .nci-tabela, .nci-login-caixa, .frequencia-resumo > div,
 .nci-cartao > .nci-cartao-corpo { border-radius: 0 0 27px 27px; }
 .table-scroll { border: 3px solid var(--nci-verde); border-radius: 30px; overflow: auto; }
 .table-scroll > table { border: 0 !important; }
-.table-responsive, .table-scroll { scrollbar-gutter: auto; scrollbar-width: auto; }
+.nci-tabela, .table-responsive, .table-scroll {
+  min-width: 0; max-width: 100%; overflow-x: auto; overflow-y: hidden;
+  scrollbar-gutter: auto; scrollbar-width: auto; overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
 .nci-tabela > table, .table-scroll > table { border-collapse: separate; border-spacing: 0; }
 .nci-tabela thead {
   --bs-table-bg: var(--nci-verde); --bs-table-color: var(--nci-branco);
