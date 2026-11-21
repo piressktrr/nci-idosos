@@ -105,3 +105,57 @@ class EmailObrigatorioTests(TestCase):
             corrigir_colaborador(usuario=admin, conta_id=colab.pk, first_name=colab.first_name,
                                  last_name=colab.last_name, email="", perfil=perfil_de(colab))
         self.assertIn("email", erro.exception.message_dict)
+
+
+@override_settings(DEBUG=True, SECURE_SSL_REDIRECT=False,
+                   MAILERS={"default": {"BACKEND": "django.core.mail.backends.locmem.EmailBackend"}})
+class RecuperacaoReforcadaTests(TestCase):
+    """Reforços do review de 20/11: link invalidado na desativação, gravação atômica, validade curta."""
+
+    def setUp(self):
+        self.conta = equipe(email="carlos.reforco@example.org")
+        self.conta.set_password(SENHA_VALIDA)
+        self.conta.save()
+        self.client.post(reverse("recuperar_senha"), {"email": "carlos.reforco@example.org"})
+        self.link = LINK.search(mail.outbox[0].body).group(0)
+
+    def test_link_pedido_antes_da_desativacao_deixa_de_valer(self):
+        get_user_model().objects.filter(pk=self.conta.pk).update(is_active=False)
+        self.assertContains(self.client.get(self.link, follow=True), "Este link é inválido ou já foi usado.")
+
+    def test_falha_na_auditoria_nao_troca_a_senha(self):
+        from unittest.mock import patch
+        url_form = self.client.get(self.link, follow=True).redirect_chain[-1][0]
+        nova = {"new_password1": OUTRA_SENHA_VALIDA, "new_password2": OUTRA_SENHA_VALIDA}
+        with patch("usuarios.recuperacao.RegistroConta.objects.create", side_effect=RuntimeError("falha fictícia")):
+            with self.assertRaises(RuntimeError):
+                self.client.post(url_form, nova)
+        self.conta.refresh_from_db()
+        self.assertTrue(self.conta.check_password(SENHA_VALIDA))
+
+    def test_link_vale_duas_horas(self):
+        from django.conf import settings
+        self.assertEqual(settings.PASSWORD_RESET_TIMEOUT, 2 * 60 * 60)
+        self.assertIn("vale por 2 horas", mail.outbox[0].body)
+
+
+class EmailUnicoTests(TestCase):
+    """RF-USR-01/05: cada conta tem o seu e-mail, para o link de recuperação não cair na caixa de outra pessoa."""
+
+    def test_cadastro_com_email_de_outra_conta_e_recusado(self):
+        from django.core.exceptions import ValidationError
+        admin = administrador()
+        equipe(username="dona_do_email_ficticia", email="compartilhado@example.org")
+        with self.assertRaises(ValidationError) as erro:
+            cadastrar_colaborador(usuario=admin, **dados_cadastro(email="COMPARTILHADO@example.org"))
+        self.assertIn("email", erro.exception.message_dict)
+
+    def test_correcao_para_email_de_outra_conta_e_recusada(self):
+        from django.core.exceptions import ValidationError
+        admin = administrador()
+        equipe(username="outra_ficticia", email="ocupado@example.org")
+        colab = cadastrar_colaborador(usuario=admin, **dados_cadastro())
+        with self.assertRaises(ValidationError) as erro:
+            corrigir_colaborador(usuario=admin, conta_id=colab.pk, first_name=colab.first_name,
+                                 last_name=colab.last_name, email="ocupado@example.org", perfil=perfil_de(colab))
+        self.assertIn("email", erro.exception.message_dict)

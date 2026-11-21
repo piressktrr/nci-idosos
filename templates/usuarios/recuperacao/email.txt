@@ -5,5 +5,5 @@ Recebemos um pedido para criar uma nova senha para a conta "{{ user.get_username
 Para criar a nova senha, abra o link abaixo:
 {{ protocol }}://{{ domain }}{% url 'redefinir_senha' uidb64=uid token=token %}
 
-O link vale por pouco tempo e só pode ser usado uma vez. Se você não fez este pedido, ignore este e-mail: sua senha continua a mesma.
+O link vale por 2 horas e só pode ser usado uma vez. Se você não fez este pedido, ignore este e-mail: sua senha continua a mesma.
 {% endautoescape %}

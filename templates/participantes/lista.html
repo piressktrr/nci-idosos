@@ -17,7 +17,7 @@
   </form>
   {% if termo %}<a class="btn btn-outline-secondary" href="{% url 'participantes:lista' %}">Limpar pesquisa</a>{% endif %}
   <div class="d-flex flex-wrap gap-2 ms-auto">
-    {% if perms.participantes.exportar_participante %}<a class="btn btn-nci-sec" href="{% url 'participantes:exportar' %}" download>Exportar CSV</a>{% endif %}
+    {% if perms.participantes.exportar_participante %}<form method="post" action="{% url 'participantes:exportar' %}" class="d-inline">{% csrf_token %}<button type="submit" class="btn btn-nci-sec">Exportar CSV</button></form>{% endif %}
     {% if perms.participantes.add_participante %}<a class="btn btn-nci" href="{% url 'participantes:cadastrar' %}">+ Novo Cadastro</a>{% endif %}
   </div>
 </div>

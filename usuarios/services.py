@@ -70,6 +70,9 @@ def _erros_dados(conta, **opcoes):
         erros.setdefault("first_name", []).append("Informe o nome.")
     if not conta.email:  # RF-USR-05: sem e-mail não há como recuperar a senha
         erros.setdefault("email", []).append("Informe o e-mail.")
+    elif get_user_model().objects.filter(email__iexact=conta.email).exclude(pk=conta.pk).exists():
+        # RF-USR-01/05: o link de recuperação vai ao e-mail; e-mail compartilhado deixaria um redefinir a conta do outro.
+        erros.setdefault("email", []).append("Já existe uma conta com este e-mail. Cada pessoa precisa do seu.")
     return erros
 
 

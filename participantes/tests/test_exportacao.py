@@ -88,18 +88,18 @@ class ViewTests(Base):
     url = reverse("participantes:exportar")
 
     def test_anonimo_vai_para_entrar(self):
-        resposta = self.client.get(self.url)
+        resposta = self.client.post(self.url)
         self.assertEqual(resposta.status_code, 302)
         self.assertTrue(resposta["Location"].startswith("/entrar/"))
 
     def test_equipe_recebe_403_e_nada_e_auditado(self):
         self.client.force_login(self.equipe)
-        self.assertEqual(self.client.get(self.url).status_code, 403)
+        self.assertEqual(self.client.post(self.url).status_code, 403)
         self.assertFalse(RegistroExportacao.objects.exists())
 
     def test_inativo_nao_exporta(self):
         self.client.force_login(_membro("inativo_ficticio", GRUPO_ADMINISTRADOR, is_active=False))
-        resposta = self.client.get(self.url)
+        resposta = self.client.post(self.url)
         self.assertEqual(resposta.status_code, 302)
         self.assertTrue(resposta["Location"].startswith("/entrar/"))
         self.assertFalse(RegistroExportacao.objects.exists())
@@ -107,7 +107,7 @@ class ViewTests(Base):
     def test_administrador_baixa_o_csv_sem_cache(self):
         cadastrar_participante(usuario=self.admin, **_dados())
         self.client.force_login(self.admin)
-        resposta = self.client.get(self.url)
+        resposta = self.client.post(self.url)
         self.assertEqual(resposta.status_code, 200)
         self.assertEqual(resposta["Content-Type"], "text/csv; charset=utf-8")
         self.assertEqual(resposta["Content-Disposition"],
@@ -119,14 +119,22 @@ class ViewTests(Base):
         self.assertEqual(len(linhas), 1)
         self.assertEqual(RegistroExportacao.objects.count(), 1)
 
-    def test_post_nao_e_aceito(self):
+    def test_get_nao_e_aceito_e_nada_e_auditado(self):
         self.client.force_login(self.admin)
-        self.assertEqual(self.client.post(self.url).status_code, 405)
+        self.assertEqual(self.client.get(self.url).status_code, 405)
+        self.assertFalse(RegistroExportacao.objects.exists())
+
+    def test_post_sem_csrf_e_recusado(self):
+        from django.test import Client
+        cliente = Client(enforce_csrf_checks=True)
+        cliente.force_login(self.admin)
+        self.assertEqual(cliente.post(self.url).status_code, 403)
+        self.assertFalse(RegistroExportacao.objects.exists())
 
     def test_botao_so_aparece_com_a_permissao(self):
         lista = reverse("participantes:lista")
         self.client.force_login(self.admin)
-        self.assertContains(self.client.get(lista), f'href="{self.url}"')
+        self.assertContains(self.client.get(lista), f'action="{self.url}"')
         self.client.force_login(self.equipe)
         resposta = self.client.get(lista)
         self.assertEqual(resposta.status_code, 200)

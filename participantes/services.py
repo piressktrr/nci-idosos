@@ -3,13 +3,13 @@
 from datetime import date
 
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import connection, transaction
 from django.utils import timezone
 
 from core.permissoes import autorizar
 
 from .auditoria import registrar
-from .categorias import IdentidadeGenero, StatusParticipante, TipoMovimentacao
+from .categorias import IdentidadeGenero, OrigemEncaminhamento, StatusParticipante, TipoMovimentacao
 from .models import Movimentacao, Participante, PerfilDemografico, SituacaoSocial, chave_busca
 
 # Status é alterado somente no serviço de movimentações. Entrada fica na Movimentacao.
@@ -80,7 +80,19 @@ def pesquisar_participantes(termo):
     return participantes
 
 
+def _travar_identidade(participante):
+    """RN-PAR-01: serializa cadastros e correções da mesma pessoa (nome normalizado + nascimento).
+
+    Sem o lock, dois envios simultâneos (duplo clique em "Salvar") passam juntos pela checagem de duplicidade e criam
+    dois cadastros que depois não podem ser excluídos. O advisory lock do PostgreSQL vale até o fim da transação.
+    """
+    chave = f"participante:{chave_busca(participante.nome_completo)}:{participante.data_nascimento}"
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))", [chave])
+
+
 def _verificar_duplicidade(participante, confirmar_duplicidade, excluir_id=None):
+    _travar_identidade(participante)
     duplicados = possiveis_duplicados(nome_completo=participante.nome_completo,
                                       data_nascimento=participante.data_nascimento, excluir_id=excluir_id)
     if duplicados and confirmar_duplicidade is not True:
@@ -138,7 +150,7 @@ def _cobrir_perfil_desde_a_entrada(participante, data_entrada, anteriores, novos
 
 @transaction.atomic
 def corrigir_participante(*, usuario, participante_id, data_entrada, perfil_vigente_desde=None,
-                         confirmar_duplicidade=False, **dados):
+                         origem_entrada=None, confirmar_duplicidade=False, **dados):
     """Corrige o cadastro (inclusive raça/cor, identidade de gênero e data de entrada), guardando antes e depois.
 
     O status não é corrigido aqui (RN-PAR-09, P02). Cadastro sem entrada (feito fora dos serviços) ganha a entrada
@@ -161,6 +173,13 @@ def corrigir_participante(*, usuario, participante_id, data_entrada, perfil_vige
     for campo, valor in dados.items():
         setattr(participante, campo, valor)
     entrada.data = data_entrada
+    if origem_entrada is not None:
+        # RF-FMR-07 / Q13: a origem do ingresso só é informada quando falta; a existente nunca é sobrescrita.
+        if entrada.origem_entrada:
+            raise ValidationError({"origem_entrada": "A origem do ingresso já está registrada."})
+        if origem_entrada not in OrigemEncaminhamento.values:
+            raise ValidationError({"origem_entrada": "Escolha uma origem válida."})
+        anteriores["origem_entrada"], entrada.origem_entrada = "", origem_entrada
     posteriores = participante.movimentacoes.exclude(tipo=TipoMovimentacao.ENTRADA)
     if posteriores.filter(data__lt=data_entrada).exists():
         raise ValidationError({"data_entrada": "A entrada não pode ser posterior a desligamentos ou reativações registrados."})
@@ -168,6 +187,8 @@ def corrigir_participante(*, usuario, participante_id, data_entrada, perfil_vige
         raise ValidationError({"data_nascimento": "O nascimento não pode ser posterior a movimentações registradas."})
     _validar(participante, entrada)
     novos = _dados(participante, entrada)
+    if "origem_entrada" in anteriores:
+        novos["origem_entrada"] = entrada.origem_entrada
     _cobrir_perfil_desde_a_entrada(participante, data_entrada, anteriores, novos)
     if perfil_vigente_desde is not None or any(novos[campo] != anteriores[campo] for campo in CAMPOS_DEMOGRAFICOS):
         vigencia = timezone.localdate() if perfil_vigente_desde is None else perfil_vigente_desde

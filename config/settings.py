@@ -205,8 +205,12 @@ if MAILERS['default']['BACKEND'] == 'django.core.mail.backends.smtp.EmailBackend
         'username': os.getenv('DJANGO_EMAIL_HOST_USER', ''),
         'password': os.getenv('DJANGO_EMAIL_HOST_PASSWORD', ''),
         'use_tls': env_bool('DJANGO_EMAIL_USE_TLS', 'True'),
+        # Sem timeout, um SMTP pendurado prende o processo a cada pedido de "esqueci minha senha".
+        'timeout': int(os.getenv('DJANGO_EMAIL_TIMEOUT', '10')),
     }
 DEFAULT_FROM_EMAIL = os.getenv('DJANGO_DEFAULT_FROM_EMAIL', 'webmaster@localhost')
+# RF-USR-05: o link de "esqueci minha senha" vale 2 horas (o padrão do Django é 3 dias).
+PASSWORD_RESET_TIMEOUT = int(os.getenv('DJANGO_PASSWORD_RESET_TIMEOUT', str(2 * 60 * 60)))
 SERVER_EMAIL = os.getenv('DJANGO_SERVER_EMAIL', DEFAULT_FROM_EMAIL)
 
 
@@ -253,6 +257,12 @@ LOGGING = {
         'django.security': {
             'handlers': ['console', 'mail_admins'],
             'level': 'WARNING',
+            'propagate': False,
+        },
+        # Falhas de envio do "esqueci minha senha" (o Django as registra aqui e segue sem erro na tela).
+        'django.contrib.auth': {
+            'handlers': ['console'],
+            'level': 'ERROR',
             'propagate': False,
         },
     },
