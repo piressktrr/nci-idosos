@@ -13,6 +13,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+from config.banco import banco_de_url, banco_local
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / '.env')
@@ -40,6 +42,13 @@ ALLOWED_HOSTS = env_list('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1')
 
 # Origens com esquema, ex.: https://nci.exemplo.org.br. Necessário em produção atrás de HTTPS/proxy.
 CSRF_TRUSTED_ORIGINS = env_list('DJANGO_CSRF_TRUSTED_ORIGINS')
+
+# Render: o endereço público (ex.: nci-idosos.onrender.com) chega nesta variável, definida pelo próprio Render.
+# Assim não é preciso repetir o domínio nas variáveis acima.
+_HOST_RENDER = os.getenv('RENDER_EXTERNAL_HOSTNAME')
+if _HOST_RENDER:
+    ALLOWED_HOSTS.append(_HOST_RENDER)
+    CSRF_TRUSTED_ORIGINS.append(f'https://{_HOST_RENDER}')
 
 # E-mails que recebem os avisos de erro 500 quando DEBUG=False. Formato: ti@exemplo.org,outro@exemplo.org.
 ADMINS = env_list('DJANGO_ADMINS')
@@ -79,6 +88,8 @@ NCI_AJUSTE_AFASTAMENTO = 'atividades.ajustes_afastamento.atualizar_ausencias'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # Serve os arquivos de static/ (CSS, JS, fontes) pelo próprio Django, comprimidos e com cache longo.
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -112,15 +123,12 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
+# Hospedagem: DATABASE_URL (Render, Neon...). Local: POSTGRES_* do .env (docker-compose).
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ['POSTGRES_DB'],
-        'USER': os.environ['POSTGRES_USER'],
-        'PASSWORD': os.environ['POSTGRES_PASSWORD'],
-        'HOST': os.getenv('POSTGRES_HOST', '127.0.0.1'),
-        'PORT': os.getenv('POSTGRES_PORT', '5433'),
-    }
+    'default': (
+        banco_de_url(os.environ['DATABASE_URL'], conn_max_age=int(os.getenv('DJANGO_DB_CONN_MAX_AGE', '0')))
+        if os.getenv('DATABASE_URL') else banco_local(os.environ)
+    )
 }
 
 
@@ -163,6 +171,14 @@ STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 # Destino do collectstatic em produção (não versionado).
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Em produção, o collectstatic gera cópias comprimidas e com hash no nome (cache longo no navegador).
+# Fica desligado por padrão porque exige rodar collectstatic antes (os testes e o runserver local não rodam).
+if env_bool('DJANGO_STATIC_MANIFEST'):
+    STORAGES = {
+        'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+        'staticfiles': {'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage'},
+    }
 
 # RNF-SEG-06: com DEBUG desligado (produção), tráfego só por HTTPS e cookies seguros.
 if not DEBUG:
