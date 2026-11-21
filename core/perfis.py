@@ -4,12 +4,11 @@ Os grupos são garantidos por `garantir_perfis`, chamada no `post_migrate` (liga
 comando `manage.py garantir_perfis`. Não é data migration porque as permissões do Django só são criadas no
 post_migrate. A rotina só acrescenta o mínimo de cada perfil: permissões dadas à mão aos grupos são mantidas.
 
-Permissões operacionais de atividades são mantidas pelo próprio app; Administrador
-recebe view_atividade para acessar a gestão de situação autorizada nesta integração.
+Administrador recebe as permissões operacionais de participantes e atividades,
+inclusive aulas, inscrições, frequência e lista de espera.
 
-Critério de administrador: `e_administrador` (ativo e superusuário ou membro de "Administrador"). Atenção:
-o catálogo de categorias do FMR (atividades.classificacao) ainda exige `is_superuser`, critério próprio daquele
-módulo; membros de "Administrador" sem superusuário não passam nele.
+Critério de administrador: `e_administrador` (ativo e superusuário ou membro de "Administrador").
+Isso não altera is_staff/is_superuser nem a proteção das contas de superusuários.
 """
 
 from django.apps import apps as global_apps
@@ -28,10 +27,9 @@ PERMISSOES_EQUIPE = (
     "participantes.change_participante",
 )
 # Administrador: todas as permissões destes apps (inclusive de modelos futuros) mais as listadas abaixo.
-APPS_COMPLETOS_ADMINISTRADOR = ("participantes",)
+APPS_COMPLETOS_ADMINISTRADOR = ("participantes", "atividades")
 # Contas e grupos sem "delete": desativar conta preserva o histórico (RF-USR-04).
 PERMISSOES_ADMINISTRADOR = (
-    "atividades.view_atividade",
     "auth.view_user", "auth.add_user", "auth.change_user",
     "auth.view_group", "auth.add_group", "auth.change_group",
 )
