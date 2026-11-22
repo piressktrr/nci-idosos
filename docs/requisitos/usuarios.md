@@ -29,13 +29,13 @@ Permitir somente ao administrador cadastrar e administrar usuários do sistema.
 - **Fonte:** D11
 - **Status da definição:** Confirmado
 
-### RF-USR-04 — Pendente (proposta do protótipo)
+### RF-USR-04 — Confirmado
 
 Permitir ao administrador desativar um usuário preservando o histórico de suas ações.
 
 - **Prioridade:** MVP
 - **Fonte:** PROTO, §14
-- **Status da definição:** Pendente (proposta do protótipo)
+- **Status da definição:** Confirmado. Resposta do NCI (21/11/2026): desativação de contas confirmada como está (preserva o histórico).
 
 ### RF-USR-05 — Confirmado
 
@@ -43,7 +43,7 @@ Oferecer mecanismo de recuperação de acesso a ser definido pela equipe e pelo 
 
 - **Prioridade:** MVP
 - **Fonte:** PROTO, §14
-- **Status da definição:** Confirmado. Resposta do NCI (20/11/2026): "esqueci minha senha" por e-mail.
+- **Status da definição:** Confirmado. Resposta do NCI (20/11/2026): "esqueci minha senha" por e-mail. Decisão da equipe (22/11/2026): sem serviço de e-mail por enquanto; a tela existe, mas o e-mail só aparece no log.
 
 ## RN — Regras de negócio
 
