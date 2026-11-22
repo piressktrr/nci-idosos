@@ -79,14 +79,31 @@ class InscricaoForm(forms.Form):
         ]
 
 
+class SituacaoChamadaWidget(forms.RadioSelect):
+    """Sem valor no POST, nenhuma opção fica marcada: o "—" só aparece marcado quando foi escolhido."""
+
+    def format_value(self, value):
+        return [] if value is None else super().format_value(value)
+
+
 class ChamadaForm(forms.Form):
-    def __init__(self, *args, participantes=(), **kwargs):
+    """Chamada por inscrição. A opção "—" deixa a pessoa sem situação: ela não recebe frequência (por exemplo, quem
+    ainda não fazia parte da turma numa chamada retroativa).
+
+    Com `exigir_todos`, todo participante listado precisa vir no POST (mesmo com "—"): um campo ausente indica que a
+    tela foi aberta antes de uma nova inscrição, e a chamada não é salva pela metade.
+    """
+
+    SEM_SITUACAO = ("", "—")
+
+    def __init__(self, *args, participantes=(), exigir_todos=False, **kwargs):
         super().__init__(*args, **kwargs)
+        self.exigir_todos = exigir_todos
         for item in participantes:
             if item["disponivel"] and item["frequencia"] is None:
                 self.fields[f"registro_{item['inscricao_id']}"] = forms.ChoiceField(
                     label=f"Situação de {item['nome']}", required=False,
-                    choices=Frequencia.Situacao.choices, widget=forms.RadioSelect,
+                    choices=[*Frequencia.Situacao.choices, self.SEM_SITUACAO], widget=SituacaoChamadaWidget,
                     initial=Frequencia.Situacao.PRESENTE,
                 )
                 self.fields[f"motivo_{item['inscricao_id']}"] = forms.ModelChoiceField(
@@ -104,6 +121,9 @@ class ChamadaForm(forms.Form):
             if campo.startswith(("registro_", "motivo_", "observacao_")):
                 if campo not in self.fields or (hasattr(self.data, "getlist") and len(self.data.getlist(campo)) != 1):
                     raise forms.ValidationError("Há inscrição inválida, repetida ou já lançada. Atualize a chamada.")
+        if self.exigir_todos and any(campo.startswith("registro_") and campo not in self.data for campo in self.fields):
+            raise forms.ValidationError(
+                "Confira a situação de todos os participantes. As inscrições podem ter mudado; atualize a tela.")
         self.registros = {int(campo.removeprefix("registro_")): valor for campo, valor in dados.items() if campo.startswith("registro_") and valor}
         self.justificativas = {}
         for campo, valor in list(dados.items()):
@@ -159,6 +179,11 @@ class ClassificacaoForm(forms.Form):
     categoria = forms.ModelChoiceField(queryset=CategoriaFMR.objects.filter(ativa=True))
     inicio = forms.DateField(label="Vigente a partir de", initial=timezone.localdate,
         widget=forms.DateInput(format="%Y-%m-%d", attrs={"type": "date"}))
+
+
+class SituacaoAtividadeForm(forms.Form):
+    ativo = forms.TypedChoiceField(label="Situação desejada", choices=(("0", "Inativa"), ("1", "Ativa")),
+                                  coerce=lambda valor: valor == "1")
 
 
 class VagaForm(forms.Form):

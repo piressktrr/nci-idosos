@@ -13,19 +13,21 @@ from pathlib import Path
 from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser, Permission
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import connection, transaction
 from django.db.models.deletion import ProtectedError
 from django.test import TestCase, override_settings
 from django.test.utils import CaptureQueriesContext
 
 from atividades.consultas_participante import PERMISSOES_HISTORICO_FREQUENCIA, frequencia_do_participante
+from atividades.espera import adicionar_espera
 from atividades.integracoes.participantes import obter_provedor
-from atividades.models import Atividade, Frequencia, Inscricao
+from atividades.models import Atividade, EsperaAtividade, Frequencia, Inscricao
 from atividades.services import cancelar_aula, inscrever_participante, registrar_aula, registrar_frequencias
 from core.integracoes import ParticipanteResumo
 from participantes.categorias import StatusParticipante, TipoMovimentacao
 from participantes.models import Movimentacao, Participante, RegistroParticipante
+from participantes.movimentacoes import movimentar_participante
 from participantes.provedor import ProvedorParticipantes
 from participantes.services import cadastrar_participante
 
@@ -139,6 +141,36 @@ class FaltasNaoDesligamTests(IntegracaoBase):
         participante = Participante.objects.get(pk=self.participante.pk)
         self.assertEqual(participante.status, StatusParticipante.ATIVO)
         self.assertEqual(participante.movimentacoes.count(), 1)
+
+
+@override_settings(NCI_PARTICIPANTES_PROVIDER=PROVEDOR_REAL)
+class AfastamentoEmAtividadesTests(IntegracaoBase):
+    """NCI 21/11: o afastado sai da lista de espera; a justificativa escolhida pela equipe sobrevive ao retorno."""
+
+    def test_afastamento_retira_da_espera_e_retorno_preserva_justificativa_da_equipe(self):
+        self.usuario.user_permissions.add(Permission.objects.get(content_type__app_label="atividades",
+                                                                 codename="add_esperaatividade"))
+        usuario = get_user_model().objects.get(pk=self.usuario.pk)
+        referencia = str(self.participante.pk)
+        coral = Atividade.objects.create(nome="Coral fictício", local="Sala B", monitor="Monitor fictício")
+        espera = adicionar_espera(usuario=usuario, atividade_id=coral.pk, participante_referencia=referencia)
+        inscricao = self.inscrever(self.participante)
+        movimentar_participante(usuario=usuario, participante_id=self.participante.pk, tipo="afastamento",
+                                data=date(2024, 3, 1))
+        espera.refresh_from_db()
+        self.assertEqual(espera.situacao, EsperaAtividade.Situacao.RETIRADO)
+        with self.assertRaisesMessage(ValidationError, "Registre o retorno do participante afastado"):
+            adicionar_espera(usuario=usuario, atividade_id=coral.pk, participante_referencia=referencia)
+        registrar_frequencias(usuario=usuario, atividade_id=self.atividade.pk, aula_id=self.aula(5).pk,
+                              registros={inscricao.pk: Frequencia.Situacao.JUSTIFICADO},
+                              justificativas={inscricao.pk: {"observacao": "Atestado fictício"}})
+        movimentar_participante(usuario=usuario, participante_id=self.participante.pk, tipo="retorno",
+                                data=date(2024, 3, 3))
+        frequencia = Frequencia.objects.get(inscricao=inscricao)
+        self.assertEqual((frequencia.situacao, frequencia.justificada_por_afastamento, frequencia.observacao),
+                         (Frequencia.Situacao.JUSTIFICADO, False, "Atestado fictício"))
+        espera.refresh_from_db()
+        self.assertEqual(espera.situacao, EsperaAtividade.Situacao.RETIRADO)  # o retorno não devolve à espera
 
 
 @override_settings(NCI_PARTICIPANTES_PROVIDER=PROVEDOR_REAL)

@@ -5,8 +5,11 @@ from django.views.decorators.http import require_http_methods
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 
-from ..espera import adicionar_espera, autorizar, retirar_espera
+from core.permissoes import autorizar
+
+from ..espera import adicionar_espera, primeiro_da_fila, retirar_espera
 from ..forms import InscricaoForm, VagaForm
 from ..integracoes.participantes import obter_provedor
 from ..models import Atividade, EsperaAtividade
@@ -36,8 +39,12 @@ def lista_espera(request, atividade_id):
         return render(request, "atividades/lista_espera.html", {"atividade": atividade, "indisponivel": True}, status=503)
     pagina = Paginator(atividade.lista_espera.filter(origem_participante=provedor.origem), 20).get_page(request.GET.get("page"))
     nomes = {item.referencia: item.nome for item in participantes}
-    linhas = [{"espera": item, "nome": nomes.get(item.participante_referencia, "Participante indisponível")} for item in pagina]
-    primeiro = atividade.lista_espera.filter(origem_participante=provedor.origem, situacao="aguardando").first()
+    estados = getattr(provedor, "situacoes_em", lambda data: {})(timezone.localdate())
+    linhas = [{"espera": item, "nome": nomes.get(item.participante_referencia, "Participante indisponível"),
+               "afastado": item.situacao == "aguardando" and estados.get(item.participante_referencia) == "afastamento"}
+              for item in pagina]
+    # Afastado não é oferecido para atendimento (NCI 21/11); o primeiro elegível segue a ordem de entrada.
+    primeiro = primeiro_da_fila(atividade=atividade, provedor=provedor, estados=estados)
     return render(request, "atividades/lista_espera.html", {"atividade": atividade, "form": form,
         "pagina": pagina, "linhas": linhas, "primeiro": primeiro, "demonstracao": provedor.demonstracao})
 

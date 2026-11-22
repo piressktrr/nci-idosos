@@ -8,13 +8,12 @@ from django.shortcuts import redirect, render
 from django.utils import timezone
 
 from ..classificacao import com_categoria_vigente
-from ..forms import AtividadeForm, FiltroCategoriaForm
+from ..forms import AtividadeForm, FiltroCategoriaForm, SituacaoAtividadeForm
 from ..models import Atividade
 from ..services import cadastrar_atividade
 from core.perfis import e_administrador
-from usuarios.decorators import administrador_required
+from core.decorators import administrador_required
 from ..situacao import alterar_situacao_atividade
-from usuarios.forms import SituacaoContaForm
 from django.shortcuts import get_object_or_404
 
 
@@ -57,7 +56,7 @@ def lista(request):
 @require_http_methods(["GET", "POST"])
 def situacao(request, atividade_id):
     atividade = get_object_or_404(Atividade, pk=atividade_id)
-    form = SituacaoContaForm(request.POST if request.method == "POST" else None,
+    form = SituacaoAtividadeForm(request.POST if request.method == "POST" else None,
                              initial={"ativo": "0" if atividade.ativa else "1"})
     if request.method == "POST" and form.is_valid():
         try:

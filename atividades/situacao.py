@@ -1,7 +1,7 @@
 """Desativação operacional; aulas, inscrições e classificações anteriores são preservadas."""
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from usuarios.services import autorizar_administrador
+from core.permissoes import autorizar_administrador
 from .models import Atividade, RegistroSituacaoAtividade
 
 
@@ -12,7 +12,7 @@ def exigir_atividade_ativa(atividade):
 
 @transaction.atomic
 def alterar_situacao_atividade(*, usuario, atividade_id, ativa):
-    autor = autorizar_administrador(usuario)
+    autor = autorizar_administrador(usuario, "Somente administradores podem ativar ou desativar atividades.")
     if type(ativa) is not bool:
         raise ValidationError("Informe uma situação válida.")
     atividade = Atividade.objects.select_for_update().get(pk=atividade_id)
