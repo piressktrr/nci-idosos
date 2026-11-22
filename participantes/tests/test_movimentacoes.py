@@ -105,7 +105,11 @@ class CicloParticipanteTests(TestCase):
         self.pessoa.status = "ativo"
         self.pessoa.save(update_fields=["status"])
         self.pessoa.movimentacoes.all().delete()
-        self.assertIsNone(consultar_permanentes_fmr(usuario=self.equipe, ano=2024, mes=2)["total"])
+        self.assertIsNone(permanentes_em(usuario=self.equipe, data_referencia=date(2024, 2, 29)))
+        # O FMR não anula mais o mês: calcula com os cadastros completos e lista o pendente com o motivo.
+        fmr = consultar_permanentes_fmr(usuario=self.equipe, ano=2024, mes=2)
+        self.assertEqual(fmr["total"], 0)
+        self.assertEqual([p["motivo"] for p in fmr["cadastros_pendentes"]], ["sem entrada"])
 
     def test_mes_antes_da_entrada_e_mes_vazio_retornam_zero_real(self):
         self.assertEqual(self.refs(date(2023, 12, 31)), set())

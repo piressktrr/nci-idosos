@@ -100,16 +100,26 @@ class IngressantesEncaminhamentoFMRTests(TestCase):
         self.assertContains(resposta, 'title="A origem precisa estar registrada na entrada')
         self.assertNotContains(resposta, 'id="tabela-ingressantes-encaminhamento"')
 
-    def test_cadastro_sem_entrada_nao_vira_mes_vazio(self):
-        pessoa = novo_participante()
+    def test_cadastro_sem_entrada_fica_fora_e_e_listado_sem_anular_o_mes(self):
+        # Antes: um cadastro sem entrada anulava a tabela (None, pendência ENTRADA). Agora ele fica fora do
+        # cálculo, listado como pendente na tela, e os ingressos registrados continuam contados.
+        self.pessoa("creas")
+        pessoa = novo_participante(nome_completo="Pessoa Fictícia Sem Entrada")
         pessoa.save()
-        self.assertIsNone(ingressantes_por_encaminhamento_mensal(usuario=self.usuario, ano=2024, mes=2))
+        inativo = self.pessoa("cras")
+        type(inativo).objects.filter(pk=inativo.pk).update(status="inativo")
+        fonte = ingressantes_por_encaminhamento_mensal(usuario=self.usuario, ano=2024, mes=2)
+        self.assertEqual((fonte["total"], fonte["total_ingressantes"]), (1, 1))
         dados = self.consultar()
-        self.assertIsNone(dados["total"])
-        self.assertEqual(dados["pendencias"][0]["codigo"], "ENTRADA")
+        self.assertEqual(dados["pendencias"], [])
+        self.assertEqual({linha["codigo"]: linha["quantidade"] for linha in dados["linhas"]},
+                         {"cras": 0, "creas": 1, "rede": 0})
         resposta = self.client.get(self.url, {"mes": "2024-02"})
-        self.assertContains(resposta, "Faltam datas de entrada")
-        self.assertNotContains(resposta, "Total de novos ingressantes no mês:")
+        self.assertContains(resposta, 'id="tabela-ingressantes-encaminhamento"')
+        self.assertContains(resposta, "2 cadastro(s) fora do cálculo deste FMR")
+        self.assertContains(resposta, "<tr><td>Pessoa Fictícia Sem Entrada</td><td>Sem entrada</td></tr>", html=True)
+        self.assertContains(resposta, "<tr><td>Pessoa Fictícia Encaminhamento 2</td><td>Status Inativo</td></tr>",
+                            html=True)
 
     def test_migration_recupera_original_auditado_e_preserva_desconhecido_e_snapshot_existente(self):
         pessoa = self.pessoa()

@@ -17,20 +17,37 @@ from relatorios.services import consultar_presencas_fmr
 
 @override_settings(NCI_PARTICIPANTES_PROVIDER="participantes.provedor.ProvedorParticipantes")
 class PresencasFMRTests(TestCase):
-    def test_media_exemplo_1579_em_20_dias_e_arredondamento_na_tela(self):
-        dados = {"dias": [{"data": date(2024, 2, n), "ocorrencias": 79 if n < 20 else 78,
-                            "participantes_unicos": 1} for n in range(1, 21)],
+    def test_media_exemplo_1579_em_20_dias_uteis_e_arredondamento_na_tela(self):
+        # Fevereiro/2023 tem exatamente 20 dias úteis (P06: dias úteis do calendário).
+        dias_uteis = [dia for dia in range(1, 29) if date(2023, 2, dia).weekday() < 5]
+        dados = {"dias": [{"data": date(2023, 2, n), "ocorrencias": 79 if i < 19 else 78,
+                            "participantes_unicos": 1} for i, n in enumerate(dias_uteis)],
                  "total_ocorrencias": 1579, "total_participantes_unicos": 1, "demonstracao": False}
         with patch("relatorios.services.consultar_presencas_mensais", return_value=dados):
-            resultado = self.consultar()
+            resultado = self.consultar(ano=2023)
             self.client.force_login(self.usuario)
-            resposta = self.client.get(self.url, {"mes": "2024-02"})
+            resposta = self.client.get(self.url, {"mes": "2023-02"})
         self.assertEqual(resultado["media_diaria"], Decimal("78.95"))
         self.assertEqual(resultado["dias_funcionamento"], 20)
-        self.assertEqual(len(resultado["dias"]), 29)
+        self.assertEqual(len(resultado["dias"]), 28)
         self.assertContains(resposta, "Média diária:</strong> 79")
+        self.assertContains(resposta, "1579 ÷ 20 dias úteis")
 
-    def test_divisor_so_conta_datas_com_presencas_sem_multiplicar_aulas(self):
+    def test_dias_uteis_do_calendario_sem_feriados(self):
+        from relatorios.services import dias_uteis
+        # Fev/2024 (bissexto, começa na quinta): 21; fev/2023: 20; jun/2024 (começa no sábado): 20; jan/2025: 23.
+        # Dez/2024: 22, sem descontar o feriado de 25/12 (o sistema não tem calendário de feriados).
+        for ano, mes, esperado in ((2024, 2, 21), (2023, 2, 20), (2024, 6, 20), (2025, 1, 23), (2024, 12, 22)):
+            with self.subTest(ano=ano, mes=mes):
+                self.assertEqual(dias_uteis(ano, mes), esperado)
+        # Sábado e domingo com presença não aumentam o divisor.
+        self.lancar(date(2024, 2, 3))
+        self.lancar(date(2024, 2, 4))
+        resultado = self.consultar()
+        self.assertEqual((resultado["dias_funcionamento"], resultado["dias_com_atendimento"]), (21, 2))
+        self.assertEqual(resultado["media_diaria"], Decimal(2) / Decimal(21))
+
+    def test_divisor_e_dias_uteis_independente_das_datas_com_presenca(self):
         self.lancar(date(2024, 2, 1))
         self.lancar(date(2024, 2, 1), self.mesma_pessoa)
         self.lancar(date(2024, 2, 2))
@@ -39,20 +56,23 @@ class PresencasFMRTests(TestCase):
         self.lancar(date(2024, 2, 5), cancelada=True)
         self.criar_aula(date(2024, 2, 6))
         resultado = self.consultar()
-        self.assertEqual(resultado["dias_funcionamento"], 2)
-        self.assertEqual(resultado["media_diaria"], Decimal("1.5"))
+        # Antes o divisor era o número de datas com presença (2); agora são os 21 dias úteis de fev/2024 (P06).
+        self.assertEqual(resultado["dias_funcionamento"], 21)
+        self.assertEqual(resultado["dias_com_atendimento"], 2)
+        self.assertEqual(resultado["media_diaria"], Decimal(3) / Decimal(21))
         with override_settings(NCI_FMR_CONTAGEM_DIARIA="participantes_unicos"):
             resultado = self.consultar()
         self.assertEqual(resultado["total_contagem_diaria"], 2)
-        self.assertEqual(resultado["media_diaria"], 1)
+        self.assertEqual(resultado["media_diaria"], Decimal(2) / Decimal(21))
 
-    def test_correcao_remove_ultimo_atendimento_e_recalcula_divisor(self):
+    def test_correcao_remove_ultimo_atendimento_e_media_vira_zero_real(self):
         frequencia = self.lancar(date(2024, 2, 1))
-        self.assertEqual(self.consultar()["dias_funcionamento"], 1)
+        self.assertEqual(self.consultar()["dias_com_atendimento"], 1)
         Frequencia.objects.filter(pk=frequencia.pk).update(situacao="ausente")
         resultado = self.consultar()
-        self.assertEqual(resultado["dias_funcionamento"], 0)
-        self.assertIsNone(resultado["media_diaria"])
+        self.assertEqual(resultado["dias_com_atendimento"], 0)
+        self.assertEqual(resultado["dias_funcionamento"], 21)
+        self.assertEqual(resultado["media_diaria"], 0)
 
     @classmethod
     def setUpTestData(cls):
@@ -115,15 +135,16 @@ class PresencasFMRTests(TestCase):
         self.assertEqual([dia["ocorrencias"] for dia in resultado["dias"]], [0] * 28 + [1])
         self.assertEqual(resultado["total_participantes_unicos"], 1)
 
-    def test_mes_sem_aulas_e_anos_extremos_sem_inventar_media(self):
-        for ano, mes in ((2024, 2), (1, 1), (9999, 12)):
+    def test_mes_sem_aulas_e_anos_extremos_media_zero_sobre_dias_uteis(self):
+        for ano, mes, uteis in ((2024, 2, 21), (1, 1, 23), (9999, 12, 23)):
             with self.subTest(ano=ano, mes=mes):
                 resultado = self.consultar(ano=ano, mes=mes)
                 self.assertTrue(all(dia["ocorrencias"] == 0 for dia in resultado["dias"]))
-                self.assertEqual(resultado["dias_funcionamento"], 0)
+                self.assertEqual(resultado["dias_funcionamento"], uteis)
+                self.assertEqual(resultado["dias_com_atendimento"], 0)
                 self.assertEqual(resultado["total_ocorrencias"], 0)
                 self.assertEqual(resultado["total_participantes_unicos"], 0)
-                self.assertIsNone(resultado["media_diaria"])
+                self.assertEqual(resultado["media_diaria"], 0)
 
     def test_origem_do_provedor_separa_frequencias_de_demonstracao(self):
         demo = self.inscrever(self.atividade, "ficticio-a", origem="placeholder")
@@ -138,7 +159,7 @@ class PresencasFMRTests(TestCase):
         Frequencia.objects.filter(pk=frequencia.pk).update(situacao="ausente")
         self.assertEqual(self.consultar()["total_participantes_unicos"], 0)
         Aula.objects.filter(pk=frequencia.aula_id).update(situacao="cancelada")
-        self.assertEqual(self.consultar()["dias_funcionamento"], 0)
+        self.assertEqual(self.consultar()["dias_com_atendimento"], 0)
 
     def test_fonte_e_servico_rejeitam_parametros_invalidos(self):
         for ano, mes in ((True, 2), (2024, False), (0, 1), (10000, 1), (2024, 13), (2024, 0), ("2024", 2)):
@@ -202,10 +223,12 @@ class PresencasFMRTests(TestCase):
         self.assertContains(resposta, "29/02/2024")
         self.assertContains(resposta, "Total mensal de ocorrências:</strong> 1", html=False)
         self.assertContains(resposta, "Pessoas atendidas no mês de referência (indivíduos):</strong> 1", html=False)
-        self.assertContains(resposta, "Dias de funcionamento:</strong> 1")
-        self.assertContains(resposta, "Média diária:</strong> 1")
+        self.assertContains(resposta, "Dias de funcionamento:</strong> 21")
+        self.assertContains(resposta, "dias úteis do calendário do mês, de segunda a sexta")
+        self.assertContains(resposta, "Feriados não são descontados")
+        self.assertContains(resposta, "Média diária:</strong> 0")
         self.assertNotContains(resposta, "Falta informação para calcular")
-        self.assertEqual(resposta.context["presencas"]["media_diaria"], 1)
+        self.assertEqual(resposta.context["presencas"]["media_diaria"], Decimal(1) / Decimal(21))
         for consulta in consultas:
             self.assertTrue(consulta["sql"].upper().startswith("SELECT"), consulta["sql"])
 

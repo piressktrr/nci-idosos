@@ -1,0 +1,32 @@
+<section aria-labelledby="categorias-atividades">
+  <h2 id="categorias-atividades">Atividades e participações por categoria</h2>
+  {% if categorias_atividades.aviso %}
+  <p class="mb-0" role="status">{{ categorias_atividades.aviso }}</p>
+  {% else %}
+  <p id="legenda-categorias-atividades">Cada aula realizada no mês conta na categoria do FMR da sua atividade, vigente na data da aula (a categoria vale para a atividade inteira). Participações são as presenças registradas nessas aulas; a mesma pessoa pode contar mais de uma vez. Aulas canceladas não contam.</p>
+  {% for pendencia in categorias_atividades.pendencias %}
+  <div class="alert alert-warning">
+    <span tabindex="0" title="{{ pendencia.explicacao }}" aria-describedby="categorias-pendencia-{{ pendencia.codigo }}" style="cursor: help;">{{ pendencia.aviso }}</span>
+    <small class="d-block">Passe o mouse sobre o aviso para ver qual informação está faltando.</small>
+    <span id="categorias-pendencia-{{ pendencia.codigo }}" class="visually-hidden">{{ pendencia.explicacao }}</span>
+  </div>
+  {% endfor %}
+  {% if categorias_atividades.sem_categoria.aulas %}<p>Aulas sem categoria vigente: {{ categorias_atividades.sem_categoria.aulas }}; participações nessas aulas: {{ categorias_atividades.sem_categoria.participacoes }}. — indica informação não calculada, diferente de zero.</p>{% endif %}
+  <div class="nci-tabela verde table-responsive">
+    <table class="table table-hover" id="tabela-categorias-atividades" aria-describedby="legenda-categorias-atividades nota-categorias-atividades">
+      <thead><tr><th scope="col">Categoria do FMR</th><th scope="col">Aulas realizadas</th><th scope="col">Participações (presenças)</th></tr></thead>
+      <tbody>{% for linha in categorias_atividades.linhas %}
+        <tr><th scope="row">{{ linha.categoria }}</th>
+          <td>{% include "relatorios/_valor_contagem.html" with valor=linha.aulas only %}</td>
+          <td>{% include "relatorios/_valor_contagem.html" with valor=linha.participacoes only %}</td></tr>
+      {% empty %}
+        <tr><td colspan="3">Nenhuma categoria do FMR cadastrada.</td></tr>
+      {% endfor %}</tbody>
+      <tfoot><tr><th scope="row">Total</th>
+        <td>{% include "relatorios/_valor_contagem.html" with valor=categorias_atividades.total_aulas only %}</td>
+        <td>{% include "relatorios/_valor_contagem.html" with valor=categorias_atividades.total_participacoes only %}</td></tr></tfoot>
+    </table>
+  </div>
+  <p class="nci-legenda-tabela" id="nota-categorias-atividades">Aulas e participações por categoria em {{ categorias_atividades.periodo.inicio|date:"m/Y" }}.</p>
+  {% endif %}
+</section>

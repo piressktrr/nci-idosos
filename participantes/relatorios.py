@@ -8,8 +8,8 @@ from django.db.models import Count, OuterRef, Q, Subquery
 
 from core.permissoes import autorizar
 from .categorias import OrigemEncaminhamento
-from .consultas import permanentes_em, situacoes_vigentes_em
-from .models import MotivoDesligamento, Movimentacao, Participante, PerfilDemografico
+from .consultas import cadastros_com_historico, permanentes_com_pendencias, situacoes_vigentes_em
+from .models import MotivoDesligamento, Movimentacao, PerfilDemografico
 from .regras import idade_em
 
 
@@ -21,6 +21,11 @@ def _ate_meses(inicio, fim, meses):
         return True
     limite = date(ano, mes, min(inicio.day, monthrange(ano, mes)[1]))
     return fim <= limite
+
+
+def _permanentes_completos(usuario, data):
+    """RN-FMR-12: permanentes entre os cadastros completos; os pendentes são listados pelo FMR, não anulam o mês."""
+    return permanentes_com_pendencias(usuario=usuario, data_referencia=data).permanentes
 
 
 def tempo_permanencia_desligamentos_mensal(*, usuario, ano, mes):
@@ -60,9 +65,7 @@ def indicadores_sociais_mensal(*, usuario, ano, mes):
     if type(ano) is not int or type(mes) is not int or not 1 <= ano <= 9999 or not 1 <= mes <= 12:
         raise ValidationError("Informe ano e mês válidos.")
     fim = date(ano, mes, monthrange(ano, mes)[1])
-    permanentes = permanentes_em(usuario=usuario, data_referencia=fim)
-    if permanentes is None:
-        return None
+    permanentes = _permanentes_completos(usuario, fim)
     situacoes = situacoes_vigentes_em(fim, [int(pessoa.referencia) for pessoa in permanentes])
     sem_situacao = sum(situacao is None for situacao in situacoes.values())
     totais = dict.fromkeys(("moram_sozinhos", "moram_sozinhos_com_apoio", "possuem_deficiencia", "recebem_bpc"), None)
@@ -79,9 +82,7 @@ def indicadores_sociais_mensal(*, usuario, ano, mes):
 
 def perfil_demografico_em(*, usuario, data):
     """Conta os perfis vigentes no fechamento, preservando meses com histórico incompleto."""
-    permanentes = permanentes_em(usuario=usuario, data_referencia=data)
-    if permanentes is None:
-        return None
+    permanentes = _permanentes_completos(usuario, data)
     perfis = list(PerfilDemografico.objects.filter(
         participante_id__in=[int(pessoa.referencia) for pessoa in permanentes], vigente_desde__lte=data)
         .order_by("participante_id", "-vigente_desde").distinct("participante_id")
@@ -100,9 +101,7 @@ def imigrantes_refugiados_mensal(*, usuario, ano, mes):
     if type(ano) is not int or type(mes) is not int or not 1 <= ano <= 9999 or not 1 <= mes <= 12:
         raise ValidationError("Informe ano e mês válidos.")
     fim = date(ano, mes, monthrange(ano, mes)[1])
-    permanentes = permanentes_em(usuario=usuario, data_referencia=fim)
-    if permanentes is None:
-        return None
+    permanentes = _permanentes_completos(usuario, fim)
     situacoes = situacoes_vigentes_em(fim, [int(pessoa.referencia) for pessoa in permanentes])
     sem_situacao = sum(situacao is None for situacao in situacoes.values())
     quantidade = sum(situacao.imigrante_refugiado for situacao in situacoes.values() if situacao is not None)
@@ -111,14 +110,17 @@ def imigrantes_refugiados_mensal(*, usuario, ano, mes):
 
 
 def ingressantes_por_encaminhamento_mensal(*, usuario, ano, mes):
-    """Origem registrada na entrada; correções do cadastro não reclassificam o ingresso."""
+    """Origem registrada na entrada; correções do cadastro não reclassificam o ingresso.
+
+    RN-FMR-12: só os cadastros completos (`cadastros_com_historico`), a mesma base dos demais blocos do FMR;
+    os pendentes (sem entrada, Inativo, Cancelado) são listados na tela em vez de anular o mês.
+    """
     autorizar(usuario, "participantes.view_participante")
     if type(ano) is not int or type(mes) is not int or not 1 <= ano <= 9999 or not 1 <= mes <= 12:
         raise ValidationError("Informe ano e mês válidos.")
-    if Participante.objects.exclude(movimentacoes__tipo="entrada").exists():
-        return None
     inicio, fim = date(ano, mes, 1), date(ano, mes, monthrange(ano, mes)[1])
-    grupos = (Movimentacao.objects.filter(tipo="entrada", data__range=(inicio, fim))
+    grupos = (Movimentacao.objects.filter(tipo="entrada", data__range=(inicio, fim),
+                                          participante__in=cadastros_com_historico().values("pk"))
               .values("origem_entrada").annotate(quantidade=Count("pk")).order_by("origem_entrada"))
     contagens = {grupo["origem_entrada"]: grupo["quantidade"] for grupo in grupos}
     sem_origem = contagens.get("", 0)
@@ -153,41 +155,67 @@ def desligamentos_por_motivo_mensal(*, usuario, ano, mes):
 
 
 def movimentacao_etaria_mensal(*, usuario, ano, mes):
-    """Idade no primeiro dia; saídas/reativações contam eventos para preservar o balanço."""
+    """RF-FMR-05: idade no dia 1; saídas/reativações contam eventos para preservar o balanço.
+
+    - Sexo: o do `PerfilDemografico` vigente no último dia do mês, a mesma data da tabela Sexo×Raça
+      (`perfil_demografico_em`), não o sexo atual do cadastro (RN-FMR-12). Se faltar perfil vigente para alguém
+      que entra na tabela, as células ficam None (pendência), nunca zero (`sem_perfil`).
+    - Menores de 60 anos no dia 1 não têm faixa no FMR: vão para `fora_faixas` (provável erro de cadastro,
+      `menores_60` pessoas) e continuam nos demais blocos; tabela + fora = total dos outros blocos.
+    - Base: só os cadastros completos (`cadastros_com_historico`); os pendentes são listados pelo FMR.
+    """
     autorizar(usuario, "participantes.view_participante")
     if type(ano) is not int or type(mes) is not int or not 1 <= ano <= 9999 or not 1 <= mes <= 12:
         raise ValidationError("Informe ano e mês válidos.")
     inicio, fim = date(ano, mes, 1), date(ano, mes, monthrange(ano, mes)[1])
-    if (Participante.objects.exclude(status__in=("ativo", "afastado", "desligado")).exists()
-            or Participante.objects.exclude(movimentacoes__tipo="entrada").exists()):
-        return None
+    base = cadastros_com_historico()
     campos = ("vieram_mes_anterior", "ingressaram", "reativados", "sairam", "permanecem")
     faixas = ("60–64", "65–69", "70–74", "75 anos ou mais")
     linhas = [{"faixa": faixa, "sexo_codigo": codigo, "sexo": sexo, **dict.fromkeys(campos, 0)}
               for faixa in faixas for codigo, sexo in (("M", "Masculino"), ("F", "Feminino"))]
     grupos = {(linha["faixa"], linha["sexo_codigo"]): linha for linha in linhas}
     movimentos = {}
-    for pessoa, tipo in Movimentacao.objects.filter(data__range=(inicio, fim)).values_list("participante_id", "tipo"):
+    for pessoa, tipo in (Movimentacao.objects.filter(data__range=(inicio, fim), participante__in=base.values("pk"))
+                         .values_list("participante_id", "tipo")):
         contagens = movimentos.setdefault(pessoa, dict.fromkeys(campos, 0))
         campo = {"entrada": "ingressaram", "reativacao": "reativados", "desligamento": "sairam"}.get(tipo)
         if campo:
             contagens[campo] += 1
     eventos = Movimentacao.objects.filter(participante_id=OuterRef("pk")).order_by("-data", "-pk")
-    pessoas = Participante.objects.annotate(
+    perfil = (PerfilDemografico.objects.filter(participante_id=OuterRef("pk"), vigente_desde__lte=fim)
+              .order_by("-vigente_desde"))
+    pessoas = base.annotate(
         antes=Subquery(eventos.filter(data__lt=inicio).values("tipo")[:1]),
         depois=Subquery(eventos.filter(data__lte=fim).values("tipo")[:1]),
-    ).values("pk", "data_nascimento", "sexo", "antes", "depois")
+        sexo_vigente=Subquery(perfil.values("sexo")[:1]),
+    ).values("pk", "data_nascimento", "sexo_vigente", "antes", "depois")
     ativos = {"entrada", "reativacao", "afastamento", "retorno"}
     fora = dict.fromkeys(campos, 0)
+    menores_60 = sem_perfil = 0
     for pessoa in pessoas:
-        idade = idade_em(pessoa["data_nascimento"], inicio)
-        faixa = next((rotulo for limite, rotulo in ((75, faixas[3]), (70, faixas[2]), (65, faixas[1]), (60, faixas[0]))
-                      if idade >= limite), None)
         valores = movimentos.get(pessoa["pk"], dict.fromkeys(campos, 0)).copy()
         valores["vieram_mes_anterior"] = int(pessoa["antes"] in ativos)
         valores["permanecem"] = int(pessoa["depois"] in ativos)
-        destino = grupos[(faixa, pessoa["sexo"])] if faixa else fora
+        if not any(valores.values()):
+            continue  # Sem vínculo nem movimentação no mês: não entra no FMR.
+        idade = idade_em(pessoa["data_nascimento"], inicio)
+        faixa = next((rotulo for limite, rotulo in ((75, faixas[3]), (70, faixas[2]), (65, faixas[1]), (60, faixas[0]))
+                      if idade >= limite), None)
+        if faixa is None:
+            menores_60 += 1
+            destino = fora
+        elif pessoa["sexo_vigente"] not in ("M", "F"):
+            sem_perfil += 1
+            continue
+        else:
+            destino = grupos[(faixa, pessoa["sexo_vigente"])]
         for campo in campos:
             destino[campo] += valores[campo]
-    return {"linhas": linhas, "totais": {campo: sum(linha[campo] for linha in linhas) for campo in campos},
-            "fora_faixas": fora, "data_referencia_idade": inicio}
+    if sem_perfil:
+        for linha in linhas:
+            linha.update(dict.fromkeys(campos))
+        totais = dict.fromkeys(campos)
+    else:
+        totais = {campo: sum(linha[campo] for linha in linhas) for campo in campos}
+    return {"linhas": linhas, "totais": totais, "fora_faixas": fora, "menores_60": menores_60,
+            "sem_perfil": sem_perfil, "data_referencia_idade": inicio, "data_referencia_sexo": fim}
