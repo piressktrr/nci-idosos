@@ -1,4 +1,9 @@
-"""Cenário fictício reproduzível de outubro de 2026 para a branch versao-teste."""
+"""Cenário fictício reproduzível de outubro de 2026 (RN-SEG-02: somente dados inventados).
+
+Padrão: só roda no banco local `nci_fmr_demonstracao` com DEBUG ligado. Com `--banco-remoto`, roda no banco apontado
+por DATABASE_URL (ambiente de teste do Render), desde que ele não tenha nenhum participante nem atividade; as contas
+que já existirem (o administrador criado com createsuperuser) são mantidas.
+"""
 from datetime import date, time, timedelta
 from random import Random
 from secrets import token_urlsafe
@@ -131,21 +136,30 @@ def completar_perfis_da_carga(autor):
 
 
 class Command(BaseCommand):
-    help = "Carrega exemplos no banco local nci_fmr_demonstracao após migrate. Consulte o FMR de 2026-10."
+    help = ("Carrega exemplos fictícios do FMR de outubro/2026. Padrão: banco local nci_fmr_demonstracao. "
+            "Use --banco-remoto para o ambiente de teste do Render (banco sem participantes nem atividades).")
+
+    def add_arguments(self, parser):
+        parser.add_argument("--banco-remoto", action="store_true",
+                            help="Permite carregar no banco de DATABASE_URL (ambiente de teste, só dados fictícios).")
 
     @transaction.atomic
     def handle(self, *args, **options):
         db = connection.settings_dict
-        if not settings.DEBUG or db["NAME"] != BANCO or db["HOST"] not in ("localhost", "127.0.0.1", "::1"):
-            raise CommandError(f"Use DEBUG local e POSTGRES_DB={BANCO}.")
+        remoto = options["banco_remoto"]
+        if remoto:
+            self.stdout.write(f"Carregando dados FICTÍCIOS no banco {db['NAME']} em {db['HOST']}.")
+        elif not settings.DEBUG or db["NAME"] != BANCO or db["HOST"] not in ("localhost", "127.0.0.1", "::1"):
+            raise CommandError(f"Use DEBUG local e POSTGRES_DB={BANCO}, ou --banco-remoto para o ambiente de teste.")
         usuarios = get_user_model().objects
         autor = usuarios.filter(username="carga_ficticia_fmr").first()
         if autor is not None:
             completar_perfis_da_carga(autor)
             self.stdout.write("Cenário fictício atualizado. Consulte outubro de 2026.")
             return
-        if usuarios.exists() or Participante.objects.exists() or Atividade.objects.exists():
-            raise CommandError("A primeira carga requer um banco de demonstração vazio e migrado.")
+        if Participante.objects.exists() or Atividade.objects.exists() or (usuarios.exists() and not remoto):
+            raise CommandError("A primeira carga requer um banco de demonstração migrado, sem participantes nem "
+                               "atividades.")
         autor = usuarios.create_superuser(username="carga_ficticia_fmr", password=None)
         sorteio = Random(202610)
         pessoas = cadastrar_turma(autor, sorteio)
@@ -153,8 +167,9 @@ class Command(BaseCommand):
         movimentar_turma(autor, pessoas)
         realizar_chamadas(autor, oficinas, sorteio)
         senha = token_urlsafe(15)
-        equipe = usuarios.create_user(username="equipe_teste", password=senha)
+        equipe = usuarios.create_user(username="equipe_teste", password=senha, first_name="Equipe",
+                                      email="equipe_teste@example.org")
         equipe.groups.add(Group.objects.get(name="Equipe"))
         equipe.user_permissions.add(*Permission.objects.filter(content_type__app_label="atividades",
                                                                codename__startswith="view_"))
-        self.stdout.write(f"FMR 2026-10. Login local: equipe_teste. Senha: {senha}")
+        self.stdout.write(f"FMR 2026-10. Login: equipe_teste. Senha: {senha}")
