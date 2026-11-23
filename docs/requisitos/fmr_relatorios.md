@@ -21,13 +21,13 @@ Exibir em uma única área somente os indicadores do FMR de convivência que o M
 - **Fonte:** D09
 - **Status da definição:** Confirmado
 
-### RF-FMR-03 — Pendente (P06 para média)
+### RF-FMR-03 — Confirmado (P06, NCI 21/11)
 
 Apresentar presenças por data, total mensal e média diária, distinguindo ocorrências de participantes únicos.
 
 - **Prioridade:** MVP
-- **Fonte:** FMR; D10; §6.4
-- **Status da definição:** Pendente (P06 para média)
+- **Fonte:** FMR; D10; §6.4; P06
+- **Status da definição:** Confirmado (P06, NCI 21/11: a média divide pelos dias úteis do calendário, ver RN-FMR-14)
 
 ### RF-FMR-04 — Confirmado
 
@@ -68,6 +68,7 @@ Apresentar os indicadores de sexo por raça/cor, identidade de gênero, imigrant
 - **Prioridade:** MVP
 - **Fonte:** FMR, §6.4
 - **Status da definição:** Confirmado
+- **Nota (Q6, NCI 20/11):** a região de moradia não será registrada por ora (só o endereço completo); o bloco Região fica como pendente no FMR, sem valores.
 
 ### RF-FMR-09 — Confirmado
 
@@ -77,13 +78,13 @@ Apresentar indicadores mensais de pessoas que moram sozinhas, têm apoio, possue
 - **Fonte:** FMR, §6.4
 - **Status da definição:** Confirmado
 
-### RF-FMR-10 — Pendente (P04: mapeamento)
+### RF-FMR-10 — Confirmado (P04, NCI 21/11)
 
 Apresentar, por categoria do FMR, a quantidade de aulas realizadas e a soma de participações.
 
 - **Prioridade:** MVP
-- **Fonte:** FMR; D10; §6.3
-- **Status da definição:** Pendente (P04: mapeamento)
+- **Fonte:** FMR; D10; §6.3; P04
+- **Status da definição:** Confirmado (P04, NCI 21/11: a categoria vale para a atividade inteira; cada aula conta na categoria vigente na sua data)
 
 ### RF-FMR-11 — Confirmado
 
@@ -108,6 +109,7 @@ Disponibilizar dados organizados para transcrição manual ao portal da SMADS, s
 - **Prioridade:** MVP
 - **Fonte:** D09
 - **Status da definição:** Confirmado
+- **Nota (Q4, NCI):** no portal, o reativado do mês entra em "ingressaram"; a transcrição mostra "Ingressaram (portal) = ingressaram + reativados" (ver RN-FMR-01).
 
 ### RF-FMR-14 — Pendente (detalhamento do cálculo)
 
@@ -158,6 +160,7 @@ Para cada faixa etária e sexo: permanecem = vieram do mês anterior + ingressar
 - **Prioridade:** MVP
 - **Fonte:** FMR, §6.2
 - **Status da definição:** Confirmado
+- **Nota (Q4):** o sistema mantém reativados separados de ingressos (RN-PAR-08); a conferência usa a equação do portal, com "ingressaram" = ingressos + reativados.
 
 ### RN-FMR-02 — Confirmado
 
@@ -174,6 +177,7 @@ A soma dos participantes classificados por região de moradia deve ser igual ao 
 - **Prioridade:** MVP
 - **Fonte:** FMR, §6.2
 - **Status da definição:** Confirmado
+- **Nota (Q6, NCI 20/11):** região não registrada por ora; sem região, esta conferência não se aplica.
 
 ### RN-FMR-04 — Confirmado
 
@@ -255,13 +259,13 @@ O MVP não precisa preencher o FMR inteiro; indicadores fora de seu escopo ou se
 - **Fonte:** §6.4
 - **Status da definição:** Confirmado
 
-### RN-FMR-14 — Pendente (P06)
+### RN-FMR-14 — Confirmado (P06, NCI 21/11)
 
 «Dias de funcionamento» e sua utilização na média diária dependem de definição do NCI.
 
 - **Prioridade:** MVP
 - **Fonte:** P06
-- **Status da definição:** Pendente (P06)
+- **Status da definição:** Confirmado (P06, NCI 21/11: dias de funcionamento = dias úteis do calendário, segunda a sexta; feriados não são descontados automaticamente)
 
 ### RN-FMR-15 — Pendente (intervalo de cálculo)
 

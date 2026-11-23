@@ -2,8 +2,6 @@
 
 from datetime import date
 
-from core.integracoes import ParticipanteResumo
-
 
 def consultar_tempo_permanencia_desligamentos(*, usuario, ano, mes):
     from participantes.relatorios import tempo_permanencia_desligamentos_mensal
@@ -40,13 +38,13 @@ def consultar_movimentacao_etaria(*, usuario, ano, mes):
     return movimentacao_etaria_mensal(usuario=usuario, ano=ano, mes=mes)
 
 
-def consultar_permanentes_na_data(*, usuario, data_referencia: date) -> tuple[ParticipanteResumo, ...] | None:
-    """None = consulta histórica indisponível; tupla vazia = consulta válida sem permanentes.
+def consultar_permanentes_na_data(*, usuario, data_referencia: date):
+    """RN-FMR-12: `PermanentesComPendencias` de participantes na data (último dia do mês).
 
-    A API de participantes aplica suas permissões e devolve identidades estáveis,
-    sem duplicatas. Acervos incompletos/ambíguos retornam None explicitamente.
-    Chamado pelo serviço FMR após validar perfil, permissão e mês de referência.
+    `permanentes` usa só os cadastros completos; `pendentes` (com `motivos`: sem entrada, status Inativo ou
+    Cancelado) ficam fora de todos os totais do FMR e são listados na tela, sem conversão de status.
+    A API de participantes aplica suas permissões e devolve identidades estáveis, sem duplicatas.
     Não presume que cadastros atualmente ativos permaneciam em meses anteriores.
     """
-    from participantes.consultas import permanentes_em
-    return permanentes_em(usuario=usuario, data_referencia=data_referencia)
+    from participantes.consultas import permanentes_com_pendencias
+    return permanentes_com_pendencias(usuario=usuario, data_referencia=data_referencia)

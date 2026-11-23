@@ -7,7 +7,8 @@ from django.contrib.auth.models import Group
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.test import TestCase
 
-from participantes.consultas import permanentes_com_pendencias, permanentes_em
+from participantes.consultas import (PermanentesComPendencias, cadastros_com_historico,
+                                     permanentes_com_pendencias, permanentes_em)
 from participantes.models import MotivoDesligamento, Movimentacao
 from participantes.tests.test_models import criar_participante
 
@@ -62,3 +63,20 @@ class PermanentesComPendenciasTests(TestCase):
             permanentes_com_pendencias(usuario=sem_perfil, data_referencia=date(2024, 2, 29))
         with self.assertRaises(ValidationError):
             self.consultar("2024-02-29")
+
+    def test_motivos_dos_pendentes(self):
+        sem_entrada = criar_participante(nome_completo="Caio Fictício Sem Entrada")
+        cancelado = criar_participante(nome_completo="Dora Fictícia Cancelada", status="cancelado")
+        type(self.ana).objects.filter(pk=self.ana.pk).update(status="inativo")
+        resultado = self.consultar()
+        self.assertEqual(dict(resultado.motivos), {
+            str(sem_entrada.pk): ("sem entrada",),
+            str(cancelado.pk): ("sem entrada", "status Cancelado"),
+            str(self.ana.pk): ("status Inativo",),
+        })
+        self.assertEqual(self.consultar().permanentes, ())
+        self.assertEqual(dict(PermanentesComPendencias((), ()).motivos), {})
+
+    def test_cadastros_com_historico_e_a_base_do_fmr(self):
+        criar_participante(nome_completo="Caio Fictício Sem Entrada")
+        self.assertEqual(set(cadastros_com_historico().values_list("pk", flat=True)), {self.ana.pk, self.bia.pk})

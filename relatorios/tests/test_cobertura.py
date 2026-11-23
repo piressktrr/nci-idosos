@@ -89,7 +89,21 @@ class CoberturaFMRTests(TestCase):
         dados = consultar_indicadores_fmr(usuario=self.usuario, ano=2024, mes=2)
         campos = {c["campo"]: c for c in dados["campos_indisponiveis"]}
         self.assertEqual(campos["Participantes que permanecem no serviço"]["situacao"], "Aguardando dados ou definição")
-        self.assertIn("históric", campos["Situação social dos participantes"]["motivo"])
+        self.assertIn("fora do cálculo", campos["Participantes que permanecem no serviço"]["motivo"])
+        # Antes, o cadastro sem entrada anulava também a situação social; agora ela é calculada com os completos.
+        self.assertNotIn("Situação social dos participantes", campos)
+        self.assertEqual(dados["permanentes"]["total"], 0)
+
+    def test_aulas_sem_categoria_aparecem_como_pendentes_no_resumo(self):
+        from datetime import date, time
+
+        from atividades.models import Atividade, Aula
+        atividade = Atividade.objects.create(nome="Oficina fictícia sem categoria", monitor="Equipe", local="Sala")
+        Aula.objects.create(atividade=atividade, data=date(2024, 2, 5), inicio=time(9), fim=time(10))
+        dados = consultar_indicadores_fmr(usuario=self.usuario, ano=2024, mes=2)
+        campos = {c["campo"]: c for c in dados["campos_indisponiveis"]}
+        self.assertEqual(campos["Atividades e participações por categoria"]["situacao"], "Aguardando dados ou definição")
+        self.assertIn("sem categoria", campos["Atividades e participações por categoria"]["motivo"])
 
     def test_resumo_preservado_quando_frequencia_nao_pode_ser_consultada(self):
         self.usuario.user_permissions.clear()

@@ -1,0 +1,26 @@
+{% if permanentes.cadastros_pendentes or movimentacao_etaria.menores_60 %}
+<section class="alert alert-warning" aria-labelledby="cadastros-conferir" id="secao-cadastros-conferir">
+  <h2 id="cadastros-conferir">Cadastros para conferir</h2>
+  {% if permanentes.cadastros_pendentes %}
+  <p id="aviso-cadastros-pendentes"><strong>{{ permanentes.cadastros_pendentes|length }} cadastro(s) fora do cálculo deste FMR.</strong>
+    Todos os totais desta página excluem esses cadastros até a correção: registrar a movimentação de entrada, ou a movimentação que corresponde aos status legados Inativo e Cancelado. Nenhum status é convertido automaticamente.</p>
+  {% if transcricao %}
+  <ul id="motivos-cadastros-pendentes">{% for item in permanentes.motivos_pendentes %}<li>{{ item.motivo|capfirst }}: {{ item.quantidade }}</li>{% endfor %}</ul>
+  <p class="mb-0">A lista nominal está no relatório detalhado.</p>
+  {% else %}
+  <div class="nci-tabela table-responsive">
+    <table class="table table-sm mb-0" id="tabela-cadastros-pendentes">
+      <thead><tr><th scope="col">Participante</th><th scope="col">Motivo</th></tr></thead>
+      <tbody>{% for pessoa in permanentes.cadastros_pendentes %}
+        <tr><td>{{ pessoa.nome }}</td><td>{{ pessoa.motivo|capfirst }}</td></tr>
+      {% endfor %}</tbody>
+    </table>
+  </div>
+  {% endif %}
+  {% endif %}
+  {% if movimentacao_etaria.menores_60 %}
+  <p class="mb-0{% if permanentes.cadastros_pendentes %} mt-3{% endif %}" id="aviso-menores-60"><strong>{{ movimentacao_etaria.menores_60 }} participante(s) do mês com menos de 60 anos em {{ movimentacao_etaria.data_referencia_idade|date:"d/m/Y" }}</strong> (provável erro na data de nascimento do cadastro).
+    Eles não entram na tabela por faixa etária, que só tem faixas a partir de 60 anos, mas continuam contados nos demais blocos (permanentes, perfil demográfico, situação social, encaminhamento e desligamentos). Confira a data de nascimento.</p>
+  {% endif %}
+</section>
+{% endif %}

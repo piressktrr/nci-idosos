@@ -28,7 +28,13 @@ class TranscricaoFMRTests(TestCase):
         self.assertContains(resposta, 'href="?mes=2024-02"')
         self.assertContains(resposta, 'name="modo" value="transcricao"')
         self.assertContains(resposta, '<tr><th scope="row">29/02/2024</th><td>0</td></tr>', html=True)
-        self.assertContains(resposta, "<dd>Sem dias com atendimento</dd>", html=True)
+        # Média sobre os 21 dias úteis de fev/2024 (P06), não mais "sem dias com atendimento".
+        self.assertContains(resposta, "Dias de funcionamento (dias úteis, segunda a sexta)")
+        self.assertContains(resposta, "Feriados não são descontados")
+        self.assertContains(resposta, "<dt>Média diária</dt><dd>0</dd>", html=True)
+        # RF-FMR-13 (Q4): valor a lançar no portal, com reativados somados aos ingressos.
+        self.assertContains(resposta, "Ingressaram (portal)")
+        self.assertContains(resposta, 'id="nota-ingressaram-portal"')
         self.assertContains(resposta, 'id="tabela-campos-indisponiveis"')
         self.assertContains(resposta, 'id="tabela-movimentacao-etaria"')
 
