@@ -108,17 +108,25 @@ class IndicadoresSociaisFMRTests(TestCase):
         self.assertContains(resposta, "Participantes sem situação social vigente: 1")
         self.assertNotContains(resposta, 'id="tabela-indicadores-sociais"')
 
-    def test_historico_de_permanencia_incompleto_nao_vira_mes_vazio(self):
+    def test_cadastro_pendente_fica_fora_sem_anular_o_mes(self):
+        # Antes: um cadastro Inativo ou sem entrada anulava os indicadores do mês (None). Agora ele fica fora do
+        # cálculo (listado como pendente na tela) e os cadastros completos continuam contados.
+        completo = self.pessoa()
+        self.situacao(completo)
         pessoa = self.pessoa()
         pessoa.status = "inativo"
         pessoa.save(update_fields=["status"])
-        self.assertIsNone(indicadores_sociais_mensal(usuario=self.usuario, ano=2024, mes=2))
-        self.assertEqual(self.consultar()["pendencia"]["codigo"], "PERMANENCIA")
+        fonte = indicadores_sociais_mensal(usuario=self.usuario, ano=2024, mes=2)
+        self.assertEqual(fonte["total_permanentes"], 1)
+        self.assertIsNone(self.consultar()["pendencia"])
+        self.assertEqual(list(self.contagens(self.consultar()).values()), [1, 1, 1, 1])
         pessoa.status = "ativo"
         pessoa.save(update_fields=["status"])
         pessoa.movimentacoes.all().delete()
-        self.assertEqual(self.consultar()["linhas"], [])
-        self.assertContains(self.client.get(self.url, {"mes": "2024-02"}), "Faltam informações históricas para calcular os indicadores sociais.")
+        self.assertEqual(list(self.contagens(self.consultar()).values()), [1, 1, 1, 1])
+        resposta = self.client.get(self.url, {"mes": "2024-02"})
+        self.assertContains(resposta, 'id="tabela-indicadores-sociais"')
+        self.assertContains(resposta, "1 cadastro(s) fora do cálculo deste FMR")
 
     def test_mes_vazio_e_situacao_negativa_tem_zeros_reais(self):
         dados = self.consultar()

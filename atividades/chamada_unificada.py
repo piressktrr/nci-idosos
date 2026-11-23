@@ -30,6 +30,11 @@ def preparar_chamada(*, usuario, atividade_id, data=None):
 
 @transaction.atomic
 def salvar_chamada(*, usuario, atividade_id, dados_aula, registros, justificativas=None):
+    """RF-ATV-03/07: cria a aula realizada e lança a chamada na mesma transação.
+
+    `registros` pode omitir inscrições: na chamada retroativa, quem ainda não fazia parte da turma na data fica sem
+    situação e não recebe frequência. As situações informadas precisam ser de inscrições listadas nesta chamada.
+    """
     autorizar(usuario, *PERMISSOES)
     Atividade.objects.select_for_update().get(pk=atividade_id)
     _, participantes, _ = preparar_chamada(usuario=usuario, atividade_id=atividade_id, data=dados_aula.get("data"))
@@ -37,8 +42,10 @@ def salvar_chamada(*, usuario, atividade_id, dados_aula, registros, justificativ
         raise ValidationError("Inscreva participantes nesta atividade antes de realizar a chamada.")
     if any(not p["disponivel"] for p in participantes):
         raise ValidationError("Há participante indisponível. Confira as inscrições antes de salvar.")
-    if not isinstance(registros, dict) or set(registros) != {p["inscricao_id"] for p in participantes}:
+    if not isinstance(registros, dict) or not set(registros) <= {p["inscricao_id"] for p in participantes}:
         raise ValidationError("Confira a situação de todos os participantes. As inscrições podem ter mudado; atualize a tela.")
+    if not registros:
+        raise ValidationError("Selecione a situação de ao menos um participante.")
     aula = registrar_aula(usuario=usuario, atividade_id=atividade_id, **dados_aula)
     registrar_frequencias(usuario=usuario, atividade_id=atividade_id, aula_id=aula.pk,
         registros=registros, justificativas=justificativas)

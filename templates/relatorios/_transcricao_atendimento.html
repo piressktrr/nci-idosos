@@ -18,11 +18,11 @@
   <dl>
     {% if presencas %}
     <dt>Total no mês (soma das contagens diárias)</dt><dd>{{ presencas.total_contagem_diaria }}</dd>
-    <dt>Dias de funcionamento</dt><dd>{{ presencas.dias_funcionamento }}</dd>
-    <dt>Média diária</dt><dd>{% if presencas.media_diaria != None %}{{ presencas.media_diaria|floatformat:"0" }}{% else %}Sem dias com atendimento{% endif %}</dd>
+    <dt>Dias de funcionamento (dias úteis, segunda a sexta)</dt><dd>{{ presencas.dias_funcionamento }} <small>Feriados não são descontados; ajuste se houver feriado em dia útil.</small></dd>
+    <dt>Média diária</dt><dd>{% if presencas.media_diaria != None %}{{ presencas.media_diaria|floatformat:"0" }}{% else %}Mês sem dias úteis{% endif %}</dd>
     <dt>Pessoas atendidas no mês de referência (indivíduos)</dt><dd>{{ presencas.total_participantes_unicos }}</dd>
     {% endif %}
-    <dt>Permanecem no mês</dt><dd>{% if permanentes.aviso %}{{ permanentes.aviso }}{% elif permanentes.pendencia %}{% include "relatorios/_pendencia_demografica.html" with pendencia=permanentes.pendencia only %}{% else %}{{ permanentes.total }}{% endif %}</dd>
+    <dt>Permanecem no mês</dt><dd>{% if permanentes.aviso %}{{ permanentes.aviso }}{% elif permanentes.pendencia %}{% include "relatorios/_pendencia_demografica.html" with pendencia=permanentes.pendencia only %}{% else %}{{ permanentes.total }}{% if permanentes.cadastros_pendentes %} <small>(exclui {{ permanentes.cadastros_pendentes|length }} cadastro(s) fora do cálculo)</small>{% endif %}{% endif %}</dd>
     {% for indicador in indicadores %}<dt>{{ indicador.nome }}</dt><dd>{{ indicador.valor }}</dd>{% endfor %}
   </dl>
 </section>

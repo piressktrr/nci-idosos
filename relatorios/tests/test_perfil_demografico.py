@@ -90,16 +90,20 @@ class PerfilDemograficoFMRTests(TestCase):
         self.assertContains(resposta, "Participantes sem informação vigente: 1")
         self.assertNotContains(resposta, 'id="quantidade-imigrantes-refugiados"')
 
-    def test_historico_incompleto_ou_status_legado_nao_vira_zero(self):
+    def test_historico_incompleto_ou_status_legado_fica_fora_sem_anular_o_mes(self):
+        # Antes: um cadastro Inativo ou sem entrada anulava a contagem (None). Agora ele fica fora do cálculo
+        # (listado como pendente na tela) e os cadastros completos continuam contados.
+        self.situacao(self.pessoa())
         pessoa = self.pessoa()
         pessoa.status = "inativo"
         pessoa.save(update_fields=["status"])
-        self.assertIsNone(imigrantes_refugiados_mensal(usuario=self.usuario, ano=2024, mes=2))
-        self.assertEqual(self.consultar()["pendencia_imigrantes"]["codigo"], "PERMANENCIA")
+        self.assertEqual(imigrantes_refugiados_mensal(usuario=self.usuario, ano=2024, mes=2)["total_permanentes"], 1)
+        self.assertIsNone(self.consultar()["pendencia_imigrantes"])
+        self.assertEqual(self.consultar()["imigrantes_refugiados"], 1)
         pessoa.status = "ativo"
         pessoa.save(update_fields=["status"])
         pessoa.movimentacoes.all().delete()
-        self.assertIsNone(self.consultar()["imigrantes_refugiados"])
+        self.assertEqual(self.consultar()["imigrantes_refugiados"], 1)
 
     def test_mes_vazio_e_situacao_negativa_sao_zeros_reais(self):
         self.assertEqual(self.consultar()["imigrantes_refugiados"], 0)
@@ -135,7 +139,7 @@ class PerfilDemograficoFMRTests(TestCase):
         self.assertContains(resposta, "Não informada")
         self.assertContains(resposta, "Não calculado")
         self.assertContains(resposta, "diferente de zero")
-        self.assertContains(resposta, 'title="Precisamos da lista de regiões')
+        self.assertContains(resposta, 'title="O NCI decidiu (Q6, 20/11) registrar por ora só o endereço completo')
         self.assertContains(resposta, 'aria-describedby="demografico-pendencia-REGIAO"')
         self.assertContains(resposta, 'tabindex="0"')
 

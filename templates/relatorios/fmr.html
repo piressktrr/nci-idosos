@@ -40,6 +40,7 @@
   </ul>
 </section>
 {% endif %}
+{% include "relatorios/_cadastros_conferir.html" %}
 {% if transcricao %}
 {% include "relatorios/_transcricao_atendimento.html" %}
 {% else %}
@@ -74,6 +75,7 @@
   <p class="mb-0" role="status">{{ permanentes.aviso }}</p>
   {% else %}
   <p><strong>Total de participantes que permanecem:</strong> {{ permanentes.total }}.</p>
+  {% if permanentes.cadastros_pendentes %}<p>O total exclui {{ permanentes.cadastros_pendentes|length }} cadastro(s) fora do cálculo, listados em <a href="#cadastros-conferir">Cadastros para conferir</a>.</p>{% endif %}
   {% if permanentes.participantes %}
   <div class="nci-tabela verde table-responsive">
     <table class="table table-hover">
@@ -96,6 +98,7 @@
 {% if ingressantes_encaminhamento %}{% include "relatorios/_ingressantes_encaminhamento.html" %}{% endif %}
 {% if perfil_demografico %}{% include "relatorios/_perfil_demografico.html" %}{% endif %}
 {% if situacao_social %}{% include "relatorios/_situacao_social.html" %}{% endif %}
+{% if categorias_atividades %}{% include "relatorios/_categorias_atividades.html" %}{% endif %}
 {% if presencas and not transcricao %}
 <section aria-labelledby="presencas-por-data">
   <h2 id="presencas-por-data">Presenças por data</h2>
@@ -127,17 +130,17 @@
   {% else %}
   <p>Nenhuma aula realizada registrada neste mês.</p>
   {% endif %}
-  {% if not presencas.dias_funcionamento %}<p>Nenhum atendimento registrado neste mês.</p>{% endif %}
+  {% if not presencas.dias_com_atendimento %}<p>Nenhum atendimento registrado neste mês.</p>{% endif %}
   <p><strong>Total mensal de ocorrências:</strong> {{ presencas.total_ocorrencias }}.<br>
     <strong>Pessoas atendidas no mês de referência (indivíduos):</strong> {{ presencas.total_participantes_unicos }}.</p>
   <p>No mês, cada pessoa atendida conta uma única vez, independentemente de quantas aulas ou dias frequentou. As ocorrências diárias e as pessoas atendidas no mês são medidas diferentes.</p>
   <p><strong>Dias de funcionamento:</strong> {{ presencas.dias_funcionamento }}.</p>
-  <p>Conta como dia de funcionamento a data com ao menos uma presença em aula realizada. Várias aulas no mesmo dia representam um único dia de funcionamento. Ausências e aulas canceladas não são atendimentos.</p>
+  <p id="regra-dias-funcionamento">Dias de funcionamento são os dias úteis do calendário do mês, de segunda a sexta (definição do NCI, P06). Feriados não são descontados automaticamente: se houver feriado em dia útil, ajuste o divisor na transcrição. Datas com ao menos uma presença em aula realizada neste mês: {{ presencas.dias_com_atendimento }}.</p>
   {% if presencas.criterio == "participantes_unicos" %}<p><strong>Soma dos participantes únicos de cada dia:</strong> {{ presencas.total_contagem_diaria }}. A média usa essa soma, conforme o critério selecionado.</p>{% endif %}
-  {% if presencas.dias_funcionamento %}
-  <p class="mb-0"><strong>Média diária:</strong> {{ presencas.media_diaria|floatformat:"0" }} <small>({{ presencas.total_contagem_diaria }} ÷ {{ presencas.dias_funcionamento }} = {{ presencas.media_diaria|floatformat:"2" }}; apresentada sem casas decimais).</small></p>
+  {% if presencas.media_diaria != None %}
+  <p class="mb-0"><strong>Média diária:</strong> {{ presencas.media_diaria|floatformat:"0" }} <small>({{ presencas.total_contagem_diaria }} ÷ {{ presencas.dias_funcionamento }} dias úteis = {{ presencas.media_diaria|floatformat:"2" }}; apresentada sem casas decimais).</small></p>
   {% else %}
-  <p class="mb-0"><strong>Média diária:</strong> não calculada porque não houve dias com atendimento.</p>
+  <p class="mb-0"><strong>Média diária:</strong> não calculada porque o mês não tem dias úteis.</p>
   {% endif %}
 </section>
 {% endif %}

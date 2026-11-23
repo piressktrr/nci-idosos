@@ -66,6 +66,10 @@ class HorarioAtividade(ProtegidoPorAuditoria, models.Model):
             raise ValidationError({"fim": "O término deve ser posterior ao início, no mesmo dia."})
 
 
+MENSAGEM_AULA_DUPLICADA = (
+    "Já existe uma aula realizada desta atividade nesta data e horário de início. Confira a lista de aulas.")
+
+
 class AulaQuerySet(models.QuerySet):
     def com_categoria_fmr(self):
         """Categoria pela vigência iniciada até a data da ocorrência."""
@@ -120,6 +124,12 @@ class Aula(ProtegidoPorAuditoria, models.Model):
                 name="aula_tipo_valido",
             ),
             models.CheckConstraint(condition=models.Q(situacao__in=["realizada", "cancelada"]), name="aula_situacao_valida"),
+            # Duplo clique em "Salvar chamada" não pode gravar a mesma aula duas vezes (dobraria os totais do FMR).
+            # Canceladas ficam fora: a mesma ocorrência pode ter sido cancelada e depois registrada como realizada.
+            models.UniqueConstraint(
+                fields=["atividade", "data", "inicio"], condition=models.Q(situacao="realizada"),
+                name="aula_realizada_unica", violation_error_message=MENSAGEM_AULA_DUPLICADA,
+            ),
         ]
 
     def clean(self):

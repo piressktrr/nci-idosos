@@ -44,9 +44,10 @@ def identificar_campos_indisponiveis(dados):
     presencas = dados.get("presencas")
     if presencas is not None and presencas.get("media_diaria") is None:
         campos.append({"campo": "Média diária", "situacao": "Sem base para cálculo",
-                       "motivo": "Não houve dias com atendimento registrado neste mês.",
-                       "explicacao": "Sem dias com atendimento, o divisor é zero. A média fica sem cálculo; "
-                           "os totais mensais e as quantidades diárias continuam disponíveis."})
+                       "motivo": "O mês não tem dias úteis para dividir o total.",
+                       "explicacao": "A média divide o total pelos dias úteis do mês (P06); sem dias úteis, o divisor "
+                           "é zero. A média fica sem cálculo; os totais mensais e as quantidades diárias continuam "
+                           "disponíveis."})
 
     for campo, motivo in (
         ("Totais mensais não derivados do cadastro ou frequência",

@@ -5,12 +5,11 @@ pela data de ocorrência. Consumidores de totais devem usar .realizadas().
 """
 from datetime import date
 
-from django.contrib.auth import get_user_model
-from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import OuterRef, Subquery
 
-from core.permissoes import autorizar_administrador
+from core.permissoes import autorizar, autorizar_administrador
 
 from .models import (Atividade, CategoriaFMR, ClassificacaoAtividade,
                      RegistroCategoriaFMR, RegistroClassificacaoAtividade)
@@ -23,20 +22,9 @@ def com_categoria_vigente(atividades, data):
         categoria_atual_nome=Subquery(vigencia.values("categoria_nome")[:1]))
 
 
-def autorizar(usuario, *, catalogo=False):
-    if catalogo:
-        return autorizar_administrador(usuario)
-    if not usuario or not usuario.is_authenticated or usuario.pk is None:
-        raise PermissionDenied
-    autor = get_user_model().objects.filter(pk=usuario.pk, is_active=True).first()
-    if autor is None or not autor.has_perm("atividades.change_atividade"):
-        raise PermissionDenied
-    return autor
-
-
 @transaction.atomic
 def salvar_categoria(*, usuario, nome, ativa=True, categoria_id=None):
-    autor = autorizar(usuario, catalogo=True)
+    autor = autorizar_administrador(usuario)
     if not isinstance(nome, str) or not nome.strip() or len(nome.strip()) > 150 or type(ativa) is not bool:
         raise ValidationError("Informe nome válido (até 150 caracteres) e situação da categoria.")
     categoria = CategoriaFMR.objects.select_for_update().get(pk=categoria_id) if categoria_id is not None else CategoriaFMR()
@@ -53,7 +41,7 @@ def salvar_categoria(*, usuario, nome, ativa=True, categoria_id=None):
 
 @transaction.atomic
 def classificar_atividade(*, usuario, atividade_id, categoria_id, inicio):
-    autor = autorizar(usuario)
+    autor = autorizar(usuario, "atividades.change_atividade")
     if type(inicio) is not date:
         raise ValidationError("Informe uma data de início válida.")
     atividade = Atividade.objects.select_for_update().get(pk=atividade_id)

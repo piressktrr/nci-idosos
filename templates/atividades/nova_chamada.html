@@ -33,10 +33,11 @@
 <h2 id="participantes-chamada">Participantes inscritos</h2>
 <p>Participantes desligados na data da aula ficam fora de novas chamadas. Ausências de afastados são justificadas automaticamente; presenças continuam permitidas.</p>
 <p>Se alterou a data, recarregue a lista antes de preencher. Recarregar não salva as marcações atuais.</p>
+<p>Chamada de data passada: marque “—” (sem situação) para quem ainda não fazia parte da turma naquele dia. Essa pessoa não recebe frequência na aula.</p>
 <button type="button" id="recarregar-participantes" class="btn btn-outline-secondary mb-3">Recarregar participantes para a data escolhida</button>
 {{ form.non_field_errors }}
 {% include "atividades/_participantes_chamada.html" %}
-{% if participantes %}<div class="mt-4"><button type="submit">Salvar chamada</button></div>{% else %}<p><a class="btn btn-nci" href="{% url 'atividades:inscricoes' atividade.pk %}">Inscrever participantes</a></p>{% endif %}
+{% if participantes %}<div class="mt-4"><button type="submit" data-salvar-chamada>Salvar chamada</button></div>{% else %}<p><a class="btn btn-nci" href="{% url 'atividades:inscricoes' atividade.pk %}">Inscrever participantes</a></p>{% endif %}
 </section>
 </form>
 {{ sugestoes|json_script:"sugestoes-aula" }}

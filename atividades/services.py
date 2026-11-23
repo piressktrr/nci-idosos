@@ -1,15 +1,16 @@
 """Serviços provisórios de atividades, grade e aulas, com autorização e auditoria."""
 
 from calendar import monthrange
-from datetime import date
+from datetime import date, time
 
-from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.db.models import Count, Q
+from django.utils import timezone
 
+from core.permissoes import autorizar
 from .models import (
-    Atividade, Aula, HorarioAtividade, RegistroCadastroAtividade,
+    MENSAGEM_AULA_DUPLICADA, Atividade, Aula, HorarioAtividade, RegistroCadastroAtividade,
     RegistroGradeAtividade, RegistroRealizacaoAula, RegistroCancelamentoAula, Inscricao,
     Frequencia, RegistroLancamentoFrequencia, MotivoFalta, RegistroMotivoFalta, RegistroCorrecaoFrequencia,
 )
@@ -23,12 +24,7 @@ def consultar_frequencia_mensal(*, usuario, ano, mes, atividade_id=None):
     Consulta operacional local; não representa indicadores ou classificação FMR.
     A origem do contrato provisório separa frequências fictícias das reais.
     """
-    if not usuario or not usuario.is_authenticated or usuario.pk is None:
-        raise PermissionDenied
-    autor = get_user_model().objects.filter(pk=usuario.pk, is_active=True).first()
-    permissoes = ("atividades.view_atividade", "atividades.view_aula", "atividades.view_frequencia")
-    if autor is None or not autor.has_perms(permissoes):
-        raise PermissionDenied
+    autorizar(usuario, "atividades.view_atividade", "atividades.view_aula", "atividades.view_frequencia")
     if type(ano) is not int or type(mes) is not int or not 1 <= ano <= 9999 or not 1 <= mes <= 12:
         raise ValidationError("Informe um mês e ano válidos.")
     atividades = Atividade.objects.all()
@@ -55,12 +51,7 @@ def consultar_frequencia_mensal(*, usuario, ano, mes, atividade_id=None):
 @transaction.atomic
 def cadastrar_atividade(*, usuario, nome, local, monitor):
     """Cadastra e audita em uma transação; exige atividades.add_atividade."""
-    if not usuario or not usuario.is_authenticated or usuario.pk is None:
-        raise PermissionDenied("É necessário um usuário autorizado para cadastrar atividades.")
-    # Consulta atual evita autorizar contas desativadas ou permissões antigas em cache.
-    autor = get_user_model().objects.filter(pk=usuario.pk, is_active=True).first()
-    if autor is None or not autor.has_perm("atividades.add_atividade"):
-        raise PermissionDenied("Você não tem permissão para cadastrar atividades.")
+    autor = autorizar(usuario, "atividades.add_atividade", mensagem="Você não tem permissão para cadastrar atividades.")
 
     dados = {"nome": nome, "local": local, "monitor": monitor}
     erros = {campo: "Informe um texto." for campo, valor in dados.items() if not isinstance(valor, str)}
@@ -75,12 +66,7 @@ def cadastrar_atividade(*, usuario, nome, local, monitor):
 
 
 def _autorizar_grade(usuario, permissao):
-    if not usuario or not usuario.is_authenticated or usuario.pk is None:
-        raise PermissionDenied("É necessário um usuário autorizado para gerenciar a grade.")
-    autor = get_user_model().objects.filter(pk=usuario.pk, is_active=True).first()
-    if autor is None or not autor.has_perm(permissao):
-        raise PermissionDenied("Você não tem permissão para esta ação na grade.")
-    return autor
+    return autorizar(usuario, permissao, mensagem="Você não tem permissão para esta ação na grade.")
 
 
 def _dados_horario(horario):
@@ -124,16 +110,19 @@ def registrar_aula(*, usuario, atividade_id, data, inicio, fim, tipo=Aula.Tipo.N
 
     O padrão mantém a compatibilidade com o contrato anterior, sem inferir um tipo.
     Novos formulários exigem a escolha entre regular, extra e remarcada.
+    Aula realizada não pode ter data futura nem repetir data e início de outra realizada da mesma atividade.
     """
-    if not usuario or not usuario.is_authenticated or usuario.pk is None:
-        raise PermissionDenied("É necessário um usuário autorizado para registrar aulas.")
-    autor = get_user_model().objects.filter(pk=usuario.pk, is_active=True).first()
-    if autor is None or not autor.has_perm("atividades.add_aula"):
-        raise PermissionDenied("Você não tem permissão para registrar aulas.")
+    autor = autorizar(usuario, "atividades.add_aula", mensagem="Você não tem permissão para registrar aulas.")
+    # O bloqueio da atividade serializa registros concorrentes (ex.: duplo clique em "Salvar chamada").
     atividade = Atividade.objects.select_for_update().get(pk=atividade_id)
     exigir_atividade_ativa(atividade)
+    if type(data) is date and data > timezone.localdate():
+        raise ValidationError({"data": "Aula realizada não pode ter data futura. Registre-a depois que acontecer."})
+    if type(data) is date and type(inicio) is time and Aula.objects.realizadas().filter(
+            atividade=atividade, data=data, inicio=inicio).exists():
+        raise ValidationError(MENSAGEM_AULA_DUPLICADA)
     aula = Aula(atividade=atividade, data=data, inicio=inicio, fim=fim, tipo=tipo)
-    aula.full_clean()
+    aula.full_clean()  # Também valida a constraint aula_realizada_unica, já sob o bloqueio.
     aula.save()
     RegistroRealizacaoAula.objects.create(aula=aula, usuario=autor, dados={
         "atividade_id": atividade.pk, "data": aula.data.isoformat(),
@@ -144,11 +133,7 @@ def registrar_aula(*, usuario, atividade_id, data, inicio, fim, tipo=Aula.Tipo.N
 
 
 def _autorizar_cancelamento(usuario, cadastro=False):
-    if not usuario or not usuario.is_authenticated or usuario.pk is None:
-        raise PermissionDenied("É necessário um usuário autorizado para cancelar aulas.")
-    autor = get_user_model().objects.filter(pk=usuario.pk, is_active=True).first()
-    if autor is None or not autor.has_perm("atividades.cancelar_aula"):
-        raise PermissionDenied("Você não tem permissão para cancelar aulas.")
+    autor = autorizar(usuario, "atividades.cancelar_aula", mensagem="Você não tem permissão para cancelar aulas.")
     if cadastro and not autor.has_perm("atividades.add_aula"):
         raise PermissionDenied("Você não tem permissão para registrar aulas.")
     return autor
@@ -196,18 +181,13 @@ def registrar_aula_cancelada(*, usuario, atividade_id, data, inicio, fim, tipo=A
 @transaction.atomic
 def inscrever_participante(*, usuario, atividade_id, participante_referencia, espera_id=None, vaga_confirmada=False):
     """RF-ATV-06: valida a identidade no provedor e grava o vínculo com autoria."""
-    if not usuario or not usuario.is_authenticated or usuario.pk is None:
-        raise PermissionDenied("É necessário um usuário autorizado para registrar inscrições.")
-    autor = get_user_model().objects.filter(pk=usuario.pk, is_active=True).first()
-    if autor is None or not autor.has_perm("atividades.add_inscricao"):
-        raise PermissionDenied("Você não tem permissão para registrar inscrições.")
+    autor = autorizar(usuario, "atividades.add_inscricao", mensagem="Você não tem permissão para registrar inscrições.")
     if not isinstance(participante_referencia, str) or not participante_referencia.strip() or len(participante_referencia) > 64:
         raise ValidationError({"participante_referencia": "Selecione um participante cadastrado."})
     # Serializa inscrições da mesma atividade, inclusive a verificação de duplicação.
     atividade = Atividade.objects.select_for_update().get(pk=atividade_id)
     exigir_atividade_ativa(atividade)
     provedor = obter_provedor()
-    from django.utils import timezone
     estados = getattr(provedor, "situacoes_em", lambda data: {})(timezone.localdate())
     if estados.get(participante_referencia) == "desligamento":
         raise ValidationError("Participante desligado. Registre a reativação antes de inscrever.")
@@ -219,7 +199,7 @@ def inscrever_participante(*, usuario, atividade_id, participante_referencia, es
         raise ValidationError({"participante_referencia": "Este participante já está inscrito nesta atividade."})
     from .espera import validar_atendimento, registrar_atendimento
     espera = validar_atendimento(usuario=autor, atividade=atividade, provedor=provedor, participante=participante,
-        espera_id=espera_id, vaga_confirmada=vaga_confirmada)
+        espera_id=espera_id, vaga_confirmada=vaga_confirmada, estados=estados)
     inscricao = Inscricao(
         atividade=atividade, origem_participante=provedor.origem,
         participante_referencia=participante.referencia, cadastrada_por=autor,
@@ -233,12 +213,8 @@ def inscrever_participante(*, usuario, atividade_id, participante_referencia, es
 
 def obter_lista_chamada(*, usuario, atividade_id, aula_id):
     """RF-ATV-07: consulta vínculos atuais; não infere frequência nem vigência histórica."""
-    if not usuario or not usuario.is_authenticated or usuario.pk is None:
-        raise PermissionDenied("É necessário um usuário autorizado para consultar a chamada.")
-    autor = get_user_model().objects.filter(pk=usuario.pk, is_active=True).first()
-    permissoes = ("atividades.view_atividade", "atividades.view_aula", "atividades.view_inscricao")
-    if autor is None or not autor.has_perms(permissoes):
-        raise PermissionDenied("Você não tem permissão para consultar a chamada.")
+    autor = autorizar(usuario, "atividades.view_atividade", "atividades.view_aula", "atividades.view_inscricao",
+                      mensagem="Você não tem permissão para consultar a chamada.")
     aula = Aula.objects.select_related("atividade").get(pk=aula_id, atividade_id=atividade_id)
     if aula.situacao == Aula.Situacao.CANCELADA:
         raise ValidationError("Esta aula está cancelada e não possui chamada.")
@@ -269,14 +245,14 @@ def obter_lista_chamada(*, usuario, atividade_id, aula_id):
 
 @transaction.atomic
 def registrar_frequencias(*, usuario, atividade_id, aula_id, registros, justificativas=None):
-    """Lançamento inicial explícito por inscrição; lote atômico, sem correção implícita."""
-    if not usuario or not usuario.is_authenticated or usuario.pk is None:
-        raise PermissionDenied("É necessário um usuário autorizado para lançar frequência.")
-    autor = get_user_model().objects.filter(pk=usuario.pk, is_active=True).first()
-    permissoes = ("atividades.view_atividade", "atividades.view_aula", "atividades.view_inscricao",
-                  "atividades.view_frequencia", "atividades.add_frequencia")
-    if autor is None or not autor.has_perms(permissoes):
-        raise PermissionDenied("Você não tem permissão para lançar frequência.")
+    """Lançamento inicial explícito por inscrição; lote atômico, sem correção implícita.
+
+    Só recebem frequência as inscrições em `registros`: quem fica sem situação (por exemplo, quem ainda não fazia
+    parte da turma numa chamada retroativa) não ganha registro.
+    """
+    autor = autorizar(usuario, "atividades.view_atividade", "atividades.view_aula", "atividades.view_inscricao",
+                      "atividades.view_frequencia", "atividades.add_frequencia",
+                      mensagem="Você não tem permissão para lançar frequência.")
     if not isinstance(registros, dict) or not registros:
         raise ValidationError("Selecione ao menos uma situação para lançar.")
     for identificador, situacao in registros.items():
@@ -331,12 +307,15 @@ def registrar_frequencias(*, usuario, atividade_id, aula_id, registros, justific
     for inscricao in inscricoes:
         motivo, observacao = detalhes.get(inscricao.pk, (None, ""))
         situacao = registros[inscricao.pk]
-        afastado = estados.get(inscricao.participante_referencia) == "afastamento"
-        if afastado and situacao == Frequencia.Situacao.AUSENTE:
+        # Só a conversão automática de "ausente" do afastado é marcada como justificada por afastamento; o
+        # "ausente justificado" escolhido pela equipe é manual e um retorno retroativo não o reverte.
+        convertida = (estados.get(inscricao.participante_referencia) == "afastamento"
+                      and situacao == Frequencia.Situacao.AUSENTE)
+        if convertida:
             situacao = Frequencia.Situacao.JUSTIFICADO
         frequencia = Frequencia(aula=aula, inscricao=inscricao, situacao=situacao,
                                 motivo=motivo, motivo_descricao=motivo.descricao if motivo else "", observacao=observacao)
-        if afastado and situacao == Frequencia.Situacao.JUSTIFICADO and motivo is None:
+        if convertida:
             frequencia.motivo_descricao = "Afastamento"
             frequencia.justificada_por_afastamento = True
         frequencia.full_clean()
@@ -355,11 +334,7 @@ def registrar_frequencias(*, usuario, atividade_id, aula_id, registros, justific
 @transaction.atomic
 def salvar_motivo_falta(*, usuario, descricao, ativo=True, motivo_id=None):
     permissao = "atividades.change_motivofalta" if motivo_id is not None else "atividades.add_motivofalta"
-    if not usuario or not usuario.is_authenticated or usuario.pk is None:
-        raise PermissionDenied
-    autor = get_user_model().objects.filter(pk=usuario.pk, is_active=True).first()
-    if autor is None or not autor.has_perm(permissao):
-        raise PermissionDenied
+    autor = autorizar(usuario, permissao)
     if not isinstance(descricao, str) or type(ativo) is not bool:
         raise ValidationError("Informe descrição textual e situação válida.")
     motivo = MotivoFalta.objects.select_for_update().get(pk=motivo_id) if motivo_id is not None else MotivoFalta()
@@ -373,12 +348,8 @@ def salvar_motivo_falta(*, usuario, descricao, ativo=True, motivo_id=None):
 
 
 def consultar_frequencia(*, usuario, atividade_id, aula_id, frequencia_id):
-    if not usuario or not usuario.is_authenticated or usuario.pk is None:
-        raise PermissionDenied
-    autor = get_user_model().objects.filter(pk=usuario.pk, is_active=True).first()
-    permissoes = ("atividades.view_atividade", "atividades.view_aula", "atividades.view_inscricao", "atividades.view_frequencia")
-    if autor is None or not autor.has_perms(permissoes):
-        raise PermissionDenied
+    autor = autorizar(usuario, "atividades.view_atividade", "atividades.view_aula", "atividades.view_inscricao",
+                      "atividades.view_frequencia")
     frequencia = Frequencia.objects.select_related("aula__atividade", "inscricao", "motivo").get(
         pk=frequencia_id, aula_id=aula_id, aula__atividade_id=atividade_id, inscricao__atividade_id=atividade_id,
     )
@@ -392,12 +363,8 @@ def consultar_frequencia(*, usuario, atividade_id, aula_id, frequencia_id):
 
 def consultar_historico_participante(*, usuario, atividade_id, inscricao_id):
     """RF-ATV-12: histórico preservado mesmo sem identidade disponível no provedor."""
-    if not usuario or not usuario.is_authenticated or usuario.pk is None:
-        raise PermissionDenied
-    autor = get_user_model().objects.filter(pk=usuario.pk, is_active=True).first()
-    permissoes = ("atividades.view_atividade", "atividades.view_aula", "atividades.view_inscricao", "atividades.view_frequencia")
-    if autor is None or not autor.has_perms(permissoes):
-        raise PermissionDenied
+    autorizar(usuario, "atividades.view_atividade", "atividades.view_aula", "atividades.view_inscricao",
+              "atividades.view_frequencia")
     provedor = obter_provedor()
     inscricao = Inscricao.objects.select_related("atividade").get(
         pk=inscricao_id, atividade_id=atividade_id, origem_participante=provedor.origem)
@@ -424,6 +391,8 @@ def corrigir_frequencia(*, usuario, atividade_id, aula_id, frequencia_id, versao
     if not contexto["pode_corrigir"]:
         raise PermissionDenied("Você não tem permissão para corrigir frequência.")
     # Mesmo bloqueio/ordem de lançamento e cancelamento; IDs do vínculo não são editáveis.
+    # Critério igual ao do lançamento: só fica "justificada por afastamento" a conversão automática (ausente de
+    # afastado, ou a automática mantida sem motivo nem observação). A escolha manual da equipe não é revertida.
     Aula.objects.select_for_update().get(pk=aula_id, atividade_id=atividade_id)
     provedor = obter_provedor()
     referencia = contexto["frequencia"].inscricao.participante_referencia

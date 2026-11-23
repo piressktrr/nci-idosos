@@ -10,19 +10,21 @@
     <span id="etaria-pendencia-{{ pendencia.codigo }}" class="visually-hidden">{{ pendencia.explicacao }}</span>
   </div>
   {% endfor %}
-  <p id="legenda-movimentacao-etaria">Idade considerada em {{ movimentacao_etaria.periodo.inicio|date:"d/m/Y" }}, dia 1 do mês. Reativados são retornos ao mesmo cadastro, separados dos novos ingressos. Afastados continuam no serviço.</p>
+  <p id="legenda-movimentacao-etaria">Idade considerada em {{ movimentacao_etaria.periodo.inicio|date:"d/m/Y" }}, dia 1 do mês. Sexo do perfil demográfico vigente em {{ movimentacao_etaria.periodo.fim|date:"d/m/Y" }}, a mesma referência da tabela Sexo por raça/cor. Reativados são retornos ao mesmo cadastro, separados dos novos ingressos. Afastados continuam no serviço.</p>
   <p>Saídas e reativações contam movimentações: uma pessoa pode ter mais de uma no mês. Balanço: anteriores + ingressos + reativados − saídas = permanecem. — indica informação indisponível, diferente de zero.</p>
+  <p id="nota-ingressaram-portal"><strong>Ingressaram (portal) = Ingressaram + Reativados.</strong> No portal da SMADS, quem foi reativado no mês entra em “ingressaram” (resposta do NCI, Q4). Neste relatório as duas colunas ficam separadas (RN-PAR-08); lance no portal o valor da coluna “Ingressaram (portal)”. A equação do portal é: vieram do mês anterior + ingressaram (portal) − saíram = permanecem.</p>
   {% if movimentacao_etaria.fora_faixas.vieram_mes_anterior or movimentacao_etaria.fora_faixas.ingressaram or movimentacao_etaria.fora_faixas.reativados or movimentacao_etaria.fora_faixas.sairam or movimentacao_etaria.fora_faixas.permanecem %}
-  <p class="alert alert-warning">Há registros de pessoas com menos de 60 anos na data de referência, fora das faixas do FMR. Não foram incluídos nesta tabela. Permanentes fora das faixas: {{ movimentacao_etaria.fora_faixas.permanecem }}; vindos: {{ movimentacao_etaria.fora_faixas.vieram_mes_anterior }}; ingressos: {{ movimentacao_etaria.fora_faixas.ingressaram }}; reativações: {{ movimentacao_etaria.fora_faixas.reativados }}; saídas: {{ movimentacao_etaria.fora_faixas.sairam }}.</p>
+  <p class="alert alert-warning">Há registros de pessoas com menos de 60 anos na data de referência, fora das faixas do FMR. Não foram incluídos nesta tabela, mas continuam nos demais blocos: tabela + fora das faixas = totais dos outros blocos. Permanentes fora das faixas: {{ movimentacao_etaria.fora_faixas.permanecem }}; vindos: {{ movimentacao_etaria.fora_faixas.vieram_mes_anterior }}; ingressos: {{ movimentacao_etaria.fora_faixas.ingressaram }}; reativações: {{ movimentacao_etaria.fora_faixas.reativados }}; ingressaram (portal): {{ movimentacao_etaria.fora_faixas.ingressaram_portal }}; saídas: {{ movimentacao_etaria.fora_faixas.sairam }}.</p>
   {% endif %}
   <div class="nci-tabela verde table-responsive">
-    <table class="table table-hover" id="tabela-movimentacao-etaria" aria-describedby="legenda-movimentacao-etaria resumo-movimentacao-etaria">
-      <thead><tr><th scope="col">Faixa etária</th><th scope="col">Sexo</th><th scope="col">Vieram do mês anterior</th><th scope="col">Ingressaram</th><th scope="col">Reativados no mês</th><th scope="col">Saíram</th><th scope="col">Permanecem</th></tr></thead>
+    <table class="table table-hover" id="tabela-movimentacao-etaria" aria-describedby="legenda-movimentacao-etaria nota-ingressaram-portal resumo-movimentacao-etaria">
+      <thead><tr><th scope="col">Faixa etária</th><th scope="col">Sexo</th><th scope="col">Vieram do mês anterior</th><th scope="col">Ingressaram</th><th scope="col">Reativados no mês</th><th scope="col">Ingressaram (portal)</th><th scope="col">Saíram</th><th scope="col">Permanecem</th></tr></thead>
       <tbody>{% for linha in movimentacao_etaria.linhas %}
         <tr><th scope="row">{{ linha.faixa }}</th><td>{{ linha.sexo }} ({{ linha.sexo_codigo }})</td>
           <td>{% include "relatorios/_valor_contagem.html" with valor=linha.vieram_mes_anterior only %}</td>
           <td>{% include "relatorios/_valor_contagem.html" with valor=linha.ingressaram only %}</td>
           <td>{% include "relatorios/_valor_contagem.html" with valor=linha.reativados only %}</td>
+          <td>{% include "relatorios/_valor_contagem.html" with valor=linha.ingressaram_portal only %}</td>
           <td>{% include "relatorios/_valor_contagem.html" with valor=linha.sairam only %}</td>
           <td>{% include "relatorios/_valor_contagem.html" with valor=linha.permanecem only %}</td>
         </tr>
@@ -31,6 +33,7 @@
         <td>{% include "relatorios/_valor_contagem.html" with valor=movimentacao_etaria.totais.vieram_mes_anterior only %}</td>
         <td>{% include "relatorios/_valor_contagem.html" with valor=movimentacao_etaria.totais.ingressaram only %}</td>
         <td>{% include "relatorios/_valor_contagem.html" with valor=movimentacao_etaria.totais.reativados only %}</td>
+        <td>{% include "relatorios/_valor_contagem.html" with valor=movimentacao_etaria.totais.ingressaram_portal only %}</td>
         <td>{% include "relatorios/_valor_contagem.html" with valor=movimentacao_etaria.totais.sairam only %}</td>
         <td>{% include "relatorios/_valor_contagem.html" with valor=movimentacao_etaria.totais.permanecem only %}</td>
       </tr></tfoot>

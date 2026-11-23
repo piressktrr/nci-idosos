@@ -1,5 +1,6 @@
 """Consultas mensais do FMR, usando os serviços de leitura das áreas de origem."""
 from calendar import monthrange
+from collections import Counter
 from datetime import date
 from decimal import Decimal
 
@@ -10,6 +11,7 @@ from atividades.consultas_fmr import consultar_presencas_mensais
 from atividades.services import consultar_frequencia_mensal
 from core.permissoes import autorizar
 
+from .integracoes import atividades as integracao_atividades
 from .integracoes import participantes as integracao_participantes
 from .permissoes import pode_consultar_fmr
 from .cobertura import identificar_campos_indisponiveis
@@ -55,6 +57,7 @@ def consultar_indicadores_fmr(*, usuario, ano, mes):
                  "descricao": "Uma ocorrência por presença em aula; a mesma pessoa pode contar mais de uma vez no mês."},
             ]
             resultado["presencas"] = consultar_presencas_fmr(usuario=usuario, ano=ano, mes=mes)
+            resultado["categorias_atividades"] = consultar_categorias_atividades_fmr(usuario=usuario, ano=ano, mes=mes)
     resultado["campos_indisponiveis"] = identificar_campos_indisponiveis(resultado)
     resultado["avisos_consistencia"] = verificar_consistencia(resultado)
     return resultado
@@ -63,12 +66,14 @@ def consultar_indicadores_fmr(*, usuario, ano, mes):
 def consultar_permanentes_fmr(*, usuario, ano, mes):
     """RF-FMR-04: prepara o fechamento mensal sem presumir permanência histórica.
 
-    A consulta real depende de contrato e histórico do módulo de participantes.
-    Enquanto indisponível, total e lista permanecem ausentes, nunca zero.
+    RN-FMR-12: o total usa só os cadastros completos. Os pendentes (sem entrada, status Inativo ou Cancelado)
+    não anulam o mês: voltam em `cadastros_pendentes`, com o motivo, e a tela avisa que todos os totais os
+    excluem. Nenhum status é convertido aqui. Se a integração não responder (None), total e lista ficam
+    ausentes, nunca zero.
     """
     periodo = consultar_periodo_fmr(usuario=usuario, ano=ano, mes=mes)
-    resultado = {"data_referencia": periodo["fim"], "participantes": None,
-                 "total": None, "pendencia": None, "aviso": ""}
+    resultado = {"data_referencia": periodo["fim"], "participantes": None, "total": None, "pendencia": None,
+                 "pendencias": [], "cadastros_pendentes": [], "motivos_pendentes": [], "aviso": ""}
     try:
         autorizar(usuario, "participantes.view_participante")
     except PermissionDenied:
@@ -83,14 +88,29 @@ def consultar_permanentes_fmr(*, usuario, ano, mes):
             "explicacao": (
                 "Precisamos que o módulo de participantes tenha histórico completo de quem permanecia "
                 "no serviço na data indicada, considerando entradas, desligamentos e reativações. "
-                "Existem cadastros sem data de entrada ou com situações temporárias indefinidas; "
-                "o tratamento dos status legados inativo e cancelado depende da definição do NCI (P02). "
                 "O status atual e as presenças em aulas não substituem esse histórico. "
                 "Até essa integração, a lista e o total não serão calculados."
             ),
         }
-    else:
-        resultado.update(participantes=participantes, total=len(participantes))
+        return resultado
+    resultado.update(participantes=participantes.permanentes, total=len(participantes.permanentes))
+    if participantes.pendentes:
+        motivos = participantes.motivos
+        resultado["cadastros_pendentes"] = [
+            {"referencia": pessoa.referencia, "nome": pessoa.nome,
+             "motivo": "; ".join(motivos.get(pessoa.referencia, ())) or "histórico incompleto"}
+            for pessoa in participantes.pendentes]
+        contagem = Counter(motivo for pessoa in participantes.pendentes for motivo in motivos.get(pessoa.referencia, ()))
+        resultado["motivos_pendentes"] = [{"motivo": motivo, "quantidade": quantidade}
+                                          for motivo, quantidade in sorted(contagem.items())]
+        resultado["pendencias"] = [{
+            "codigo": "CADASTROS-PENDENTES",
+            "aviso": f"{len(participantes.pendentes)} cadastro(s) fora do cálculo: sem entrada ou com status "
+                     "Inativo/Cancelado.",
+            "explicacao": "Os totais do FMR usam só cadastros com movimentação de entrada e status Ativo, Afastado "
+                "ou Desligado. Os demais ficam fora de todos os totais até a correção do cadastro (registrar a "
+                "entrada, ou a movimentação que corresponde aos status legados Inativo e Cancelado). "
+                "Nenhum status é convertido automaticamente."}]
     return resultado
 
 
@@ -177,9 +197,9 @@ def consultar_perfil_demografico_fmr(*, usuario, ano, mes):
              "a identidade de gênero autodeclarada valia, até o fechamento do mês."},
         {"codigo": "REGIAO", "titulo": "Região de moradia", "linhas": None, "total": None,
          "aviso": "Faltam as regiões oficiais e o registro histórico da região de moradia.",
-         "explicacao": "Precisamos da lista de regiões exigidas no FMR e de uma informação estruturada no cadastro, "
-             "com data de vigência. O endereço livre não determina automaticamente a região; sem essa informação, "
-             "as quantidades não são calculadas nem preenchidas com zero."},
+         "explicacao": "O NCI decidiu (Q6, 20/11) registrar por ora só o endereço completo, sem região. "
+             "O endereço livre não determina automaticamente a região; sem uma informação estruturada com data de "
+             "vigência, as quantidades não são calculadas nem preenchidas com zero."},
     ]
     perfil = integracao_participantes.consultar_sexo_raca_genero(usuario=usuario, data=periodo["fim"])
     if perfil is not None:
@@ -271,18 +291,39 @@ def consultar_movimentacao_etaria_fmr(*, usuario, ano, mes):
     if dados is None:
         resultado["pendencias"] = [{"codigo": "HISTORICO", "aviso": "Faltam informações históricas para calcular a movimentação.",
             "explicacao": "Confira cadastros sem entrada ou com status legados ainda indefinidos. Nenhum total foi presumido."}]
-    else:
-        resultado.update(dados)
+        return resultado
+    resultado.update(dados)
+    # RF-FMR-13 (Q4, NCI): no portal da SMADS o reativado entra em "ingressaram". Aqui as colunas seguem
+    # separadas (RN-PAR-08) e a soma a lançar no portal vem pronta em `ingressaram_portal`.
+    for valores in (*resultado["linhas"], resultado["totais"], resultado["fora_faixas"]):
+        ingressos, reativados = valores["ingressaram"], valores["reativados"]
+        valores["ingressaram_portal"] = None if None in (ingressos, reativados) else ingressos + reativados
+    if dados.get("sem_perfil"):
+        resultado["pendencias"] = [{"codigo": "PERFIL",
+            "aviso": f"Falta o sexo vigente no fim do mês para {dados['sem_perfil']} participante(s) da tabela.",
+            "explicacao": "O sexo de cada pessoa vem do perfil demográfico vigente no último dia do mês, a mesma "
+                "referência da tabela Sexo por raça/cor. Sem esse registro, a pessoa não pode ser colocada em uma "
+                "linha de sexo; as quantidades não foram calculadas nem preenchidas com zero."}]
     return resultado
 
 
 
+def dias_uteis(ano, mes):
+    """RN-FMR-14 (P06, NCI 21/11): dias de funcionamento = dias úteis do calendário, de segunda a sexta.
+
+    Feriados não são descontados: o sistema não tem calendário de feriados. Em mês com feriado em dia útil,
+    a equipe ajusta o divisor na transcrição (a tela avisa isso).
+    """
+    return sum(date(ano, mes, dia).weekday() < 5 for dia in range(1, monthrange(ano, mes)[1] + 1))
+
+
 def consultar_presencas_fmr(*, usuario, ano, mes):
-    """RF-FMR-03: calendário e média por datas com atendimento efetivamente registrado.
+    """RF-FMR-03: presenças por data, total mensal e média diária pelos dias úteis do mês (RN-FMR-14).
 
     NCI_FMR_CONTAGEM_DIARIA permite trocar a contagem principal de ocorrencias
     para participantes_unicos, caso haja orientação diferente (RN-FMR-09).
     As duas medidas continuam disponíveis e explicitamente identificadas.
+    `dias_com_atendimento` (datas com alguma presença) é só informativo; não entra na média.
     """
     periodo = consultar_periodo_fmr(usuario=usuario, ano=ano, mes=mes)
     criterio = getattr(settings, "NCI_FMR_CONTAGEM_DIARIA", "ocorrencias")
@@ -295,8 +336,40 @@ def consultar_presencas_fmr(*, usuario, ano, mes):
     dias = [por_data.get(date(ano, mes, numero), {
         "data": date(ano, mes, numero), "ocorrencias": 0, "participantes_unicos": 0,
     }) for numero in range(1, periodo["fim"].day + 1)]
-    funcionamento = sum(dia["ocorrencias"] > 0 for dia in dias)
+    funcionamento = dias_uteis(ano, mes)
     total = sum(dia[criterio] for dia in dias)
     return resultado | {"dias": dias, "criterio": criterio, "total_contagem_diaria": total,
-        "dias_funcionamento": funcionamento,
+        "dias_funcionamento": funcionamento, "dias_com_atendimento": sum(dia["ocorrencias"] > 0 for dia in dias),
         "media_diaria": Decimal(total) / Decimal(funcionamento) if funcionamento else None}
+
+
+def consultar_categorias_atividades_fmr(*, usuario, ano, mes):
+    """RF-FMR-10: aulas realizadas e participações (presenças) por categoria do FMR no mês.
+
+    A categoria é a da atividade inteira (P04, NCI 21/11), vigente na data de cada aula. Aulas de atividades
+    sem categoria vigente impedem o fechamento por categoria: as quantidades ficam ausentes, nunca zero.
+    """
+    periodo = consultar_periodo_fmr(usuario=usuario, ano=ano, mes=mes)
+    resultado = {"periodo": periodo, "linhas": [], "total_aulas": None, "total_participacoes": None,
+                 "sem_categoria": None, "pendencias": [], "aviso": ""}
+    try:
+        dados = integracao_atividades.consultar_aulas_por_categoria(usuario=usuario, ano=ano, mes=mes)
+    except PermissionDenied:
+        resultado["aviso"] = "Seu perfil não possui as permissões para consultar as aulas por categoria do FMR."
+        return resultado
+    if dados["demonstracao"]:
+        raise ImproperlyConfigured("O FMR exige uma integração real de participantes.")
+    linhas, sem_categoria = dados["linhas"], dados["sem_categoria"]
+    resultado.update(linhas=linhas, sem_categoria=sem_categoria)
+    if sem_categoria["aulas"]:
+        for linha in linhas:
+            linha.update(aulas=None, participacoes=None)
+        resultado["pendencias"] = [{"codigo": "CATEGORIA",
+            "aviso": f"{sem_categoria['aulas']} aula(s) realizada(s) de atividades sem categoria do FMR na data.",
+            "explicacao": "Cada atividade precisa estar classificada em uma categoria do FMR com vigência até a "
+                "data da aula (catálogo do FMR, em Atividades). Sem isso não se sabe em que linha entram a aula e "
+                "as presenças; as quantidades por categoria não foram calculadas nem preenchidas com zero."}]
+    else:
+        resultado.update(total_aulas=sum(linha["aulas"] for linha in linhas),
+                         total_participacoes=sum(linha["participacoes"] for linha in linhas))
+    return resultado

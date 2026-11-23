@@ -9,7 +9,7 @@ from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
-from participantes.models import Movimentacao, MotivoDesligamento
+from participantes.models import Movimentacao, MotivoDesligamento, PerfilDemografico
 from participantes.movimentacoes import movimentar_participante, salvar_motivo
 from participantes.relatorios import desligamentos_por_motivo_mensal
 from participantes.tests.test_models import novo_participante
@@ -38,6 +38,9 @@ class DesligamentosMotivoFMRTests(TestCase):
         pessoa = novo_participante(**extras)
         pessoa.save()
         Movimentacao.objects.create(participante=pessoa, usuario=self.usuario, tipo="entrada", data=date(2023, 1, 1))
+        # A tabela etária (RF-FMR-05) lê o sexo do perfil vigente, que o cadastro grava desde a entrada.
+        PerfilDemografico.objects.create(participante=pessoa, vigente_desde=date(2023, 1, 1), sexo=pessoa.sexo,
+                                         raca_cor=pessoa.raca_cor, identidade_genero=pessoa.identidade_genero)
         return pessoa
 
     def motivo(self, descricao="Motivo fictício A"):
