@@ -8,7 +8,9 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.urls import reverse
 
-from ..classificacao import autorizar, classificar_atividade, com_categoria_vigente, salvar_categoria
+from core.permissoes import autorizar, autorizar_administrador
+
+from ..classificacao import classificar_atividade, com_categoria_vigente, salvar_categoria
 from ..forms import CategoriaForm, ClassificacaoForm
 from ..models import Atividade, CategoriaFMR
 
@@ -20,7 +22,7 @@ class AtividadeCategoriaForm(forms.Form):
 @login_required
 @require_http_methods(["GET", "POST"])
 def categorias(request, categoria_id=None):
-    autorizar(request.user, catalogo=True)
+    autorizar_administrador(request.user)
     categoria = get_object_or_404(CategoriaFMR, pk=categoria_id) if categoria_id is not None else None
     atribuindo = request.method == "POST" and request.POST.get("acao") == "classificar"
     form = CategoriaForm(request.POST if request.method == "POST" and not atribuindo else None, instance=categoria)
@@ -59,7 +61,7 @@ def categorias(request, categoria_id=None):
 def classificacao(request, atividade_id):
     atividade = get_object_or_404(com_categoria_vigente(Atividade.objects.all(), timezone.localdate()), pk=atividade_id)
     if request.method == "POST":
-        autorizar(request.user)
+        autorizar(request.user, "atividades.change_atividade")
     form = ClassificacaoForm(request.POST if request.method == "POST" else None)
     if request.method == "POST" and form.is_valid():
         try:

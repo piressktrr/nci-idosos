@@ -33,19 +33,20 @@ class AulasExtrasTests(TestCase):
     def test_extra_e_remarcada_fora_do_dia_e_horarios_da_grade(self):
         cadastrar_horario(usuario=self.usuario, atividade_id=self.atividade.pk,
                           dia_semana=0, inicio=time(14), fim=time(15))
-        for tipo in (Aula.Tipo.EXTRA, Aula.Tipo.REMARCADA):
+        # Inícios distintos: duas aulas realizadas não podem repetir data e início (aula_realizada_unica).
+        for tipo, inicio in ((Aula.Tipo.EXTRA, time(9)), (Aula.Tipo.REMARCADA, time(11))):
             with self.subTest(tipo=tipo):
-                aula = self.registrar(tipo=tipo)
+                aula = self.registrar(tipo=tipo, inicio=inicio, fim=time(inicio.hour + 1))
                 aula.refresh_from_db()
                 self.assertEqual(aula.tipo, tipo)
                 self.assertEqual(aula.data.weekday(), 3)
-                self.assertEqual(aula.inicio, time(9))
+                self.assertEqual(aula.inicio, inicio)
                 self.assertEqual(aula.registro_realizacao.dados["tipo"], tipo)
                 self.assertEqual(aula.registro_realizacao.usuario_id, self.usuario.pk)
 
     def test_todos_os_tipos_podem_ser_registrados_sem_grade(self):
-        for tipo in (Aula.Tipo.REGULAR, Aula.Tipo.EXTRA, Aula.Tipo.REMARCADA):
-            self.registrar(tipo=tipo)
+        for hora, tipo in zip((9, 11, 13), (Aula.Tipo.REGULAR, Aula.Tipo.EXTRA, Aula.Tipo.REMARCADA)):
+            self.registrar(tipo=tipo, inicio=time(hora), fim=time(hora + 1))
         self.assertFalse(self.atividade.horarios.exists())
         self.assertEqual(self.atividade.aulas.count(), 3)
 
@@ -96,9 +97,9 @@ class AulasExtrasTests(TestCase):
         resposta = self.client.get(self.url)
         escolhas = dict(resposta.context["form"].fields["tipo"].choices)
         self.assertEqual(set(escolhas), {"", "regular", "extra", "remarcada"})
-        for tipo, rotulo in (("extra", "Extra"), ("remarcada", "Remarcada")):
+        for tipo, rotulo, inicio, fim in (("extra", "Extra", "09:00", "10:00"), ("remarcada", "Remarcada", "11:00", "12:00")):
             with self.subTest(tipo=tipo):
-                resposta = self.client.post(self.url, self.post | {"tipo": tipo}, follow=True)
+                resposta = self.client.post(self.url, self.post | {"tipo": tipo, "inicio": inicio, "fim": fim}, follow=True)
                 self.assertContains(resposta, f"<td>{rotulo}</td>", html=True)
                 aula = Aula.objects.get(tipo=tipo)
                 self.assertEqual(aula.registro_realizacao.dados["tipo"], tipo)
@@ -131,8 +132,8 @@ class AulasExtrasTests(TestCase):
     def test_interface_csrf_para_extras_e_remarcadas(self):
         client = Client(enforce_csrf_checks=True)
         client.force_login(self.usuario)
-        for tipo in ("extra", "remarcada"):
-            dados = self.post | {"tipo": tipo}
+        for tipo, inicio, fim in (("extra", "09:00", "10:00"), ("remarcada", "11:00", "12:00")):
+            dados = self.post | {"tipo": tipo, "inicio": inicio, "fim": fim}
             self.assertEqual(client.post(self.url, dados).status_code, 403)
             client.get(self.url)
             token = client.cookies["csrftoken"].value

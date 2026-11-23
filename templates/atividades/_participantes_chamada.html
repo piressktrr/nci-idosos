@@ -1,20 +1,21 @@
   {% if participantes %}<div class="table-scroll"><table>
-    <thead><tr><th scope="col">Nº</th><th scope="col">Participante</th><th scope="col">Presente</th><th scope="col">Ausente</th><th scope="col">Ausente justificado</th></tr></thead>
+    <thead><tr><th scope="col">Nº</th><th scope="col">Participante</th><th scope="col">Presente</th><th scope="col">Ausente</th><th scope="col">Ausente justificado</th><th scope="col">Sem situação</th></tr></thead>
     <tbody>{% for participante in participantes %}<tr><td>{{ forloop.counter }}</td><th scope="row">{{ participante.nome }}{% if participante.afastado %}<small class="d-block">Afastado: ausências justificadas automaticamente</small>{% endif %}{% if not participante.disponivel %} — confira o cadastro antes da chamada{% endif %}</th>
-      {% if not pode_ver_frequencia %}<td colspan="3">—</td>
+      {% if not pode_ver_frequencia %}<td colspan="4">—</td>
       {% elif participante.frequencia %}
         <td><input type="radio" disabled aria-label="Presente — {{ participante.nome }}" {% if participante.frequencia.situacao == 'presente' %}checked{% endif %}></td>
         <td><input type="radio" disabled aria-label="Ausente — {{ participante.nome }}" {% if participante.frequencia.situacao == 'ausente' %}checked{% endif %}></td>
         <td><input type="radio" disabled aria-label="Ausente justificado — {{ participante.nome }}" {% if participante.frequencia.situacao == 'ausente_justificado' %}checked{% endif %}></td>
+        <td></td>
       {% elif pode_registrar_frequencia and participante.campo %}
-        {% for opcao in participante.campo %}<td>{{ opcao.tag }}<label class="sr-only" for="{{ opcao.id_for_label }}">{{ opcao.choice_label }} — {{ participante.nome }}</label></td>{% endfor %}
-      {% else %}<td colspan="3">Não lançado</td>{% endif %}
-    </tr>{% if modo_correcao and participante.frequencia %}<tr><td colspan="5"><a href="{% url 'atividades:detalhe_frequencia' aula.atividade_id aula.pk participante.frequencia.pk %}">Histórico e correção — {{ participante.nome }}</a></td></tr>{% endif %}
-    {% if participante.campo.errors %}<tr><td colspan="5">{{ participante.campo.errors }}</td></tr>{% endif %}
+        {% for opcao in participante.campo %}<td>{{ opcao.tag }}<label class="sr-only" for="{{ opcao.id_for_label }}">{% if opcao.data.value %}{{ opcao.choice_label }}{% else %}Sem situação{% endif %} — {{ participante.nome }}</label></td>{% endfor %}
+      {% else %}<td colspan="4">Não lançado</td>{% endif %}
+    </tr>{% if modo_correcao and participante.frequencia %}<tr><td colspan="6"><a href="{% url 'atividades:detalhe_frequencia' aula.atividade_id aula.pk participante.frequencia.pk %}">Histórico e correção — {{ participante.nome }}</a></td></tr>{% endif %}
+    {% if participante.campo.errors %}<tr><td colspan="6">{{ participante.campo.errors }}</td></tr>{% endif %}
     {% if pode_ver_frequencia and participante.frequencia.situacao == 'ausente_justificado' %}
-      <tr><td colspan="5">Motivo: {{ participante.frequencia.motivo_descricao|default:"Não informado" }}{% if participante.frequencia.observacao %}<p>Observação: {{ participante.frequencia.observacao|linebreaksbr }}</p>{% endif %}</td></tr>
+      <tr><td colspan="6">Motivo: {{ participante.frequencia.motivo_descricao|default:"Não informado" }}{% if participante.frequencia.observacao %}<p>Observação: {{ participante.frequencia.observacao|linebreaksbr }}</p>{% endif %}</td></tr>
     {% elif pode_registrar_frequencia and participante.campo %}
-      <tr data-justificativa="{{ participante.inscricao_id }}"><td colspan="5">
+      <tr data-justificativa="{{ participante.inscricao_id }}"><td colspan="6">
         <div class="field">{{ participante.campo_motivo.label_tag }}{{ participante.campo_motivo }}{{ participante.campo_motivo.errors }}</div>
         <div class="field">{{ participante.campo_observacao.label_tag }}{{ participante.campo_observacao }}{{ participante.campo_observacao.errors }}</div>
       </td></tr>

@@ -43,7 +43,7 @@ def nova_chamada(request):
     form_aula = AulaForm(dados, horarios=horarios)
     if request.method == "GET":
         form_aula.initial["data"] = data_referencia
-    form = ChamadaForm(dados, participantes=participantes)
+    form = ChamadaForm(dados, participantes=participantes, exigir_todos=True)
     if request.method == "POST":
         validos = [selecao.is_valid(), form_aula.is_valid(), form.is_valid()]
         if all(validos) and atividade and not indisponivel:

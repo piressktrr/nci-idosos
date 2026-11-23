@@ -148,9 +148,10 @@ class PresencasFMRTests(TestCase):
 
     def test_origem_do_provedor_separa_frequencias_de_demonstracao(self):
         demo = self.inscrever(self.atividade, "ficticio-a", origem="placeholder")
-        self.lancar(date(2024, 2, 1), demo)
+        aula = self.lancar(date(2024, 2, 1), demo).aula
         self.assertEqual(self.consultar()["total_ocorrencias"], 0)
-        self.lancar(date(2024, 2, 1))
+        # Mesma aula: não pode haver duas aulas realizadas da atividade no mesmo dia e horário.
+        Frequencia.objects.create(aula=aula, inscricao=self.pessoa, situacao="presente")
         self.assertEqual(self.consultar()["total_participantes_unicos"], 1)
 
     def test_correcao_e_cancelamento_posteriores_refletidos(self):

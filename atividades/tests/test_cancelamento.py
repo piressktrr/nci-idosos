@@ -68,7 +68,8 @@ class CancelamentoTests(TestCase):
         self.assertFalse(Aula.objects.realizadas().exists())
 
     def test_consulta_de_realizadas_exclui_canceladas_de_todos_os_tipos(self):
-        mantida = self.realizada()
+        # Outro início: a mantida continua realizada e não pode repetir data e início (aula_realizada_unica).
+        mantida = self.realizada(inicio=time(14), fim=time(15))
         for tipo in Aula.Tipo.values:
             self.cancelada(tipo=tipo)
             self.cancelar(self.realizada(tipo=tipo))

@@ -35,7 +35,8 @@ class SituacaoAtividadeTests(TestCase):
         self.assertTrue(Aula.objects.filter(pk=aula.pk).exists())
         self.assertEqual(consultar_frequencia_mensal(usuario=self.admin, ano=2024, mes=2)["totais"]["aulas_realizadas"], 1)
         self.alterar(True)
-        registrar_aula(**dados)
+        # Outro início: a mesma data e início já tem aula realizada (aula_realizada_unica).
+        registrar_aula(**dados | {"inicio": time(14), "fim": time(15)})
         self.assertEqual(Aula.objects.count(), 2)
 
     def test_admin_apenas_idempotencia_e_rollback(self):
