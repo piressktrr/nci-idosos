@@ -77,7 +77,7 @@ Os dados necessários à operação do NCI e à prestação de contas devem ser 
 - **Prioridade:** MVP
 - **Fonte:** P12; §15; confirmação da equipe (revisão 06/11/2026)
 - **Status da definição:** Confirmado
-- **Resposta do NCI (20/11/2026):** os dados ficam guardados enquanto a pessoa estiver no serviço; após o desligamento, devem ser anonimizados. O momento e o procedimento da anonimização (inclusive no histórico de auditoria) ainda serão detalhados.
+- **Respostas do NCI (20 e 21/11/2026):** os dados ficam guardados enquanto a pessoa estiver no serviço e são **anonimizados 1 ano após o desligamento, apagando todos os dados da pessoa** (para não vazarem para o FMR). O procedimento (inclusive no histórico de auditoria e nos backups) ainda será implementado.
 
 ### RNF-SEG-10 — Confirmado
 
@@ -133,7 +133,7 @@ A hospedagem inicial deve admitir modalidade gratuita e migração posterior par
 
 - **Prioridade:** MVP
 - **Fonte:** D02; §13
-- **Status da definição:** Confirmado
+- **Status da definição:** Confirmado. Decisão da equipe (22/11/2026): ambiente de teste no plano gratuito do Render até a produção, prevista para 2027; o banco gratuito expira e pode ser recriado (só dados fictícios).
 
 ### RNF-SEG-17 — Confirmado
 

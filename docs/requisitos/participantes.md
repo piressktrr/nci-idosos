@@ -51,7 +51,7 @@ Registrar o desligamento com data e motivo selecionado da lista do FMR, mantendo
 
 - **Prioridade:** MVP
 - **Fonte:** D05; FMR
-- **Status da definição:** Confirmado
+- **Status da definição:** Confirmado. Resposta do NCI (21/11/2026) (Q3): ficam os 6 motivos já cadastrados, sem opção "Outro".
 
 ### RF-PAR-08 — Confirmado
 
@@ -91,7 +91,7 @@ Representar afastamentos temporários sem confundi-los com desligamento, conform
 
 - **Prioridade:** MVP
 - **Fonte:** P02; §8
-- **Status da definição:** Confirmado. Resposta do NCI (20/11/2026): afastamento é por problema de saúde; o participante continua no serviço e suas inscrições e lista de espera ficam apenas suspensas (faltas no período são justificadas), como implementado no PR #8.
+- **Status da definição:** Confirmado. Respostas do NCI (20 e 21/11/2026): afastamento é por problema de saúde; o participante continua no serviço, as faltas nas inscrições durante o afastamento são justificadas e ele **sai da lista de espera** (a parte da lista de espera ainda não está implementada; é da área de atividades).
 
 ### RF-PAR-13 — Confirmado (implementação adiada)
 
@@ -133,7 +133,7 @@ Cada desligamento deve conter um motivo pertencente à lista de motivos de saíd
 
 - **Prioridade:** MVP
 - **Fonte:** FMR; D05
-- **Status da definição:** Confirmado
+- **Status da definição:** Confirmado. Resposta do NCI (21/11/2026) (Q3): a lista é a dos 6 motivos já cadastrados, sem "Outro".
 
 ### RN-PAR-04 — Confirmado
 
@@ -183,4 +183,4 @@ A situação de afastado, inativo, cancelado ou desabilitado não deve ser equip
 
 - **Prioridade:** MVP
 - **Fonte:** P02; §8
-- **Status da definição:** Confirmado. Resposta do NCI (20/11/2026): afastado = problema de saúde (continua no serviço; inscrições e espera suspensas); inativo = saiu por vontade própria; cancelado = não frequentará por longo período. Mantém-se o comportamento do PR #8 e do relatório FMR.
+- **Status da definição:** Confirmado. Respostas do NCI (20 e 21/11/2026): afastado = problema de saúde (continua no serviço); **cancelado = desligamento com motivo "Desistência"** (os cadastros existentes não serão convertidos por ora); **inativo** = saiu por vontade própria, tratamento a decidir em conjunto pela equipe.
